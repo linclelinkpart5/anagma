@@ -1,3 +1,7 @@
+#[macro_use] extern crate failure;
+
+mod library;
+
 #[cfg(test)]
 mod tests {
     #[test]
