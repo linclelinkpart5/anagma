@@ -2,6 +2,7 @@
 
 use std::path::Path;
 use std::ffi::OsStr;
+use std::fs::DirEntry;
 
 use regex::Regex;
 use failure::Error;
@@ -50,23 +51,24 @@ impl ItemSelection {
         }
     }
 
-    // pub fn selected_entries_in_dir<P: AsRef<Path>>(&self, abs_dir_path: P) -> Result<Vec<DirEntry>> {
-    //     let mut sel_entries: Vec<DirEntry> = vec![];
+    pub fn selected_items_in_dir<P: AsRef<Path>>(&self, abs_dir_path: P) -> Result<Vec<DirEntry>, Error> {
+        let abs_dir_path = abs_dir_path.as_ref();
+        let dir_entries = abs_dir_path.read_dir()?;
 
-    //     let dir_entries = abs_dir_path.read_dir()?;
+        let mut sel_entries = vec![];
 
-    //     for dir_entry in dir_entries {
-    //         if let Ok(dir_entry) = dir_entry {
-    //             if self.is_selected_path(dir_entry.path()) {
-    //                 sel_entries.push(dir_entry);
-    //             }
-    //         } else {
-    //             // TODO: Figure out what to do here.
-    //         }
-    //     }
+        for dir_entry in dir_entries {
+            if let Ok(dir_entry) = dir_entry {
+                if self.is_selected_path(dir_entry.path()) {
+                    sel_entries.push(dir_entry);
+                }
+            } else {
+                // TODO: Figure out what to do here.
+            }
+        }
 
-    //     Ok(sel_entries)
-    // }
+        Ok(sel_entries)
+    }
 
     // TODO: Create macros/functions to help with selection creation.
 }
@@ -91,7 +93,7 @@ mod tests {
         let tp = temp.path();
 
         // Generate desired file and dir paths.
-        let mut paths_and_flags: Vec<(PathBuf, bool)> = Vec::new();
+        let mut paths_and_flags: Vec<(PathBuf, bool)> = vec![];
 
         let exts = vec!["flac", "ogg",];
         let suffixes = vec!["_a", "_b", "_aa",];
