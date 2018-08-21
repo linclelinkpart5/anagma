@@ -3,6 +3,8 @@
 use std::path::Path;
 use std::ffi::OsStr;
 use std::fs::DirEntry;
+use std::time::SystemTime;
+use std::cmp::Ordering;
 
 use regex::Regex;
 use failure::Error;
@@ -71,6 +73,28 @@ impl ItemSelection {
     }
 
     // TODO: Create macros/functions to help with selection creation.
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum ItemSortOrdering {
+    Name,
+    ModTime,
+}
+
+impl ItemSortOrdering {
+    pub fn path_sort_cmp<P: AsRef<Path>>(&self, abs_item_path_a: P, abs_item_path_b: P) -> Ordering {
+        let abs_item_path_a = abs_item_path_a.as_ref();
+        let abs_item_path_b = abs_item_path_b.as_ref();
+
+        match *self {
+            ItemSortOrdering::Name => abs_item_path_a.file_name().cmp(&abs_item_path_b.file_name()),
+            ItemSortOrdering::ModTime => ItemSortOrdering::get_mtime(abs_item_path_a).cmp(&ItemSortOrdering::get_mtime(abs_item_path_b)),
+        }
+    }
+
+    fn get_mtime<P: AsRef<Path>>(abs_path: P) -> Option<SystemTime> {
+        abs_path.as_ref().metadata().and_then(|m| m.modified()).ok()
+    }
 }
 
 #[cfg(test)]
