@@ -1,3 +1,4 @@
+#![feature(generators)]
 #![feature(generator_trait)]
 
 #[macro_use] extern crate failure;
