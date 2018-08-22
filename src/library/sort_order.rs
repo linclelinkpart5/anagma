@@ -23,4 +23,3 @@ impl SortOrder {
         abs_path.as_ref().metadata().and_then(|m| m.modified()).ok()
     }
 }
-
