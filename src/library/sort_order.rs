@@ -24,3 +24,47 @@ impl SortOrder {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    extern crate tempdir;
+
+    use std::path::PathBuf;
+    use std::fs::DirBuilder;
+    use std::fs::File;
+    use std::thread;
+    use std::time::Duration;
+    use std::time::SystemTime;
+
+    use self::tempdir::TempDir;
+    use regex::Regex;
+
+    use super::SortOrder;
+
+    #[test]
+    // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
+    fn test_get_mtime() {
+        // Create temp directory.
+        let temp = TempDir::new("test_get_mtime").unwrap();
+        let tp = temp.path();
+
+        let time_a = SystemTime::now();
+
+        thread::sleep(Duration::from_millis(10));
+
+        // Create a file to get the mtime of.
+        let path = tp.join("file");
+        File::create(&path).unwrap();
+
+        thread::sleep(Duration::from_millis(10));
+
+        let time_b = SystemTime::now();
+
+        let file_time = SortOrder::get_mtime(&path).unwrap();
+
+        assert!(time_a < file_time);
+        assert!(file_time < time_b);
+
+        // Test getting time of nonexistent file.
+        assert_eq!(None, SortOrder::get_mtime(tp.join("DOES_NOT_EXIST")));
+    }
+}
