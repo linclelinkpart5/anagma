@@ -5,9 +5,10 @@ use std::fs::DirEntry;
 use regex::Regex;
 use failure::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Selection {
     Ext(String),
+    #[serde(with = "serde_regex")]
     Regex(Regex),
     IsFile,
     IsDir,

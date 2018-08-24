@@ -2,7 +2,7 @@ use std::path::Path;
 use std::cmp::Ordering;
 use std::time::SystemTime;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SortOrder {
     Name,
     ModTime,
