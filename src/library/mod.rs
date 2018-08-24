@@ -2,3 +2,4 @@
 
 pub mod selection;
 pub mod sort_order;
+pub mod config;

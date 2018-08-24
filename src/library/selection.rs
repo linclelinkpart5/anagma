@@ -7,17 +7,36 @@ use failure::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Selection {
+    #[serde(rename = "ext")]
     Ext(String),
+
     #[serde(with = "serde_regex")]
+    #[serde(rename = "regex")]
     Regex(Regex),
+
+    #[serde(rename = "is_file")]
     IsFile,
+
+    #[serde(rename = "is_dir")]
     IsDir,
+
+    #[serde(rename = "and")]
     And(Box<Selection>, Box<Selection>),
+
+    #[serde(rename = "or")]
     Or(Box<Selection>, Box<Selection>),
+
+    #[serde(rename = "xor")]
     Xor(Box<Selection>, Box<Selection>),
+
+    #[serde(rename = "not")]
     Not(Box<Selection>),
-    True,
-    False,
+
+    #[serde(rename = "all")]
+    All,
+
+    #[serde(rename = "none")]
+    None,
 }
 
 impl Selection {
@@ -45,8 +64,8 @@ impl Selection {
             Selection::Xor(ref sel_a, ref sel_b) => sel_a.is_selected_path(&abs_item_path)
                 ^ sel_b.is_selected_path(&abs_item_path),
             Selection::Not(ref sel) => !sel.is_selected_path(&abs_item_path),
-            Selection::True => true,
-            Selection::False => false,
+            Selection::All => true,
+            Selection::None => false,
         }
     }
 
@@ -155,8 +174,8 @@ mod tests {
             (Selection::Not(
                 Box::new(Selection::Ext("flac".to_string())),
             ), vec![0, 1, 4, 5, 6, 7, 10, 11, 12, 13, 16, 17]),
-            (Selection::True, (0..18).collect()),
-            (Selection::False, vec![]),
+            (Selection::All, (0..18).collect()),
+            (Selection::None, vec![]),
         ];
 
         // Run the tests.
