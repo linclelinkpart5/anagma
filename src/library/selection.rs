@@ -1,9 +1,12 @@
 use std::path::Path;
 use std::ffi::OsStr;
 use std::fs::DirEntry;
+use std::collections::HashSet;
 
 use regex::Regex;
 use failure::Error;
+use globset::Glob;
+use globset::GlobSetBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Selection {
@@ -38,6 +41,9 @@ pub enum Selection {
     #[serde(rename = "none")]
     None,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SimpleSelection(HashSet<String>);
 
 impl Selection {
     pub fn is_selected_path<P: AsRef<Path>>(&self, abs_item_path: P) -> bool {
