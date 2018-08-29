@@ -1,11 +1,11 @@
 use std::path::Path;
 use std::ffi::OsStr;
 use std::fs::DirEntry;
-use std::collections::HashSet;
 
 use regex::Regex;
 use failure::Error;
 use globset::Glob;
+use globset::GlobSet;
 use globset::GlobSetBuilder;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,7 +43,19 @@ pub enum Selection {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct SimpleSelection(HashSet<String>);
+pub struct SimpleSelection(Vec<String>);
+
+impl SimpleSelection {
+    pub fn create_globset(&self) -> Result<GlobSet, Error> {
+        let mut builder = GlobSetBuilder::new();
+
+        for pattern in &self.0 {
+            builder.add(Glob::new(&pattern)?);
+        }
+
+        Ok(builder.build()?)
+    }
+}
 
 impl Selection {
     pub fn is_selected_path<P: AsRef<Path>>(&self, abs_item_path: P) -> bool {
