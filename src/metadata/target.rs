@@ -24,7 +24,7 @@ impl MetaTarget {
             MetaTarget::Siblings => {
                 match item_path.parent() {
                     Some(item_path_parent) => item_path_parent.join("taggu_item.yml"),
-                    None => bail!("item path does not have a parent or is system root"),
+                    None => bail!(format!("item path does not have a parent or is system root: {}", item_path.to_string_lossy())),
                 }
             }
         };

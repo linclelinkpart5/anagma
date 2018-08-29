@@ -85,3 +85,12 @@ pub enum MappingIterScheme {
 pub type MetaBlock = BTreeMap<String, MetaValue>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
 pub type MetaBlockMap = HashMap<String, MetaBlock>;
+
+/// A data structure-level representation of all possible metadata types and their formats.
+/// This is intended to be independent of the text-level representation of the metadata.
+#[derive(Debug)]
+pub enum Metadata {
+    Contains(MetaBlock),
+    SiblingsSeq(MetaBlockSeq),
+    SiblingsMap(MetaBlockMap),
+}
