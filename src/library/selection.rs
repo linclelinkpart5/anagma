@@ -7,6 +7,8 @@ use failure::Error;
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
+use serde::Deserialize;
+use serde::de::Deserializer;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Selection {
@@ -40,6 +42,46 @@ pub enum Selection {
 
     #[serde(rename = "none")]
     None,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum GlobStrings {
+    One(String),
+    Many(Vec<String>),
+}
+
+impl GlobStrings {
+    fn make_globset(&self) -> Result<GlobSet, Error> {
+        let mut patterns = vec![];
+
+        match *self {
+            GlobStrings::One(ref s) => {
+                patterns.push(s);
+            },
+            GlobStrings::Many(ref ss) => {
+                for s in ss {
+                    patterns.push(s);
+                }
+            },
+        }
+
+        let mut builder = GlobSetBuilder::new();
+
+        for pattern in &patterns {
+            builder.add(Glob::new(&pattern)?);
+        }
+
+        Ok(builder.build()?)
+    }
+}
+
+fn coercible<'de, D>(deserializer: D) -> Result<GlobSet, D::Error>
+where D: Deserializer<'de> {
+    use serde::de::Error;
+    let glob_strings = GlobStrings::deserialize(deserializer).map_err(Error::custom)?;
+    let glob_set = glob_strings.make_globset().map_err(Error::custom)?;
+    Ok(glob_set)
 }
 
 #[derive(Debug, Clone, Deserialize)]

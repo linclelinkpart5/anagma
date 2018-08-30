@@ -6,6 +6,7 @@
 extern crate regex;
 #[macro_use] extern crate maplit;
 extern crate yaml_rust;
+extern crate serde;
 extern crate serde_yaml;
 #[macro_use] extern crate serde_derive;
 extern crate globset;
