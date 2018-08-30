@@ -4,7 +4,9 @@ use std::time::SystemTime;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SortOrder {
+    #[serde(rename = "name")]
     Name,
+    #[serde(rename = "mod_time")]
     ModTime,
 }
 
