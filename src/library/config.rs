@@ -70,5 +70,14 @@ mod tests {
         assert!(config.selection.is_match("music.flac"));
         assert!(!config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::Name);
+
+        let text_config = "selection:\n  - '*.flac'\n  - '*.mp3'\nsort_order: mod_time";
+
+        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+
+        assert!(config.selection.is_match("music.flac"));
+        assert!(config.selection.is_match("music.mp3"));
+        assert!(!config.selection.is_match("photo.png"));
+        assert_eq!(config.sort_order, SortOrder::ModTime);
     }
 }
