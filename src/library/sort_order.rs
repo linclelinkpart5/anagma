@@ -43,6 +43,45 @@ mod tests {
     use super::SortOrder;
 
     #[test]
+    fn test_path_sort_cmp() {
+        // Create temp directory.
+        let temp = TempDir::new("").unwrap();
+        let tp = temp.path();
+
+        let fps = vec![
+            tp.join("file_b"),
+            tp.join("file_a"),
+            tp.join("file_d"),
+            tp.join("file_e"),
+            tp.join("file_c"),
+        ];
+
+        for fp in &fps {
+            // LEARN: Because we're iterating over a ref to a vector, the iter vars are also refs.
+            File::create(fp).expect(&format!(r#"Unable to create file "{:?}""#, fp));
+            thread::sleep(Duration::from_millis(10));
+        }
+
+        // Test sorting by mod time.
+        let sort_order = SortOrder::ModTime;
+
+        for (o_i, o_val) in fps.iter().enumerate() {
+            for (i_i, i_val) in fps.iter().enumerate() {
+                assert_eq!(o_i.cmp(&i_i), sort_order.path_sort_cmp(o_val, i_val));
+            }
+        }
+
+        // Test sorting by name.
+        let sort_order = SortOrder::Name;
+
+        for o_val in fps.iter() {
+            for i_val in fps.iter() {
+                assert_eq!(o_val.file_name().cmp(&i_val.file_name()), sort_order.path_sort_cmp(o_val, i_val));
+            }
+        }
+    }
+
+    #[test]
     // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
     fn test_get_mtime() {
         // Create temp directory.
