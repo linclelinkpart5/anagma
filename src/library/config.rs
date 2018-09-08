@@ -43,11 +43,23 @@ where D: Deserializer<'de> {
     Ok(glob_set)
 }
 
+fn default_item_meta_fn() -> String {
+    "taggu_item.yml".to_string()
+}
+
+fn default_self_meta_fn() -> String {
+    "taggu_self.yml".to_string()
+}
+
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(deserialize_with = "coerce_to_globset")]
-    selection: GlobSet,
-    sort_order: SortOrder,
+    pub selection: GlobSet,
+    pub sort_order: SortOrder,
+    #[serde(default = "default_item_meta_fn")]
+    pub item_meta_fn: String,
+    #[serde(default = "default_self_meta_fn")]
+    pub self_meta_fn: String,
 }
 
 #[cfg(test)]
@@ -68,8 +80,11 @@ mod tests {
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
         assert!(config.selection.is_match("music.flac"));
+        assert!(!config.selection.is_match("music.mp3"));
         assert!(!config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::Name);
+        assert_eq!(config.item_meta_fn, "taggu_item.yml");
+        assert_eq!(config.self_meta_fn, "taggu_self.yml");
 
         let text_config = "selection:\n  - '*.flac'\n  - '*.mp3'\nsort_order: mod_time";
 
@@ -79,6 +94,8 @@ mod tests {
         assert!(config.selection.is_match("music.mp3"));
         assert!(!config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::ModTime);
+        assert_eq!(config.item_meta_fn, "taggu_item.yml");
+        assert_eq!(config.self_meta_fn, "taggu_self.yml");
 
         let text_config = "selection: '*'\nsort_order: mod_time";
 
@@ -88,5 +105,21 @@ mod tests {
         assert!(config.selection.is_match("music.mp3"));
         assert!(config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::ModTime);
+        assert_eq!(config.item_meta_fn, "taggu_item.yml");
+        assert_eq!(config.self_meta_fn, "taggu_self.yml");
+
+        let text_config = "selection: '*'
+sort_order: name
+item_meta_fn: item_meta.yml
+";
+
+        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+
+        assert!(config.selection.is_match("music.flac"));
+        assert!(config.selection.is_match("music.mp3"));
+        assert!(config.selection.is_match("photo.png"));
+        assert_eq!(config.sort_order, SortOrder::Name);
+        assert_eq!(config.item_meta_fn, "item_meta.yml");
+        assert_eq!(config.self_meta_fn, "taggu_self.yml");
     }
 }
