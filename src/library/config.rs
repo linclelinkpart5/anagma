@@ -66,10 +66,6 @@ pub struct Config {
 mod tests {
     use serde_yaml;
 
-    use globset::Glob;
-    use globset::GlobSet;
-    use globset::GlobSetBuilder;
-
     use super::Config;
     use super::SortOrder;
 

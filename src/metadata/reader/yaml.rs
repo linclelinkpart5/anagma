@@ -16,7 +16,7 @@ use metadata::types::MetaBlockMap;
 pub struct YamlMetaReader;
 
 impl MetaReader for YamlMetaReader {
-    fn from_str<S: AsRef<str>>(s: S, mt: MetaTarget) -> Result<Metadata, Error> {
+    fn from_str<S: AsRef<str>>(s: S, mt: &MetaTarget) -> Result<Metadata, Error> {
         let s = s.as_ref();
         let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s)?;
 
@@ -145,12 +145,12 @@ pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, Error> {
     }
 }
 
-pub fn yaml_as_metadata(y: &Yaml, meta_target: MetaTarget) -> Result<Metadata, Error> {
+pub fn yaml_as_metadata(y: &Yaml, meta_target: &MetaTarget) -> Result<Metadata, Error> {
     match meta_target {
-        MetaTarget::Contains => {
+        MetaTarget::Contains(_) => {
             yaml_as_meta_block(y).map(|m| Metadata::Contains(m))
         },
-        MetaTarget::Siblings => {
+        MetaTarget::Siblings(_) => {
             yaml_as_meta_block_seq(y).map(|m| Metadata::SiblingsSeq(m))
                 .or(yaml_as_meta_block_map(y).map(|m| Metadata::SiblingsMap(m)))
         },

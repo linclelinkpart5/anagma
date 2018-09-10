@@ -3,10 +3,10 @@ use std::path::PathBuf;
 
 use failure::Error;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone)]
 pub enum MetaTarget {
-    Contains,
-    Siblings,
+    Contains(PathBuf),
+    Siblings(PathBuf),
 }
 
 impl MetaTarget {
@@ -16,14 +16,14 @@ impl MetaTarget {
         ensure!(item_path.exists(), format!("item path does not exist: {}", item_path.to_string_lossy()));
 
         let meta_path = match *self {
-            MetaTarget::Contains => {
+            MetaTarget::Contains(ref file_name) => {
                 ensure!(item_path.is_dir(), format!("item path is not a directory: {}", item_path.to_string_lossy()));
 
-                item_path.join("taggu_self.yml")
+                item_path.join(file_name)
             },
-            MetaTarget::Siblings => {
+            MetaTarget::Siblings(ref file_name) => {
                 match item_path.parent() {
-                    Some(item_path_parent) => item_path_parent.join("taggu_item.yml"),
+                    Some(item_path_parent) => item_path_parent.join(file_name),
                     None => bail!(format!("item path does not have a parent or is system root: {}", item_path.to_string_lossy())),
                 }
             }
