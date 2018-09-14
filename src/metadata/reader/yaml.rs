@@ -6,9 +6,9 @@ use failure::Error;
 
 use metadata::reader::MetaReader;
 use metadata::location::MetaLocation;
-use metadata::types::MetaStructure;
-use metadata::types::MetaKey;
-use metadata::types::MetaValue;
+use metadata::structure::MetaStructure;
+use metadata::types::key::MetaKey;
+use metadata::types::val::MetaValue;
 use metadata::types::MetaBlock;
 use metadata::types::MetaBlockSeq;
 use metadata::types::MetaBlockMap;
@@ -159,8 +159,8 @@ pub fn yaml_as_metadata(y: &Yaml, meta_target: &MetaLocation) -> Result<MetaStru
 
 #[cfg(test)]
 mod tests {
-    use metadata::types::MetaKey;
-    use metadata::types::MetaValue;
+    use metadata::types::key::MetaKey;
+    use metadata::types::val::MetaValue;
     use metadata::types::MetaBlock;
     use yaml_rust::YamlLoader;
 
