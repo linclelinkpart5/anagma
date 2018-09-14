@@ -68,57 +68,124 @@ mod tests {
     use super::MetaVal;
     use super::MappingIterScheme;
 
+    use metadata::types::key::MetaKey;
+
     #[test]
     fn test_iter_over() {
         let inputs_and_expected = vec![
-            // Nil expands to no string values.
             (
                 MetaVal::Nil,
                 vec![],
             ),
-            // Str expands into exactly one string value.
             (
-                MetaVal::Str("sample".to_string()),
-                vec!["sample"],
+                MetaVal::Str("val".to_string()),
+                vec!["val"],
             ),
             (
                 MetaVal::Seq(vec![
-                    MetaVal::Str("sample_a".to_string()),
-                    MetaVal::Str("sample_b".to_string()),
-                    MetaVal::Str("sample_c".to_string()),
+                    MetaVal::Str("val_a".to_string()),
+                    MetaVal::Str("val_b".to_string()),
+                    MetaVal::Str("val_c".to_string()),
                 ]),
-                vec!["sample_a", "sample_b", "sample_c"],
+                vec!["val_a", "val_b", "val_c"],
             ),
             (
                 MetaVal::Seq(vec![
-                    MetaVal::Str("sample_a".to_string()),
+                    MetaVal::Str("val_a".to_string()),
                     MetaVal::Seq(vec![
-                        MetaVal::Str("sample_b".to_string()),
-                        MetaVal::Str("sample_c".to_string()),
+                        MetaVal::Str("val_b".to_string()),
+                        MetaVal::Str("val_c".to_string()),
                     ]),
-                    MetaVal::Str("sample_d".to_string()),
+                    MetaVal::Str("val_d".to_string()),
                 ]),
-                vec!["sample_a", "sample_b", "sample_c", "sample_d"],
+                vec!["val_a", "val_b", "val_c", "val_d"],
             ),
             (
                 MetaVal::Seq(vec![
-                    MetaVal::Str("sample_a".to_string()),
+                    MetaVal::Str("val_a".to_string()),
                     MetaVal::Nil,
                     MetaVal::Seq(vec![
-                        MetaVal::Str("sample_b".to_string()),
-                        MetaVal::Str("sample_c".to_string()),
+                        MetaVal::Str("val_b".to_string()),
+                        MetaVal::Str("val_c".to_string()),
                         MetaVal::Nil,
                     ]),
-                    MetaVal::Str("sample_d".to_string()),
+                    MetaVal::Str("val_d".to_string()),
                     MetaVal::Nil,
                 ]),
-                vec!["sample_a", "sample_b", "sample_c", "sample_d"],
+                vec!["val_a", "val_b", "val_c", "val_d"],
             ),
         ];
 
-        // Not relevant for this batch of test cases.
-        let mis = MappingIterScheme::Both;
         for (input, expected) in inputs_and_expected {
+            let produced: Vec<_> = input.iter_over(MappingIterScheme::Both).collect();
+            assert_eq!(expected, produced);
+        }
+
+        // For testing mappings.
+        let map_a = MetaVal::Map(btreemap![
+            MetaKey::Nil => MetaVal::Str("val_x".to_string()),
+            MetaKey::Str("key_d".to_string()) => MetaVal::Nil,
+            MetaKey::Str("key_c".to_string()) => MetaVal::Str("val_c".to_string()),
+            MetaKey::Str("key_b".to_string()) => MetaVal::Str("val_b".to_string()),
+            MetaKey::Str("key_a".to_string()) => MetaVal::Str("val_a".to_string()),
+        ]);
+
+        let map_b = MetaVal::Map(btreemap![
+            MetaKey::Nil => MetaVal::Seq(vec![
+                MetaVal::Str("val_a".to_string()),
+                MetaVal::Str("val_b".to_string()),
+                MetaVal::Str("val_c".to_string()),
+                MetaVal::Str("val_d".to_string()),
+            ]),
+            MetaKey::Str("key_d".to_string()) => MetaVal::Str("val_k".to_string()),
+            MetaKey::Str("key_c".to_string()) => MetaVal::Seq(vec![
+                MetaVal::Str("val_j".to_string()),
+            ]),
+            MetaKey::Str("key_b".to_string()) => MetaVal::Seq(vec![
+                MetaVal::Str("val_h".to_string()),
+                MetaVal::Str("val_i".to_string()),
+            ]),
+            MetaKey::Str("key_a".to_string()) => MetaVal::Seq(vec![
+                MetaVal::Str("val_e".to_string()),
+                MetaVal::Str("val_f".to_string()),
+                MetaVal::Str("val_g".to_string()),
+            ]),
+        ]);
+
+        let inputs_and_expected = vec![
+            (
+                (map_a.clone(), MappingIterScheme::Both),
+                vec!["val_x", "key_a", "val_a", "key_b", "val_b", "key_c", "val_c", "key_d"],
+            ),
+            (
+                (map_a.clone(), MappingIterScheme::Keys),
+                vec!["key_a", "key_b", "key_c", "key_d"],
+            ),
+            (
+                (map_a.clone(), MappingIterScheme::Vals),
+                vec!["val_x", "val_a", "val_b", "val_c"],
+            ),
+            (
+                (map_b.clone(), MappingIterScheme::Both),
+                vec![
+                    "val_a", "val_b", "val_c", "val_d", "key_a", "val_e", "val_f", "val_g",
+                    "key_b", "val_h", "val_i", "key_c", "val_j", "key_d", "val_k",
+                ],
+            ),
+            (
+                (map_b.clone(), MappingIterScheme::Keys),
+                vec!["key_a", "key_b", "key_c","key_d"],
+            ),
+            (
+                (map_b.clone(), MappingIterScheme::Vals),
+                vec![
+                    "val_a", "val_b", "val_c", "val_d", "val_e", "val_f",
+                    "val_g", "val_h", "val_i", "val_j", "val_k",
+                ],
+            ),
+        ];
+
+        for ((input, mis), expected) in inputs_and_expected {
             let produced: Vec<_> = input.iter_over(mis).collect();
             assert_eq!(expected, produced);
         }
