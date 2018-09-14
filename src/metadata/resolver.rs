@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use failure::Error;
 
 use metadata::types::MetaBlock;
-use metadata::target::MetaTarget;
+use metadata::location::MetaLocation;
 use metadata::reader::MetaReader;
 
 pub fn get_simple_metadata<MR, P, MTS>(
@@ -17,7 +17,7 @@ pub fn get_simple_metadata<MR, P, MTS>(
 where
     MR: MetaReader,
     P: AsRef<Path>,
-    MTS: IntoIterator<Item = MetaTarget>,
+    MTS: IntoIterator<Item = MetaLocation>,
 {
     let target_item_path = target_item_path.as_ref();
 

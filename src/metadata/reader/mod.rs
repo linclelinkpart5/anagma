@@ -6,13 +6,13 @@ use std::io::Read;
 
 use failure::Error;
 
-use metadata::target::MetaTarget;
-use metadata::types::Metadata;
+use metadata::location::MetaLocation;
+use metadata::types::MetaStructure;
 
 pub trait MetaReader {
-    fn from_str<S: AsRef<str>>(s: S, mt: &MetaTarget) -> Result<Metadata, Error>;
+    fn from_str<S: AsRef<str>>(s: S, mt: &MetaLocation) -> Result<MetaStructure, Error>;
 
-    fn from_file<P: AsRef<Path>>(p: P, mt: &MetaTarget) -> Result<Metadata, Error> {
+    fn from_file<P: AsRef<Path>>(p: P, mt: &MetaLocation) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p)?;
 
