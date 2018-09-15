@@ -34,16 +34,4 @@ impl MetaLocation {
 
         Ok(meta_path)
     }
-
-    // pub fn get_target_metadata<P: AsRef<Path>, MR: MetaReader>(&self, item_path: P) -> Result<Metadata> {
-    //     let meta_path = self.get_target_meta_path(item_path)?;
-
-    //     // Try to load metadata in the format associated with the MetaLocation.
-    //     match *self {
-    //         MetaLocation::Contains => {},
-    //         MetaLocation::Siblings => {},
-    //     }
-
-    //     Ok(hashmap![])
-    // }
 }

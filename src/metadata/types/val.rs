@@ -152,6 +152,21 @@ mod tests {
             ]),
         ]);
 
+        let map_c = MetaVal::Map(btreemap![
+            MetaKey::Str("key_d".to_string()) => MetaVal::Map(btreemap![
+                MetaKey::Nil => MetaVal::Str("val_e".to_string()),
+                MetaKey::Str("key_e".to_string()) => MetaVal::Str("val_f".to_string()),
+                MetaKey::Str("key_f".to_string()) => MetaVal::Str("val_g".to_string()),
+                MetaKey::Str("key_g".to_string()) => MetaVal::Str("val_h".to_string()),
+            ]),
+            MetaKey::Nil => MetaVal::Map(btreemap![
+                MetaKey::Nil => MetaVal::Str("val_a".to_string()),
+                MetaKey::Str("key_a".to_string()) => MetaVal::Str("val_b".to_string()),
+                MetaKey::Str("key_b".to_string()) => MetaVal::Str("val_c".to_string()),
+                MetaKey::Str("key_c".to_string()) => MetaVal::Str("val_d".to_string()),
+            ]),
+        ]);
+
         let inputs_and_expected = vec![
             (
                 (map_a.clone(), MappingIterScheme::Both),
@@ -181,6 +196,27 @@ mod tests {
                 vec![
                     "val_a", "val_b", "val_c", "val_d", "val_e", "val_f",
                     "val_g", "val_h", "val_i", "val_j", "val_k",
+                ],
+            ),
+            (
+                (map_c.clone(), MappingIterScheme::Both),
+                vec![
+                    "val_a", "key_a", "val_b", "key_b", "val_c", "key_c", "val_d", "key_d",
+                    "val_e", "key_e", "val_f", "key_f", "val_g", "key_g", "val_h",
+                ],
+            ),
+            (
+                (map_c.clone(), MappingIterScheme::Keys),
+                vec![
+                    "key_d",
+                    // TODO: Should this be the following (left-side-hugging) instead?
+                    // "key_a", "key_b", "key_c", "key_d", "key_e", "key_f", "key_g",
+                ],
+            ),
+            (
+                (map_c.clone(), MappingIterScheme::Vals),
+                vec![
+                    "val_a", "val_b", "val_c", "val_d", "val_e", "val_f", "val_g", "val_h",
                 ],
             ),
         ];
