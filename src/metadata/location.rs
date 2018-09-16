@@ -5,8 +5,8 @@ use failure::Error;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone)]
 pub enum MetaLocation {
-    Contains(PathBuf),
-    Siblings(PathBuf),
+    Contains(String),
+    Siblings(String),
 }
 
 impl MetaLocation {
