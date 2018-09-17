@@ -5,9 +5,10 @@ pub mod val;
 
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::ffi::OsString;
 
 use metadata::types::val::MetaVal;
 
 pub type MetaBlock = BTreeMap<String, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
-pub type MetaBlockMap = HashMap<String, MetaBlock>;
+pub type MetaBlockMap = HashMap<OsString, MetaBlock>;

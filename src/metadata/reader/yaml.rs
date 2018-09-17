@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::ffi::OsString;
 
 use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
@@ -136,7 +137,7 @@ pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, Error> {
 
                 let val = yaml_as_meta_block(&val_y)?;
 
-                item_map.insert(key, val);
+                item_map.insert(OsString::from(key), val);
             }
 
             Ok(item_map)

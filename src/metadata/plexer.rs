@@ -59,28 +59,28 @@ impl MetaPlexer {
                     },
                 };
             },
-            MetaStructure::Map(mbm) => {
-                // Create a pool of found tags.
-                let mut found = hashset![];
-
-                found.insert(0);
-
+            MetaStructure::Map(mut mbm) => {
                 for item_path in item_paths {
                     // Use the file name of the item path as a key into the mapping.
-                    let raw_key = match item_path.as_ref().file_name() {
+                    let key = match item_path.as_ref().file_name() {
                         Some(file_name) => file_name,
                         None => { bail!("item path does not have a file name"); },
                     };
 
-                    let key = match raw_key.to_str() {
-                        Some(s) => s,
-                        None => { bail!("item path file name is not valid"); },
+                    match mbm.remove(key) {
+                        Some(mb) => {
+                            result.insert(item_path.as_ref().to_path_buf(), mb);
+                        },
+                        None => {
+                            // Key was not found, encountered a file that was not tagged in the mapping.
+                            bail!(format!("item file name \"{}\" not found in mapping", key.to_string_lossy()));
+                        },
                     };
+                }
 
-                    match mbm.get(key) {
-                        Some(mb) => {},
-                        None => {},
-                    };
+                // If there are any leftover keys in mapping, raise error.
+                for (k, _) in mbm.drain() {
+                    bail!(format!("key \"{}\" not found in item file paths", k.to_string_lossy()));
                 }
             },
         };
