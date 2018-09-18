@@ -10,6 +10,8 @@ extern crate serde;
 extern crate serde_yaml;
 #[macro_use] extern crate serde_derive;
 extern crate globset;
+#[macro_use] extern crate log;
+extern crate itertools;
 
 mod library;
 mod metadata;

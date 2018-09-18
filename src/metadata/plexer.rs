@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use failure::Error;
+use itertools::Itertools;
+use itertools::EitherOrBoth;
 
 use metadata::structure::MetaStructure;
 use metadata::types::MetaBlock;
@@ -12,7 +14,7 @@ pub struct MetaPlexer;
 pub type MetaPlexResult = HashMap<PathBuf, MetaBlock>;
 
 impl MetaPlexer {
-    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II) -> Result<MetaPlexResult, Error>
+    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II) -> MetaPlexResult
     where II: IntoIterator<Item = P>,
           P: AsRef<Path>,
     {
@@ -21,71 +23,66 @@ impl MetaPlexer {
         let mut result = MetaPlexResult::new();
 
         match meta_structure {
-            MetaStructure::One(mb) => {
+            MetaStructure::One(meta_block) => {
                 // Exactly one item path is expected.
                 if let Some(item_path) = item_paths.next() {
-                    // Raise error if there are still more paths to process.
-                    if let Some(_) = item_paths.next() {
-                        let extra_count = item_paths.count();
-
-                        bail!(format!("expected exactly 1 item path, found {}", 1 + extra_count));
+                    // If there are excess paths provided, warn for each of them.
+                    for excess_item_path in item_paths {
+                        warn!("unused item path \"{}\"", excess_item_path.as_ref().to_string_lossy());
                     }
 
-                    result.insert(item_path.as_ref().to_path_buf(), mb);
+                    result.insert(item_path.as_ref().to_path_buf(), meta_block);
                 }
                 else {
-                    bail!(format!("expected exactly 1 item path, found {}", 0));
+                    warn!("no item paths provided");
                 }
             },
-            MetaStructure::Seq(mbs) => {
-                let collected_item_paths: Vec<_> = item_paths.collect();
-
-                let expected_num = mbs.len();
-                let produced_num = collected_item_paths.len();
-
-                match expected_num == produced_num {
-                    false => {
-                        // TODO: Warn, but do not error.
-                        bail!(format!("expected exactly {} item path{}, found {}",
-                            expected_num,
-                            if expected_num == 1 { "" } else { "s" },
-                            produced_num,
-                        ));
-                    },
-                    true => {
-                        for (item_path, mb) in collected_item_paths.iter().zip(mbs) {
-                            result.insert(item_path.as_ref().to_path_buf(), mb);
-                        }
-                    },
-                };
+            MetaStructure::Seq(meta_block_seq) => {
+                for eob in item_paths.zip_longest(meta_block_seq) {
+                    match eob {
+                        EitherOrBoth::Both(item_path, meta_block) => {
+                            result.insert(item_path.as_ref().to_path_buf(), meta_block);
+                        },
+                        EitherOrBoth::Left(item_path) => {
+                            warn!("unused item path \"{}\"", item_path.as_ref().to_string_lossy());
+                        },
+                        EitherOrBoth::Right(meta_block) => {
+                            warn!("unused meta block \"{:?}\"", meta_block);
+                        },
+                    }
+                }
             },
-            MetaStructure::Map(mut mbm) => {
+            MetaStructure::Map(mut meta_block_map) => {
                 for item_path in item_paths {
                     // Use the file name of the item path as a key into the mapping.
                     let key = match item_path.as_ref().file_name() {
                         Some(file_name) => file_name,
-                        None => { bail!("item path does not have a file name"); },
+                        None => {
+                            warn!("item path does not have a file name");
+                            continue;
+                        },
                     };
 
-                    match mbm.remove(key) {
-                        Some(mb) => {
-                            result.insert(item_path.as_ref().to_path_buf(), mb);
+                    match meta_block_map.remove(key) {
+                        Some(meta_block) => {
+                            result.insert(item_path.as_ref().to_path_buf(), meta_block);
                         },
                         None => {
                             // Key was not found, encountered a file that was not tagged in the mapping.
-                            bail!(format!("item file name \"{}\" not found in mapping", key.to_string_lossy()));
+                            warn!("item file name \"{}\" not found in mapping", key.to_string_lossy());
+                            continue;
                         },
                     };
                 }
 
-                // If there are any leftover keys in mapping, raise error.
-                for (k, _) in mbm.drain() {
-                    bail!(format!("key \"{}\" not found in item file paths", k.to_string_lossy()));
+                // Warn for any leftover map entries.
+                for (k, _) in meta_block_map.drain() {
+                    warn!("key \"{}\" not found in item file paths", k.to_string_lossy());
                 }
             },
         };
 
-        Ok(result)
+        result
     }
 }
 
@@ -129,13 +126,13 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (ms_a, vec![Path::new("item_a.file")]),
+                (ms_a.clone(), vec![Path::new("item_a.file")]),
                 hashmap![
                     PathBuf::from("item_a.file") => mb_a.clone(),
                 ],
             ),
             (
-                (ms_b, vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
+                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
                 hashmap![
                     PathBuf::from("item_a.file") => mb_a.clone(),
                     PathBuf::from("item_b.file") => mb_b.clone(),
@@ -143,7 +140,21 @@ mod tests {
                 ],
             ),
             (
-                (ms_c, vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
+                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file"), Path::new("item_d.file")]),
+                hashmap![
+                    PathBuf::from("item_a.file") => mb_a.clone(),
+                    PathBuf::from("item_b.file") => mb_b.clone(),
+                    PathBuf::from("item_c.file") => mb_c.clone(),
+                ],
+            ),
+            (
+                (ms_b.clone(), vec![Path::new("item_a.file")]),
+                hashmap![
+                    PathBuf::from("item_a.file") => mb_a.clone(),
+                ],
+            ),
+            (
+                (ms_c.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
                 hashmap![
                     PathBuf::from("item_a.file") => mb_a.clone(),
                     PathBuf::from("item_b.file") => mb_b.clone(),
@@ -154,7 +165,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: MetaPlexResult = MetaPlexer::plex(meta_structure, item_paths).unwrap();
+            let produced: MetaPlexResult = MetaPlexer::plex(meta_structure, item_paths);
             assert_eq!(expected, produced);
         }
     }
