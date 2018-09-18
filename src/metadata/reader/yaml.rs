@@ -29,6 +29,8 @@ impl MetaReader for YamlMetaReader {
     }
 }
 
+// TODO: Encapsulate these functions in an `impl` block.
+
 fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
     match *y {
         Yaml::Null => bail!("cannot convert null to string"),

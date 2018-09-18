@@ -11,16 +11,16 @@ use metadata::types::MetaBlock;
 
 pub struct MetaPlexer;
 
-pub type MetaPlexResult = HashMap<PathBuf, MetaBlock>;
+pub type MetaPlexMap = HashMap<PathBuf, MetaBlock>;
 
 impl MetaPlexer {
-    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II) -> MetaPlexResult
+    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II) -> MetaPlexMap
     where II: IntoIterator<Item = P>,
           P: AsRef<Path>,
     {
         let mut item_paths = item_paths.into_iter();
 
-        let mut result = MetaPlexResult::new();
+        let mut result = MetaPlexMap::new();
 
         match meta_structure {
             MetaStructure::One(meta_block) => {
@@ -89,7 +89,7 @@ impl MetaPlexer {
 #[cfg(test)]
 mod tests {
     use super::MetaPlexer;
-    use super::MetaPlexResult;
+    use super::MetaPlexMap;
 
     use std::path::Path;
     use std::path::PathBuf;
@@ -165,7 +165,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: MetaPlexResult = MetaPlexer::plex(meta_structure, item_paths);
+            let produced: MetaPlexMap = MetaPlexer::plex(meta_structure, item_paths);
             assert_eq!(expected, produced);
         }
     }
