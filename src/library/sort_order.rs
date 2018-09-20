@@ -28,17 +28,12 @@ impl SortOrder {
 
 #[cfg(test)]
 mod tests {
-    extern crate tempdir;
-
-    use std::path::PathBuf;
-    use std::fs::DirBuilder;
     use std::fs::File;
     use std::thread;
     use std::time::Duration;
     use std::time::SystemTime;
 
-    use self::tempdir::TempDir;
-    use regex::Regex;
+    use tempdir::TempDir;
 
     use super::SortOrder;
 

@@ -13,10 +13,10 @@ extern crate globset;
 #[macro_use] extern crate log;
 extern crate itertools;
 
+#[cfg(test)] extern crate tempdir;
+
 mod library;
 mod metadata;
 mod util;
 
-#[cfg(test)]
-mod tests {
-}
+#[cfg(test)] mod test_util;
