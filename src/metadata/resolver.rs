@@ -16,7 +16,7 @@ impl MetaResolver {
     pub fn process_meta_file<MR, P>(
         meta_path: P,
         meta_location: MetaLocation,
-    ) -> Result<HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>, Error>
+    ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
         MR: MetaReader,
         P: AsRef<Path>,
@@ -27,7 +27,7 @@ impl MetaResolver {
 
         let meta_plexed = MetaPlexer::plex(meta_structure, item_paths);
 
-        Ok(hashmap![])
+        Ok(meta_plexed)
     }
 
     pub fn process_meta_file_cached<MR, P>(
@@ -35,20 +35,26 @@ impl MetaResolver {
         meta_location: MetaLocation,
         cache: &mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
         force: bool,
-    ) -> Result<bool, Error>
+    ) -> Result<Cow<HashMap<PathBuf, MetaBlock>>, Error>
     where
         MR: MetaReader,
         P: AsRef<Path>,
     {
         let meta_path = meta_path.as_ref();
 
-        // Check to see if the requested meta path is already cached.
-        if let Some(meta_block) = cache.get(meta_path) {
-            // Return the cached entry.
-            return Ok(true)
+        // Only try reading from cache if not trying to force.
+        if !force {
+            // Check to see if the requested meta path is already cached.
+            if let Some(meta_block) = cache.get(meta_path) {
+                // Return the cached entry.
+                return Ok(Cow::Borrowed(meta_block))
+            }
         }
 
-        Ok(true)
+        // Otherwise, actually process the meta file.
+        let result = MetaResolver::process_meta_file::<MR, _>(meta_path, meta_location);
+
+        Ok(Cow::Owned(hashmap![]))
     }
 
     pub fn get_simple_metadata<MR, P, MLS>(
