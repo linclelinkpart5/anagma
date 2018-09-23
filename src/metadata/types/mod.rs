@@ -7,7 +7,8 @@ use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::ffi::OsString;
 
-use metadata::types::val::MetaVal;
+pub use metadata::types::val::MetaVal;
+pub use metadata::types::key::MetaKey;
 
 pub type MetaBlock = BTreeMap<String, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;

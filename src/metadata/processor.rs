@@ -82,33 +82,37 @@ mod tests {
     use metadata::reader::yaml::YamlMetaReader;
     use metadata::location::MetaLocation;
     use metadata::structure::MetaStructure;
+    use metadata::types::MetaVal;
 
     use test_util::create_temp_media_test_dir;
-
-    // struct TestMetaReader;
-
-    // impl MetaReader for TestMetaReader {
-    //     fn from_str<S: AsRef<str>>(_: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
-    //         Meta
-    //     }
-
-    //     fn from_file<P: AsRef<Path>>(p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
-    //         let p = p.as_ref();
-    //         let mut f = File::open(p)?;
-
-    //         let mut buffer = String::new();
-    //         f.read_to_string(&mut buffer)?;
-
-    //         Self::from_str(buffer, mt)
-    //     }
-    // }
 
     #[test]
     fn test_process_meta_file() {
         let temp_dir = create_temp_media_test_dir("test_process_meta_file");
+        let path = temp_dir.path();
 
-        let result = MetaProcessor::process_meta_file::<YamlMetaReader, _>(temp_dir.path().join("self.yml"), MetaLocation::Contains);
+        let inputs_and_expected = vec![
+            (
+                (path.join("self.yml"), MetaLocation::Contains),
+                hashmap![
+                    path.to_owned() => btreemap![
+                        "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+                        "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    ],
+                ],
+            ),
+        ];
 
-        println!("{:?}", result);
+        for (input, expected) in inputs_and_expected {
+            let (meta_path, meta_location) = input;
+
+            let produced = MetaProcessor::process_meta_file::<YamlMetaReader, _>(meta_path, meta_location).unwrap();
+            assert_eq!(expected, produced);
+        }
+
+        // let result = MetaProcessor::process_meta_file::<YamlMetaReader, _>(path.join("self.yml"), MetaLocation::Contains);
+
+        // println!("{:?}", result);
     }
 }
