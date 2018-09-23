@@ -10,9 +10,9 @@ use metadata::location::MetaLocation;
 use metadata::reader::MetaReader;
 use metadata::plexer::MetaPlexer;
 
-pub struct MetaResolver;
+pub struct MetaProcessor;
 
-impl MetaResolver {
+impl MetaProcessor {
     pub fn process_meta_file<MR, P>(
         meta_path: P,
         meta_location: MetaLocation,
@@ -64,8 +64,10 @@ impl MetaResolver {
         MR: MetaReader,
         P: AsRef<Path>,
     {
-        let meta_path = item_path.as_ref();
+        let meta_path = meta_location.get_meta_path(&item_path)?;
+
         let processed_meta_file = Self::process_meta_file_cached::<MR, _>(&meta_path, meta_location, cache, force)?;
-        processed_meta_file.get(item_path.as_ref()).ok_or(bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy()))
+        processed_meta_file.get(item_path.as_ref())
+            .ok_or(bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy()))
     }
 }
