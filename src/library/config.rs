@@ -64,8 +64,9 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        // TODO: Change to be star after testing.
         let mut builder = GlobSetBuilder::new();
-        builder.add(Glob::new("*").unwrap());
+        builder.add(Glob::new("*.flac").unwrap());
 
         let selection = builder.build().unwrap();
 

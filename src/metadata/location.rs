@@ -74,17 +74,20 @@ impl MetaLocation {
         }
     }
 
+    // TODO: Make sorting optional, for cases where ordering does not matter.
     pub fn get_configured_item_paths<P: AsRef<Path>>(
         &self,
         meta_path: P,
         config: &Config,
-        ) -> Result<Vec<PathBuf>, Error> {
+        ) -> Result<Vec<PathBuf>, Error>
+    {
         let item_paths = self.get_item_paths(meta_path)?;
 
         // Use the config object to filter and then sort the item paths.
+        // NOTE: Selection is only performed on file paths, not directory paths!
         let mut result: Vec<_> = item_paths
             .into_iter()
-            .filter(|ip| config.selection.is_match(ip))
+            .filter(|ip| if !ip.is_dir() { config.selection.is_match(ip) } else { true })
             .collect()
         ;
         result.sort_by(|a, b| config.sort_order.path_sort_cmp(a, b));
