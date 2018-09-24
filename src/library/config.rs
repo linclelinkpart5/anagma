@@ -44,11 +44,11 @@ where D: Deserializer<'de> {
 }
 
 fn default_item_meta_fn() -> String {
-    "taggu_item.yml".to_string()
+    "item.yml".to_string()
 }
 
 fn default_self_meta_fn() -> String {
-    "taggu_self.yml".to_string()
+    "self.yml".to_string()
 }
 
 #[derive(Deserialize)]
@@ -72,8 +72,8 @@ impl Default for Config {
         Config {
             selection,
             sort_order: SortOrder::Name,
-            item_meta_fn: "item.yml".to_string(),
-            self_meta_fn: "self.yml".to_string(),
+            item_meta_fn: default_item_meta_fn(),
+            self_meta_fn: default_self_meta_fn(),
         }
     }
 }
@@ -95,8 +95,8 @@ mod tests {
         assert!(!config.selection.is_match("music.mp3"));
         assert!(!config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::Name);
-        assert_eq!(config.item_meta_fn, "taggu_item.yml");
-        assert_eq!(config.self_meta_fn, "taggu_self.yml");
+        assert_eq!(config.item_meta_fn, "item.yml");
+        assert_eq!(config.self_meta_fn, "self.yml");
 
         let text_config = "selection:\n  - '*.flac'\n  - '*.mp3'\nsort_order: mod_time";
 
@@ -106,8 +106,8 @@ mod tests {
         assert!(config.selection.is_match("music.mp3"));
         assert!(!config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::ModTime);
-        assert_eq!(config.item_meta_fn, "taggu_item.yml");
-        assert_eq!(config.self_meta_fn, "taggu_self.yml");
+        assert_eq!(config.item_meta_fn, "item.yml");
+        assert_eq!(config.self_meta_fn, "self.yml");
 
         let text_config = "selection: '*'\nsort_order: mod_time";
 
@@ -117,8 +117,8 @@ mod tests {
         assert!(config.selection.is_match("music.mp3"));
         assert!(config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::ModTime);
-        assert_eq!(config.item_meta_fn, "taggu_item.yml");
-        assert_eq!(config.self_meta_fn, "taggu_self.yml");
+        assert_eq!(config.item_meta_fn, "item.yml");
+        assert_eq!(config.self_meta_fn, "self.yml");
 
         let text_config = "selection: '*'
 sort_order: name
@@ -132,6 +132,6 @@ item_meta_fn: item_meta.yml
         assert!(config.selection.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_meta_fn, "item_meta.yml");
-        assert_eq!(config.self_meta_fn, "taggu_self.yml");
+        assert_eq!(config.self_meta_fn, "self.yml");
     }
 }
