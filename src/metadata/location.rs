@@ -4,6 +4,8 @@ use std::fs;
 
 use failure::Error;
 
+use library::config::Config;
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
 pub enum MetaLocation {
     Contains,
@@ -70,5 +72,23 @@ impl MetaLocation {
             // This should never happen!
             bail!(format!("meta path does not have a parent directory: {}", meta_path.to_string_lossy()));
         }
+    }
+
+    pub fn get_configured_item_paths<P: AsRef<Path>>(
+        &self,
+        meta_path: P,
+        config: &Config,
+        ) -> Result<Vec<PathBuf>, Error> {
+        let item_paths = self.get_item_paths(meta_path)?;
+
+        // Use the config object to filter and then sort the item paths.
+        let mut result: Vec<_> = item_paths
+            .into_iter()
+            .filter(|ip| config.selection.is_match(ip))
+            .collect()
+        ;
+        result.sort_by(|a, b| config.sort_order.path_sort_cmp(a, b));
+
+        Ok(result)
     }
 }
