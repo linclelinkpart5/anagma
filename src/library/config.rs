@@ -62,6 +62,22 @@ pub struct Config {
     pub self_meta_fn: String,
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        let mut builder = GlobSetBuilder::new();
+        builder.add(Glob::new("*").unwrap());
+
+        let selection = builder.build().unwrap();
+
+        Config {
+            selection,
+            sort_order: SortOrder::Name,
+            item_meta_fn: "item.yml".to_string(),
+            self_meta_fn: "self.yml".to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_yaml;
