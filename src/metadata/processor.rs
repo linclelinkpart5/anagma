@@ -32,6 +32,28 @@ impl MetaProcessor {
         Ok(meta_plexed)
     }
 
+    pub fn process_item_file<MR, P>(
+        item_path: P,
+        meta_location: MetaLocation,
+        config: &Config,
+    ) -> Result<MetaBlock, Error>
+    where
+        MR: MetaReader,
+        P: AsRef<Path>,
+    {
+        let meta_path = meta_location.get_meta_path(&item_path)?;
+
+        let mut processed_meta_file = Self::process_meta_file::<MR, _>(&meta_path, meta_location, config)?;
+
+        // The remaining results can be thrown away.
+        if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
+            Ok(meta_block)
+        }
+        else {
+            bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy());
+        }
+    }
+
     pub fn process_meta_file_cached<'c, MR, P>(
         meta_path: P,
         meta_location: MetaLocation,
