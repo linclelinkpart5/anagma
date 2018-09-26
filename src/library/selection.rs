@@ -34,3 +34,54 @@ impl Default for Selection {
         Selection::from_patterns(&["*"]).unwrap()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Selection;
+
+    use std::path::Path;
+
+    #[test]
+    fn test_is_match() {
+        let selection_a = Selection::from_patterns(&["*.a", "*.b"]).unwrap();
+        let selection_b = Selection::from_patterns(&["*.b"]).unwrap();
+        let selection_c = Selection::from_patterns(&["*.a", "*.c"]).unwrap();
+        let selection_d = Selection::from_patterns(&["*"]).unwrap();
+
+        assert_eq!(selection_a.is_match(Path::new("path.a")), true);
+        assert_eq!(selection_a.is_match(Path::new("path.b")), true);
+        assert_eq!(selection_a.is_match(Path::new("path.c")), false);
+        assert_eq!(selection_a.is_match(Path::new("path.ab")), false);
+        assert_eq!(selection_a.is_match(Path::new("path")), false);
+
+        assert_eq!(selection_b.is_match(Path::new("path.a")), false);
+        assert_eq!(selection_b.is_match(Path::new("path.b")), true);
+        assert_eq!(selection_b.is_match(Path::new("path.c")), false);
+        assert_eq!(selection_b.is_match(Path::new("path.ab")), false);
+        assert_eq!(selection_b.is_match(Path::new("path")), false);
+
+        assert_eq!(selection_c.is_match(Path::new("path.a")), true);
+        assert_eq!(selection_c.is_match(Path::new("path.b")), false);
+        assert_eq!(selection_c.is_match(Path::new("path.c")), true);
+        assert_eq!(selection_c.is_match(Path::new("path.ab")), false);
+        assert_eq!(selection_c.is_match(Path::new("path")), false);
+
+        assert_eq!(selection_d.is_match(Path::new("path.a")), true);
+        assert_eq!(selection_d.is_match(Path::new("path.b")), true);
+        assert_eq!(selection_d.is_match(Path::new("path.c")), true);
+        assert_eq!(selection_d.is_match(Path::new("path.ab")), true);
+        assert_eq!(selection_d.is_match(Path::new("path")), true);
+    }
+
+    #[test]
+    fn test_default() {
+        // The default value should be a "match-any" pattern.
+        let selection = Selection::default();
+
+        assert_eq!(selection.is_match(Path::new("path")), true);
+        assert_eq!(selection.is_match(Path::new("path.a")), true);
+        assert_eq!(selection.is_match(Path::new("path.a.b.c")), true);
+        assert_eq!(selection.is_match(Path::new("path.ab")), true);
+        assert_eq!(selection.is_match(Path::new("")), true);
+    }
+}
