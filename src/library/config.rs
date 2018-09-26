@@ -8,39 +8,34 @@ use serde::Deserialize;
 use serde::de::Deserializer;
 
 use library::sort_order::SortOrder;
+use library::selection::Selection;
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum GlobStrings {
+enum OneOrManyPatterns {
     One(String),
     Many(Vec<String>),
 }
 
-impl GlobStrings {
-    fn make_globset(&self) -> Result<GlobSet, Error> {
-        let mut builder = GlobSetBuilder::new();
-
-        match *self {
-            GlobStrings::One(ref pattern) => {
-                builder.add(Glob::new(&pattern)?);
+impl OneOrManyPatterns {
+    fn into_selection(self) -> Result<Selection, Error> {
+        match self {
+            OneOrManyPatterns::One(p) => {
+                Selection::from_patterns(&[p])
             },
-            GlobStrings::Many(ref patterns) => {
-                for pattern in patterns {
-                    builder.add(Glob::new(&pattern)?);
-                }
+            OneOrManyPatterns::Many(ps) => {
+                Selection::from_patterns(&ps)
             },
         }
-
-        Ok(builder.build()?)
     }
 }
 
-fn coerce_to_globset<'de, D>(deserializer: D) -> Result<GlobSet, D::Error>
+fn coerce_to_selection<'de, D>(deserializer: D) -> Result<Selection, D::Error>
 where D: Deserializer<'de> {
     use serde::de::Error;
-    let glob_strings = GlobStrings::deserialize(deserializer).map_err(Error::custom)?;
-    let glob_set = glob_strings.make_globset().map_err(Error::custom)?;
-    Ok(glob_set)
+    let oom_patterns = OneOrManyPatterns::deserialize(deserializer).map_err(Error::custom)?;
+    let selection = oom_patterns.into_selection().map_err(Error::custom)?;
+    Ok(selection)
 }
 
 fn default_item_meta_fn() -> String {
@@ -53,8 +48,8 @@ fn default_self_meta_fn() -> String {
 
 #[derive(Deserialize)]
 pub struct Config {
-    #[serde(deserialize_with = "coerce_to_globset")]
-    pub selection: GlobSet,
+    #[serde(deserialize_with = "coerce_to_selection")]
+    pub selection: Selection,
     pub sort_order: SortOrder,
     #[serde(default = "default_item_meta_fn")]
     pub item_meta_fn: String,
@@ -65,10 +60,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         // TODO: Change to be star after testing.
-        let mut builder = GlobSetBuilder::new();
-        builder.add(Glob::new("*.flac").unwrap());
-
-        let selection = builder.build().unwrap();
+        let selection = Selection::from_patterns(&["*.flac"]).unwrap();
+        // let selection = Selection::any();
 
         Config {
             selection,
