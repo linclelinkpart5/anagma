@@ -27,11 +27,20 @@ impl Selection {
     pub fn is_match<P: AsRef<Path>>(&self, path: P) -> bool {
         self.0.is_match(path.as_ref())
     }
+
+    pub fn any() -> Self {
+        // NOTE: We assume that this is a universal pattern, and will not fail.
+        Selection::from_patterns(&["*"]).unwrap()
+    }
+
+    pub fn empty() -> Self {
+        Selection(GlobSet::empty())
+    }
 }
 
 impl Default for Selection {
     fn default() -> Self {
-        Selection::from_patterns(&["*"]).unwrap()
+        Selection::any()
     }
 }
 
@@ -74,14 +83,24 @@ mod tests {
     }
 
     #[test]
-    fn test_default() {
-        // The default value should be a "match-any" pattern.
-        let selection = Selection::default();
+    fn test_any() {
+        let selection = Selection::any();
 
         assert_eq!(selection.is_match(Path::new("path")), true);
         assert_eq!(selection.is_match(Path::new("path.a")), true);
         assert_eq!(selection.is_match(Path::new("path.a.b.c")), true);
         assert_eq!(selection.is_match(Path::new("path.ab")), true);
         assert_eq!(selection.is_match(Path::new("")), true);
+    }
+
+    #[test]
+    fn test_empty() {
+        let selection = Selection::empty();
+
+        assert_eq!(selection.is_match(Path::new("path")), false);
+        assert_eq!(selection.is_match(Path::new("path.a")), false);
+        assert_eq!(selection.is_match(Path::new("path.a.b.c")), false);
+        assert_eq!(selection.is_match(Path::new("path.ab")), false);
+        assert_eq!(selection.is_match(Path::new("")), false);
     }
 }
