@@ -54,48 +54,48 @@ impl MetaProcessor {
         }
     }
 
-    pub fn process_meta_file_cached<'c, MR, P>(
-        meta_path: P,
-        meta_location: MetaLocation,
-        config: &Config,
-        cache: &'c mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
-        force: bool,
-    ) -> Result<&'c HashMap<PathBuf, MetaBlock>, Error>
-    where
-        MR: MetaReader,
-        P: AsRef<Path>,
-    {
-        let meta_path = meta_path.as_ref();
+    // pub fn process_meta_file_cached<'c, MR, P>(
+    //     meta_path: P,
+    //     meta_location: MetaLocation,
+    //     config: &Config,
+    //     cache: &'c mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
+    //     force: bool,
+    // ) -> Result<&'c HashMap<PathBuf, MetaBlock>, Error>
+    // where
+    //     MR: MetaReader,
+    //     P: AsRef<Path>,
+    // {
+    //     let meta_path = meta_path.as_ref();
 
-        if force {
-            cache.remove(meta_path);
-        }
+    //     if force {
+    //         cache.remove(meta_path);
+    //     }
 
-        let meta_file_results = match cache.entry(meta_path.to_owned()) {
-            Entry::Occupied(e) => e.into_mut(),
-            Entry::Vacant(e) => e.insert(Self::process_meta_file::<MR, _>(meta_path, meta_location, config)?),
-        };
+    //     let meta_file_results = match cache.entry(meta_path.to_owned()) {
+    //         Entry::Occupied(e) => e.into_mut(),
+    //         Entry::Vacant(e) => e.insert(Self::process_meta_file::<MR, _>(meta_path, meta_location, config)?),
+    //     };
 
-        Ok(meta_file_results)
-    }
+    //     Ok(meta_file_results)
+    // }
 
-    pub fn process_item_file_cached<'c, MR, P>(
-        item_path: P,
-        meta_location: MetaLocation,
-        config: &Config,
-        cache: &'c mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
-        force: bool,
-    ) -> Result<&'c MetaBlock, Error>
-    where
-        MR: MetaReader,
-        P: AsRef<Path>,
-    {
-        let meta_path = meta_location.get_meta_path(&item_path)?;
+    // pub fn process_item_file_cached<'c, MR, P>(
+    //     item_path: P,
+    //     meta_location: MetaLocation,
+    //     config: &Config,
+    //     cache: &'c mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
+    //     force: bool,
+    // ) -> Result<&'c MetaBlock, Error>
+    // where
+    //     MR: MetaReader,
+    //     P: AsRef<Path>,
+    // {
+    //     let meta_path = meta_location.get_meta_path(&item_path)?;
 
-        let processed_meta_file = Self::process_meta_file_cached::<MR, _>(&meta_path, meta_location, config, cache, force)?;
-        processed_meta_file.get(item_path.as_ref())
-            .ok_or(bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy()))
-    }
+    //     let processed_meta_file = Self::process_meta_file_cached::<MR, _>(&meta_path, meta_location, config, cache, force)?;
+    //     processed_meta_file.get(item_path.as_ref())
+    //         .ok_or(bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy()))
+    // }
 }
 
 #[cfg(test)]
@@ -105,7 +105,6 @@ mod tests {
     use failure::Error;
 
     use library::config::Config;
-    use metadata::reader::MetaReader;
     use metadata::reader::yaml::YamlMetaReader;
     use metadata::location::MetaLocation;
     use metadata::structure::MetaStructure;
@@ -120,6 +119,7 @@ mod tests {
 
         let config = Config::default();
 
+        // Success cases
         let inputs_and_expected = vec![
             (
                 (path.join("self.yml"), MetaLocation::Contains),
@@ -128,6 +128,46 @@ mod tests {
                         "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
                         "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
                         "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    ],
+                ],
+            ),
+            (
+                (path.join("item.yml"), MetaLocation::Siblings),
+                hashmap![
+                    path.join("ALBUM_01") => btreemap![
+                        "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                    path.join("ALBUM_02") => btreemap![
+                        "ALBUM_02_item_key".to_owned() => MetaVal::Str("ALBUM_02_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                    path.join("ALBUM_03") => btreemap![
+                        "ALBUM_03_item_key".to_owned() => MetaVal::Str("ALBUM_03_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                    path.join("ALBUM_04.flac") => btreemap![
+                        "ALBUM_04_item_key".to_owned() => MetaVal::Str("ALBUM_04_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                    path.join("ALBUM_05") => btreemap![
+                        "ALBUM_05_item_key".to_owned() => MetaVal::Str("ALBUM_05_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                ],
+            ),
+            (
+                (path.join("ALBUM_01").join("self.yml"), MetaLocation::Contains),
+                hashmap![
+                    path.join("ALBUM_01") => btreemap![
+                        "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
                     ],
                 ],
             ),
@@ -140,8 +180,39 @@ mod tests {
             assert_eq!(expected, produced);
         }
 
-        let result = MetaProcessor::process_meta_file::<YamlMetaReader, _>(path.join("self.yml"), MetaLocation::Contains, &config);
+        // let result = MetaProcessor::process_meta_file::<YamlMetaReader, _>(path.join("ALBUM_01").join("item.yml"), MetaLocation::Contains, &config);
 
-        println!("{:?}", result);
+        // println!("{:?}", result);
+    }
+
+    #[test]
+    fn test_process_item_file() {
+        let temp_dir = create_temp_media_test_dir("test_process_item_file");
+        let path = temp_dir.path();
+
+        let config = Config::default();
+
+        // Success cases
+        let inputs_and_expected = vec![
+            (
+                (path.to_owned(), MetaLocation::Contains),
+                btreemap![
+                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (meta_path, meta_location) = input;
+
+            let produced = MetaProcessor::process_item_file::<YamlMetaReader, _>(meta_path, meta_location, &config).unwrap();
+            assert_eq!(expected, produced);
+        }
+
+        // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01").join("item.yml"), MetaLocation::Contains, &config);
+
+        // println!("{:?}", result);
     }
 }

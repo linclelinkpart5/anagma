@@ -22,11 +22,11 @@ impl MetaLocation {
             MetaLocation::Contains => {
                 ensure!(item_path.is_dir(), format!("item path is not a directory: {}", item_path.to_string_lossy()));
 
-                item_path.join("taggu_self.yml")
+                item_path.join("self.yml")
             },
             MetaLocation::Siblings => {
                 match item_path.parent() {
-                    Some(item_path_parent) => item_path_parent.join("taggu_item.yml"),
+                    Some(item_path_parent) => item_path_parent.join("item.yml"),
                     None => bail!(format!("item path does not have a parent or is system root: {}", item_path.to_string_lossy())),
                 }
             }
