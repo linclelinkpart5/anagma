@@ -1,4 +1,5 @@
 //! Provides configuration options for a Taggu library, both programmatically and via YAML files.
+use std::path::Path;
 
 use failure::Error;
 use serde::Deserialize;
@@ -35,37 +36,33 @@ where D: Deserializer<'de> {
     Ok(selection)
 }
 
-fn default_item_meta_fn() -> String {
-    "item.yml".to_string()
-}
-
-fn default_self_meta_fn() -> String {
-    "self.yml".to_string()
-}
-
 #[derive(Deserialize)]
+#[serde(default)]
 pub struct Config {
     #[serde(deserialize_with = "coerce_to_selection")]
-    pub selection: Selection,
+    pub include: Selection,
+    #[serde(deserialize_with = "coerce_to_selection")]
+    pub exclude: Selection,
     pub sort_order: SortOrder,
-    #[serde(default = "default_item_meta_fn")]
-    pub item_meta_fn: String,
-    #[serde(default = "default_self_meta_fn")]
-    pub self_meta_fn: String,
+    pub item_fn: String,
+    pub self_fn: String,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        // TODO: Change to be star after testing.
-        let selection = Selection::from_patterns(&["*.flac"]).unwrap();
-        // let selection = Selection::any();
-
         Config {
-            selection,
+            include: Selection::any(),
+            exclude: Selection::from_patterns(&["*.yml"]).unwrap(),
             sort_order: SortOrder::Name,
-            item_meta_fn: default_item_meta_fn(),
-            self_meta_fn: default_self_meta_fn(),
+            item_fn: String::from("item.yml"),
+            self_fn: String::from("self.yml"),
         }
+    }
+}
+
+impl Config {
+    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
+        self.include.is_match(&path) && !self.exclude.is_match(&path)
     }
 }
 
@@ -78,51 +75,54 @@ mod tests {
 
     #[test]
     fn test_deserialization() {
-        let text_config = "selection: '*.flac'\nsort_order: name";
+        let text_config = "include: '*.flac'\nsort_order: name";
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_match("music.flac"));
-        assert!(!config.selection.is_match("music.mp3"));
-        assert!(!config.selection.is_match("photo.png"));
+        assert!(config.include.is_match("music.flac"));
+        assert!(!config.include.is_match("music.mp3"));
+        assert!(!config.include.is_match("photo.png"));
+        assert!(config.exclude.is_match("self.yml"));
+        assert!(config.exclude.is_match("item.yml"));
+        assert!(!config.exclude.is_match("music.flac"));
         assert_eq!(config.sort_order, SortOrder::Name);
-        assert_eq!(config.item_meta_fn, "item.yml");
-        assert_eq!(config.self_meta_fn, "self.yml");
+        assert_eq!(config.item_fn, "item.yml");
+        assert_eq!(config.self_fn, "self.yml");
 
-        let text_config = "selection:\n  - '*.flac'\n  - '*.mp3'\nsort_order: mod_time";
-
-        let config: Config = serde_yaml::from_str(&text_config).unwrap();
-
-        assert!(config.selection.is_match("music.flac"));
-        assert!(config.selection.is_match("music.mp3"));
-        assert!(!config.selection.is_match("photo.png"));
-        assert_eq!(config.sort_order, SortOrder::ModTime);
-        assert_eq!(config.item_meta_fn, "item.yml");
-        assert_eq!(config.self_meta_fn, "self.yml");
-
-        let text_config = "selection: '*'\nsort_order: mod_time";
+        let text_config = "include:\n  - '*.flac'\n  - '*.mp3'\nsort_order: mod_time";
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_match("music.flac"));
-        assert!(config.selection.is_match("music.mp3"));
-        assert!(config.selection.is_match("photo.png"));
+        assert!(config.include.is_match("music.flac"));
+        assert!(config.include.is_match("music.mp3"));
+        assert!(!config.include.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::ModTime);
-        assert_eq!(config.item_meta_fn, "item.yml");
-        assert_eq!(config.self_meta_fn, "self.yml");
+        assert_eq!(config.item_fn, "item.yml");
+        assert_eq!(config.self_fn, "self.yml");
 
-        let text_config = "selection: '*'
+        let text_config = "include: '*'\nsort_order: mod_time";
+
+        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+
+        assert!(config.include.is_match("music.flac"));
+        assert!(config.include.is_match("music.mp3"));
+        assert!(config.include.is_match("photo.png"));
+        assert_eq!(config.sort_order, SortOrder::ModTime);
+        assert_eq!(config.item_fn, "item.yml");
+        assert_eq!(config.self_fn, "self.yml");
+
+        let text_config = "include: '*'
 sort_order: name
-item_meta_fn: item_meta.yml
+item_fn: item_meta.yml
 ";
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_match("music.flac"));
-        assert!(config.selection.is_match("music.mp3"));
-        assert!(config.selection.is_match("photo.png"));
+        assert!(config.include.is_match("music.flac"));
+        assert!(config.include.is_match("music.mp3"));
+        assert!(config.include.is_match("photo.png"));
         assert_eq!(config.sort_order, SortOrder::Name);
-        assert_eq!(config.item_meta_fn, "item_meta.yml");
-        assert_eq!(config.self_meta_fn, "self.yml");
+        assert_eq!(config.item_fn, "item_meta.yml");
+        assert_eq!(config.self_fn, "self.yml");
     }
 }
