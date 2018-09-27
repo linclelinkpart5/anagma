@@ -1,8 +1,5 @@
 //! Provides configuration options for a Taggu library, both programmatically and via YAML files.
 
-use globset::Glob;
-use globset::GlobSet;
-use globset::GlobSetBuilder;
 use failure::Error;
 use serde::Deserialize;
 use serde::de::Deserializer;

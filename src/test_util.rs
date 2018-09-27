@@ -8,8 +8,6 @@ use std::time::Duration;
 
 use tempdir::TempDir;
 
-use metadata::location::MetaLocation;
-
 enum TEntry<'a> {
     Dir(&'a str, &'a [TEntry<'a>]),
     File(&'a str)

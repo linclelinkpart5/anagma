@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
-use std::collections::hash_map::Entry;
+// use std::collections::hash_map::Entry;
 
 use failure::Error;
 
@@ -102,12 +102,9 @@ impl MetaProcessor {
 mod tests {
     use super::MetaProcessor;
 
-    use failure::Error;
-
     use library::config::Config;
     use metadata::reader::yaml::YamlMetaReader;
     use metadata::location::MetaLocation;
-    use metadata::structure::MetaStructure;
     use metadata::types::MetaVal;
 
     use test_util::create_temp_media_test_dir;
