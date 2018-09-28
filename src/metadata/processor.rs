@@ -123,8 +123,8 @@ mod tests {
                 hashmap![
                     path.to_owned() => btreemap![
                         "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
-                        "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
                         "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
                     ],
                 ],
             ),
@@ -168,6 +168,26 @@ mod tests {
                     ],
                 ],
             ),
+            (
+                (path.join("ALBUM_01").join("DISC_01").join("item.yml"), MetaLocation::Siblings),
+                hashmap![
+                    path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac") => btreemap![
+                        "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                    path.join("ALBUM_01").join("DISC_01").join("TRACK_02.flac") => btreemap![
+                        "TRACK_02_item_key".to_owned() => MetaVal::Str("TRACK_02_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                    path.join("ALBUM_01").join("DISC_01").join("TRACK_03.flac") => btreemap![
+                        "TRACK_03_item_key".to_owned() => MetaVal::Str("TRACK_03_item_val".to_owned()),
+                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    ],
+                ],
+            ),
         ];
 
         for (input, expected) in inputs_and_expected {
@@ -195,8 +215,32 @@ mod tests {
                 (path.to_owned(), MetaLocation::Contains),
                 btreemap![
                     "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
-                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
                     "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                ],
+            ),
+            (
+                (path.join("ALBUM_01"), MetaLocation::Siblings),
+                btreemap![
+                    "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                ],
+            ),
+            (
+                (path.join("ALBUM_01"), MetaLocation::Contains),
+                btreemap![
+                    "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                ],
+            ),
+            (
+                (path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"), MetaLocation::Siblings),
+                btreemap![
+                    "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
                 ],
             ),
         ];
@@ -208,7 +252,7 @@ mod tests {
             assert_eq!(expected, produced);
         }
 
-        // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01").join("item.yml"), MetaLocation::Contains, &config);
+        // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01"), MetaLocation::Contains, &config);
 
         // println!("{:?}", result);
     }

@@ -1,6 +1,5 @@
 #![feature(generators)]
 #![feature(generator_trait)]
-#![feature(extern_prelude)]
 
 #[macro_use] extern crate failure;
 extern crate regex;

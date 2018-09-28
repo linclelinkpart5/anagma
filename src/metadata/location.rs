@@ -87,7 +87,7 @@ impl MetaLocation {
         // NOTE: Selection is only performed on file paths, not directory paths!
         let mut result: Vec<_> = item_paths
             .into_iter()
-            .filter(|ip| if !ip.is_dir() { config.is_selected(ip) } else { true })
+            .filter(|ip| ip.is_dir() || config.is_selected(ip))
             .collect()
         ;
         result.sort_by(|a, b| config.sort_order.path_sort_cmp(a, b));
