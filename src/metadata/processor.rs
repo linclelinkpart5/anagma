@@ -54,6 +54,29 @@ impl MetaProcessor {
         }
     }
 
+    // Processes multiple locations for a target item at once, merging the results.
+    // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
+    pub fn composite_item_file<MR, P, II>(
+        item_path: P,
+        meta_locations: II,
+        config: &Config,
+    ) -> Result<MetaBlock, Error>
+    where
+        MR: MetaReader,
+        P: AsRef<Path>,
+        II: IntoIterator<Item = MetaLocation>,
+    {
+        let mut comp_mb = MetaBlock::new();
+
+        for meta_location in meta_locations.into_iter() {
+            let mb = Self::process_item_file::<MR, _>(&item_path, meta_location, &config)?;
+
+            comp_mb.extend(mb);
+        }
+
+        Ok(comp_mb)
+    }
+
     // pub fn process_meta_file_cached<'c, MR, P>(
     //     meta_path: P,
     //     meta_location: MetaLocation,
