@@ -70,8 +70,25 @@ impl Config {
 mod tests {
     use serde_yaml;
 
+    use library::selection::Selection;
+
     use super::Config;
     use super::SortOrder;
+
+    #[test]
+    fn test_is_selected() {
+        let config = Config {
+            include: Selection::from_patterns(&["*.flac", "*.mp3"]).unwrap(),
+            exclude: Selection::from_patterns(&["*.yml", "*.jpg"]).unwrap(),
+            ..Default::default()
+        };
+
+        assert_eq!(config.is_selected("music.flac"), true);
+        assert_eq!(config.is_selected("music.mp3"), true);
+        assert_eq!(config.is_selected("photo.png"), false);
+        assert_eq!(config.is_selected("self.yml"), false);
+        assert_eq!(config.is_selected("unknown"), false);
+    }
 
     #[test]
     fn test_deserialization() {
