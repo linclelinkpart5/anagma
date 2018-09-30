@@ -1,32 +1,42 @@
 //! Manages field-based lookups of metadata.
 
 use std::path::Path;
+use std::marker::PhantomData;
 
 use failure::Error;
 
 use library::config::Config;
 use metadata::types::MetaVal;
-use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
-use metadata::reader::yaml::YamlMetaReader;
+use metadata::reader::MetaReader;
 use metadata::location::MetaLocation;
 
 const LOCATION_LIST: &[MetaLocation] = &[MetaLocation::Siblings, MetaLocation::Contains];
 
-pub struct MetaResolver;
+pub struct MetaResolver<MR>(PhantomData<MR>);
 
-impl MetaResolver {
-    pub fn resolve_field<P>(
+impl<MR> MetaResolver<MR>
+where
+    MR: MetaReader,
+{
+    pub fn resolve_field<P, S>(
         item_path: P,
+        field: S,
         config: &Config,
-    ) -> Result<MetaBlock, Error>
+    ) -> Result<MetaVal, Error>
     where
         P: AsRef<Path>,
+        S: AsRef<str>,
     {
-        MetaProcessor::composite_item_file::<YamlMetaReader, _, _>(
+        let mut mb = MetaProcessor::<MR>::composite_item_file(
             item_path,
             LOCATION_LIST.to_vec(),
             &config,
-        )
+        )?;
+
+        match mb.remove(field.as_ref()) {
+            Some(val) => Ok(val),
+            None => Ok(MetaVal::Nil),
+        }
     }
 }

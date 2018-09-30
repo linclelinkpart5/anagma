@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 // use std::collections::hash_map::Entry;
 
 use failure::Error;
@@ -11,16 +12,18 @@ use metadata::location::MetaLocation;
 use metadata::reader::MetaReader;
 use metadata::plexer::MetaPlexer;
 
-pub struct MetaProcessor;
+pub struct MetaProcessor<MR>(PhantomData<MR>);
 
-impl MetaProcessor {
-    pub fn process_meta_file<MR, P>(
+impl<MR> MetaProcessor<MR>
+where
+    MR: MetaReader,
+{
+    pub fn process_meta_file<P>(
         meta_path: P,
         meta_location: MetaLocation,
         config: &Config,
     ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
-        MR: MetaReader,
         P: AsRef<Path>,
     {
         let meta_structure = MR::from_file(&meta_path, meta_location)?;
@@ -32,18 +35,17 @@ impl MetaProcessor {
         Ok(meta_plexed)
     }
 
-    pub fn process_item_file<MR, P>(
+    pub fn process_item_file<P>(
         item_path: P,
         meta_location: MetaLocation,
         config: &Config,
     ) -> Result<MetaBlock, Error>
     where
-        MR: MetaReader,
         P: AsRef<Path>,
     {
         let meta_path = meta_location.get_meta_path(&item_path)?;
 
-        let mut processed_meta_file = Self::process_meta_file::<MR, _>(&meta_path, meta_location, config)?;
+        let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
 
         // The remaining results can be thrown away.
         if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
@@ -56,20 +58,19 @@ impl MetaProcessor {
 
     // Processes multiple locations for a target item at once, merging the results.
     // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
-    pub fn composite_item_file<MR, P, II>(
+    pub fn composite_item_file<P, II>(
         item_path: P,
         meta_locations: II,
         config: &Config,
     ) -> Result<MetaBlock, Error>
     where
-        MR: MetaReader,
         P: AsRef<Path>,
         II: IntoIterator<Item = MetaLocation>,
     {
         let mut comp_mb = MetaBlock::new();
 
         for meta_location in meta_locations.into_iter() {
-            let mb = Self::process_item_file::<MR, _>(&item_path, meta_location, &config)?;
+            let mb = Self::process_item_file(&item_path, meta_location, &config)?;
 
             comp_mb.extend(mb);
         }
@@ -216,7 +217,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::process_meta_file::<YamlMetaReader, _>(meta_path, meta_location, &config).unwrap();
+            let produced = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, &config).unwrap();
             assert_eq!(expected, produced);
         }
 
@@ -271,7 +272,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::process_item_file::<YamlMetaReader, _>(meta_path, meta_location, &config).unwrap();
+            let produced = MetaProcessor::<YamlMetaReader>::process_item_file(meta_path, meta_location, &config).unwrap();
             assert_eq!(expected, produced);
         }
 
