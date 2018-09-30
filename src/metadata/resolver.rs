@@ -23,7 +23,7 @@ where
         item_path: P,
         field: S,
         config: &Config,
-    ) -> Result<MetaVal, Error>
+    ) -> Result<Option<MetaVal>, Error>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
@@ -34,9 +34,27 @@ where
             &config,
         )?;
 
-        match mb.remove(field.as_ref()) {
-            Some(val) => Ok(val),
-            None => Ok(MetaVal::Nil),
+        Ok(mb.remove(field.as_ref()))
+    }
+
+    pub fn resolve_field_parents<P, S>(
+        item_path: P,
+        field: S,
+        config: &Config,
+    ) -> Result<Option<MetaVal>, Error>
+    where
+        P: AsRef<Path>,
+        S: AsRef<str>,
+    {
+        // LEARN: The first item in `.ancestors()` is the original path, so it needs to be skipped.
+        for ancestor_item_path in item_path.as_ref().ancestors().into_iter().skip(1) {
+            let opt_val = Self::resolve_field(&item_path, &field, &config)?;
+
+            if let Some(val) = opt_val {
+                return Ok(Some(val))
+            }
         }
+
+        Ok(None)
     }
 }
