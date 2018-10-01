@@ -13,6 +13,11 @@ use metadata::location::MetaLocation;
 
 const LOCATION_LIST: &[MetaLocation] = &[MetaLocation::Siblings, MetaLocation::Contains];
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum AggKind {
+    Seq,
+}
+
 pub struct MetaResolver<MR>(PhantomData<MR>);
 
 impl<MR> MetaResolver<MR>
@@ -56,5 +61,29 @@ where
         }
 
         Ok(None)
+    }
+
+    fn resolve_field_children_helper<P, S>(
+        item_path: P,
+        field: S,
+        config: &Config,
+    ) -> Result<Option<MetaVal>, Error>
+    where
+        P: AsRef<Path>,
+        S: AsRef<str>,
+    {
+        let item_path = item_path.as_ref();
+
+        // Check if the item path is a directory.
+        match item_path.is_dir() {
+            false => Ok(None),
+            true => {
+                for sub_item_entry in item_path.read_dir()? {
+                    let sub_item_entry = sub_item_entry?;
+                }
+
+                Ok(Some(MetaVal::Nil))
+            },
+        }
     }
 }
