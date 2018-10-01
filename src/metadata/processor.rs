@@ -28,10 +28,9 @@ where
     {
         let meta_structure = MR::from_file(&meta_path, meta_location)?;
 
-        // TODO: See if there is a way to avoid sorting if not needed.
-        let item_paths = meta_location.get_configured_item_paths(&meta_path, config, true)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config)?;
 
-        let meta_plexed = MetaPlexer::plex(meta_structure, item_paths);
+        let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order);
 
         Ok(meta_plexed)
     }

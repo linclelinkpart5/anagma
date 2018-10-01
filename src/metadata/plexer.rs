@@ -5,13 +5,14 @@ use std::collections::HashMap;
 use itertools::Itertools;
 use itertools::EitherOrBoth;
 
+use library::sort_order::SortOrder;
 use metadata::structure::MetaStructure;
 use metadata::types::MetaBlock;
 
 pub struct MetaPlexer;
 
 impl MetaPlexer {
-    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II) -> HashMap<PathBuf, MetaBlock>
+    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II, sort_order: SortOrder) -> HashMap<PathBuf, MetaBlock>
     where II: IntoIterator<Item = P>,
           P: AsRef<Path>,
     {
@@ -35,7 +36,12 @@ impl MetaPlexer {
                 }
             },
             MetaStructure::Seq(meta_block_seq) => {
-                for eob in item_paths.zip_longest(meta_block_seq) {
+                let mut item_paths: Vec<_> = item_paths.into_iter().collect();
+
+                // Need to sort in order to get correct matches.
+                item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
+
+                for eob in item_paths.into_iter().zip_longest(meta_block_seq) {
                     match eob {
                         EitherOrBoth::Both(item_path, meta_block) => {
                             result.insert(item_path.as_ref().to_path_buf(), meta_block);
@@ -49,6 +55,7 @@ impl MetaPlexer {
                     }
                 }
             },
+            // TODO: See if there is a way to do this without mutating the original value.
             MetaStructure::Map(mut meta_block_map) => {
                 for item_path in item_paths {
                     // Use the file name of the item path as a key into the mapping.
@@ -91,6 +98,7 @@ mod tests {
     use std::path::PathBuf;
     use std::ffi::OsString;
 
+    use library::sort_order::SortOrder;
     use metadata::structure::MetaStructure;
     use metadata::types::val::MetaVal;
 
@@ -161,7 +169,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::plex(meta_structure, item_paths);
+            let produced = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name);
             assert_eq!(expected, produced);
         }
     }

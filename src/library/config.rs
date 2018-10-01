@@ -63,7 +63,7 @@ impl Default for Config {
 
 impl Config {
     /// Indicates if a path is selected as part of this config.
-    /// This only uses the lexical contrent of the path.
+    /// This only uses the lexical content of the path.
     pub fn is_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
         self.include.is_match(&path) && !self.exclude.is_match(&path)
     }
@@ -74,27 +74,27 @@ impl Config {
         path.as_ref().is_dir() || (path.as_ref().is_file() && self.is_pattern_match(path))
     }
 
-    pub fn select<P, II>(&self, item_paths: II) -> Vec<P>
+    // NOTE: Sorting is now only done during plexing.
+    pub fn select<II, P>(&self, item_paths: II) -> Vec<P>
     where
         II: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        let mut result: Vec<_> = item_paths
+        item_paths
             .into_iter()
             .filter(|ip| self.is_selected(ip))
-            .collect();
-
-        result
+            .collect()
     }
 
-    pub fn select_and_sort<P, II>(&self, item_paths: II) -> Vec<P>
+    pub fn select_in_dir<P>(&self, dir_path: P) -> Result<Vec<PathBuf>, Error>
     where
-        II: IntoIterator<Item = P>,
         P: AsRef<Path>,
     {
-        let mut selected = self.select(item_paths);
-        selected.sort_by(|a, b| self.sort_order.path_sort_cmp(a, b));
-        selected
+        let item_entries = dir_path.as_ref().read_dir()?.collect::<Result<Vec<_>, _>>()?;
+
+        let item_paths = self.select(item_entries.into_iter().map(|entry| entry.path()));
+
+        Ok(item_paths)
     }
 }
 

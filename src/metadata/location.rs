@@ -74,22 +74,16 @@ impl MetaLocation {
         }
     }
 
-    // TODO: Make sorting optional, for cases where ordering does not matter.
-    pub fn get_configured_item_paths<P: AsRef<Path>>(
+    // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
+    pub fn get_selected_item_paths<P: AsRef<Path>>(
         &self,
         meta_path: P,
         config: &Config,
-        sort: bool,
         ) -> Result<Vec<PathBuf>, Error>
     {
         let item_paths = self.get_item_paths(meta_path)?;
 
-        // Use the config object to filter and then sort the item paths.
-        if sort {
-            Ok(config.select_and_sort(item_paths))
-        }
-        else {
-            Ok(config.select(item_paths))
-        }
+        // Use the config object to select the item paths.
+        Ok(config.select(item_paths))
     }
 }

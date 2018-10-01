@@ -78,6 +78,7 @@ where
         match item_path.is_dir() {
             false => Ok(None),
             true => {
+                let sub_item_paths = config.select_in_dir(item_path);
                 for sub_item_entry in item_path.read_dir()? {
                     let sub_item_entry = sub_item_entry?;
                 }
