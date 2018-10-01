@@ -1,5 +1,6 @@
 //! Provides configuration options for a Taggu library, both programmatically and via YAML files.
 use std::path::Path;
+use std::path::PathBuf;
 
 use failure::Error;
 use serde::Deserialize;
@@ -61,8 +62,39 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
+    /// Indicates if a path is selected as part of this config.
+    /// This only uses the lexical contrent of the path.
+    pub fn is_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
         self.include.is_match(&path) && !self.exclude.is_match(&path)
+    }
+
+    /// Indicates if a path is selected as part of this config.
+    /// Directories are always marked as included.
+    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
+        path.as_ref().is_dir() || (path.as_ref().is_file() && self.is_pattern_match(path))
+    }
+
+    pub fn select<P, II>(&self, item_paths: II) -> Vec<P>
+    where
+        II: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        let mut result: Vec<_> = item_paths
+            .into_iter()
+            .filter(|ip| self.is_selected(ip))
+            .collect();
+
+        result
+    }
+
+    pub fn select_and_sort<P, II>(&self, item_paths: II) -> Vec<P>
+    where
+        II: IntoIterator<Item = P>,
+        P: AsRef<Path>,
+    {
+        let mut selected = self.select(item_paths);
+        selected.sort_by(|a, b| self.sort_order.path_sort_cmp(a, b));
+        selected
     }
 }
 
@@ -76,18 +108,18 @@ mod tests {
     use super::SortOrder;
 
     #[test]
-    fn test_is_selected() {
+    fn test_is_pattern_match() {
         let config = Config {
             include: Selection::from_patterns(&["*.flac", "*.mp3"]).unwrap(),
             exclude: Selection::from_patterns(&["*.yml", "*.jpg"]).unwrap(),
             ..Default::default()
         };
 
-        assert_eq!(config.is_selected("music.flac"), true);
-        assert_eq!(config.is_selected("music.mp3"), true);
-        assert_eq!(config.is_selected("photo.png"), false);
-        assert_eq!(config.is_selected("self.yml"), false);
-        assert_eq!(config.is_selected("unknown"), false);
+        assert_eq!(config.is_pattern_match("music.flac"), true);
+        assert_eq!(config.is_pattern_match("music.mp3"), true);
+        assert_eq!(config.is_pattern_match("photo.png"), false);
+        assert_eq!(config.is_pattern_match("self.yml"), false);
+        assert_eq!(config.is_pattern_match("unknown"), false);
     }
 
     #[test]

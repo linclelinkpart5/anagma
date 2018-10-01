@@ -28,7 +28,8 @@ where
     {
         let meta_structure = MR::from_file(&meta_path, meta_location)?;
 
-        let item_paths = meta_location.get_configured_item_paths(&meta_path, config)?;
+        // TODO: See if there is a way to avoid sorting if not needed.
+        let item_paths = meta_location.get_configured_item_paths(&meta_path, config, true)?;
 
         let meta_plexed = MetaPlexer::plex(meta_structure, item_paths);
 
