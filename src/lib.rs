@@ -17,5 +17,6 @@ extern crate itertools;
 mod library;
 mod metadata;
 mod util;
+mod error;
 
 #[cfg(test)] mod test_util;
