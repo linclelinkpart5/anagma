@@ -64,22 +64,21 @@ where
         Ok(None)
     }
 
-    fn resolve_field_children_helper<P, S, C>(
+    fn resolve_field_children_helper<P, S>(
         item_path: P,
         field: S,
-        config: C,
+        config: &Config,
     ) -> Result<Vec<Option<MetaVal>>, Error>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
-        C: AsRef<Config>,
     {
         let item_path = item_path.as_ref();
 
         // For breadth-first search.
-        let mut frontier: VecDeque<&Path> = VecDeque::new();
+        let mut frontier = VecDeque::new();
 
-        frontier.push_back(item_path);
+        frontier.push_back(item_path.to_owned());
 
         let mut child_results = vec![];
 
@@ -87,77 +86,50 @@ where
         // Assume that the paths in the frontier are directories.
         while let Some(frontier_item_path) = frontier.pop_front() {
             // Get sub items contained within.
-            let sub_item_paths = config.as_ref().select_in_dir(frontier_item_path)?;
+            let sub_item_paths = config.select_in_dir(frontier_item_path)?;
 
             for sub_item_path in sub_item_paths {
-                match Self::resolve_field(&sub_item_path, &field, config.as_ref())? {
+                match Self::resolve_field(&sub_item_path, &field, &config)? {
                     Some(sub_meta_val) => {
                         child_results.push(Some(sub_meta_val));
                     },
-                    None => {},
+                    None => {
+                        frontier.push_front(sub_item_path);
+                    },
                 }
             }
         }
 
         Ok(child_results)
-
-        // let sub_item_paths = config.as_ref().select_in_dir(item_path)?;
-
-        // let closure = move || {
-        //     for sub_item_path in sub_item_paths {
-        //         let child_result = Self::resolve_field(&sub_item_path, &field, config.as_ref());
-
-        //         match child_result {
-        //             Ok(Some(_)) => {
-        //                 // Found a value, emit it.
-        //                 yield child_result;
-        //             },
-        //             Err(_) => {
-        //                 // Found an error, emit it.
-        //                 yield child_result;
-        //             },
-        //             Ok(None) => {
-        //                 // In this case, emit the results of a recursive call with this new sub path.
-        //                 let t = Box::new(Self::resolve_field_children_helper(&sub_item_path, &field, &config));
-        //                 match t {
-        //                     Ok(yielder) => {
-        //                         for r in yielder {
-        //                             yield r;
-        //                         }
-        //                     },
-        //                     Err(e) => {
-        //                         yield Err(e);
-        //                     },
-        //                 }
-        //             },
-        //         };
-        //     }
-
-        //     yield Ok(None)
-        // };
-
-        // Ok(GenConverter::gen_to_iter(closure))
-
-        // // Check if the item path is a directory.
-        // match item_path.is_dir() {
-        //     false => Ok(None),
-        //     true => {
-        //         let sub_item_paths = config.select_in_dir(item_path)?;
-
-        //         for sub_item_path in sub_item_paths {
-        //             let opt_child_result = Self::resolve_field(&sub_item_path, &field, &config)?;
-
-        //             if let Some(child_result) = opt_child_result {
-        //                 this_results.push(child_result);
-        //             }
-        //             else {
-        //                 // Recurse!
-        //                 Self::resolve_field_children_helper(&sub_item_path, &field, &config)?;
-        //             }
-        //         }
-
-        //         Ok(Some(vec![]))
-        //     },
-        // }
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::MetaResolver;
+
+//     use library::config::Config;
+//     use metadata::reader::yaml::YamlMetaReader;
+
+//     use test_util::create_temp_media_test_dir;
+
+//     #[test]
+//     fn test_resolve_field_children_helper() {
+//         use std::time::Duration;
+//         use std::thread::sleep;
+
+//         let temp_dir = create_temp_media_test_dir("test_resolve_field_children_helper");
+
+//         let path = temp_dir.path();
+//         let field = "TRACK_01_item_key";
+//         let config = Config::default();
+
+//         let result = MetaResolver::<YamlMetaReader>::resolve_field_children_helper(&path, &field, &config).unwrap();
+
+//         println!("{:?}", result);
+
+//         // let result = MetaProcessor::process_meta_file::<YamlMetaReader, _>(path.join("ALBUM_01").join("item.yml"), MetaLocation::Contains, &config);
+
+//         // println!("{:?}", result);
+//     }
+// }
