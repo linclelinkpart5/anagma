@@ -7,26 +7,28 @@ use failure::Context;
 use failure::Fail;
 
 #[derive(Debug)]
-struct Error {
+pub struct Error {
     inner: Context<ErrorKind>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Fail)]
-enum ErrorKind {
-    #[fail(display = "item path is not a directory")]
-    InvalidItemDirPath,
-    #[fail(display = "item path is not a file")]
-    InvalidItemFilePath,
-    #[fail(display = "meta path is not a file")]
-    InvalidMetaFilePath,
-    #[fail(display = "item path does not exist")]
-    NonexistentItemPath,
-    #[fail(display = "meta path does not exist")]
-    NonexistentMetaPath,
+pub enum ErrorKind {
+    #[fail(display = "path is not a directory")]
+    NotADirPath,
+    #[fail(display = "path is not a file")]
+    NotAFilePath,
+    #[fail(display = "path does not exist")]
+    NonexistentPath,
     #[fail(display = "path does not have a parent or is filesystem root")]
-    NoParentPath,
+    NoPathParent,
     #[fail(display = "item path not found in processed metadata")]
     NoMetadataFound,
+    #[fail(display = "unable to parse/read meatadata file")]
+    CannotParseMetadata,
+    #[fail(display = "unable to list item paths in directory")]
+    CannotListSubItems,
+    #[fail(display = "unable to find meta path from item path")]
+    CannotFindMetaPath,
 }
 
 impl Fail for Error {

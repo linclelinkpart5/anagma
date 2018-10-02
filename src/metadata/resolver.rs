@@ -75,7 +75,6 @@ where
     {
         let item_path = item_path.as_ref();
 
-        // For breadth-first search.
         let mut frontier = VecDeque::new();
 
         frontier.push_back(item_path.to_owned());
@@ -94,6 +93,7 @@ where
                         child_results.push(Some(sub_meta_val));
                     },
                     None => {
+                        // Since a depth-first search is desired, treat as a stack.
                         frontier.push_front(sub_item_path);
                     },
                 }

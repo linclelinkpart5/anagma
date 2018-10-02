@@ -4,8 +4,10 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 // use std::collections::hash_map::Entry;
 
-use failure::Error;
+use failure::ResultExt;
 
+use error::Error;
+use error::ErrorKind;
 use library::config::Config;
 use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
@@ -26,9 +28,9 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_structure = MR::from_file(&meta_path, meta_location)?;
+        let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotParseMetadata)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotListSubItems)?;
 
         let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order);
 
@@ -43,7 +45,7 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_path = meta_location.get_meta_path(&item_path)?;
+        let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
 
         let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
 
@@ -52,7 +54,7 @@ where
             Ok(meta_block)
         }
         else {
-            bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy());
+            Err(ErrorKind::NoMetadataFound)?
         }
     }
 
