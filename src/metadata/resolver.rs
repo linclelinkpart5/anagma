@@ -2,6 +2,7 @@
 
 use std::path::Path;
 use std::marker::PhantomData;
+use std::collections::VecDeque;
 
 use failure::Error;
 
@@ -55,36 +56,108 @@ where
         for ancestor_item_path in item_path.as_ref().ancestors().into_iter().skip(1) {
             let opt_val = Self::resolve_field(&item_path, &field, &config)?;
 
-            if let Some(val) = opt_val {
-                return Ok(Some(val))
+            if opt_val.is_some() {
+                return Ok(opt_val)
             }
         }
 
         Ok(None)
     }
 
-    fn resolve_field_children_helper<P, S>(
+    fn resolve_field_children_helper<P, S, C>(
         item_path: P,
         field: S,
-        config: &Config,
-    ) -> Result<Option<MetaVal>, Error>
+        config: C,
+    ) -> Result<Vec<Option<MetaVal>>, Error>
     where
         P: AsRef<Path>,
         S: AsRef<str>,
+        C: AsRef<Config>,
     {
         let item_path = item_path.as_ref();
 
-        // Check if the item path is a directory.
-        match item_path.is_dir() {
-            false => Ok(None),
-            true => {
-                let sub_item_paths = config.select_in_dir(item_path);
-                for sub_item_entry in item_path.read_dir()? {
-                    let sub_item_entry = sub_item_entry?;
-                }
+        // For breadth-first search.
+        let mut frontier: VecDeque<&Path> = VecDeque::new();
 
-                Ok(Some(MetaVal::Nil))
-            },
+        frontier.push_back(item_path);
+
+        let mut child_results = vec![];
+
+        // For each path in the frontier, look at the items contained within it.
+        // Assume that the paths in the frontier are directories.
+        while let Some(frontier_item_path) = frontier.pop_front() {
+            // Get sub items contained within.
+            let sub_item_paths = config.as_ref().select_in_dir(frontier_item_path)?;
+
+            for sub_item_path in sub_item_paths {
+                match Self::resolve_field(&sub_item_path, &field, config.as_ref())? {
+                    Some(sub_meta_val) => {
+                        child_results.push(Some(sub_meta_val));
+                    },
+                    None => {},
+                }
+            }
         }
+
+        Ok(child_results)
+
+        // let sub_item_paths = config.as_ref().select_in_dir(item_path)?;
+
+        // let closure = move || {
+        //     for sub_item_path in sub_item_paths {
+        //         let child_result = Self::resolve_field(&sub_item_path, &field, config.as_ref());
+
+        //         match child_result {
+        //             Ok(Some(_)) => {
+        //                 // Found a value, emit it.
+        //                 yield child_result;
+        //             },
+        //             Err(_) => {
+        //                 // Found an error, emit it.
+        //                 yield child_result;
+        //             },
+        //             Ok(None) => {
+        //                 // In this case, emit the results of a recursive call with this new sub path.
+        //                 let t = Box::new(Self::resolve_field_children_helper(&sub_item_path, &field, &config));
+        //                 match t {
+        //                     Ok(yielder) => {
+        //                         for r in yielder {
+        //                             yield r;
+        //                         }
+        //                     },
+        //                     Err(e) => {
+        //                         yield Err(e);
+        //                     },
+        //                 }
+        //             },
+        //         };
+        //     }
+
+        //     yield Ok(None)
+        // };
+
+        // Ok(GenConverter::gen_to_iter(closure))
+
+        // // Check if the item path is a directory.
+        // match item_path.is_dir() {
+        //     false => Ok(None),
+        //     true => {
+        //         let sub_item_paths = config.select_in_dir(item_path)?;
+
+        //         for sub_item_path in sub_item_paths {
+        //             let opt_child_result = Self::resolve_field(&sub_item_path, &field, &config)?;
+
+        //             if let Some(child_result) = opt_child_result {
+        //                 this_results.push(child_result);
+        //             }
+        //             else {
+        //                 // Recurse!
+        //                 Self::resolve_field_children_helper(&sub_item_path, &field, &config)?;
+        //             }
+        //         }
+
+        //         Ok(Some(vec![]))
+        //     },
+        // }
     }
 }
