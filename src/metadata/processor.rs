@@ -30,7 +30,7 @@ where
     {
         let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotParseMetadata)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotListSubItems)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotReadDir)?;
 
         let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order);
 

@@ -2,10 +2,12 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use failure::Error;
+use failure::ResultExt;
 use serde::Deserialize;
 use serde::de::Deserializer;
 
+use error::Error;
+use error::ErrorKind;
 use library::sort_order::SortOrder;
 use library::selection::Selection;
 
@@ -90,7 +92,10 @@ impl Config {
     where
         P: AsRef<Path>,
     {
-        let item_entries = dir_path.as_ref().read_dir()?.collect::<Result<Vec<_>, _>>()?;
+        let item_entries = dir_path
+            .as_ref()
+            .read_dir().context(ErrorKind::CannotReadDir)?
+            .collect::<Result<Vec<_>, _>>().context(ErrorKind::CannotReadDirEntry)?;
 
         let item_paths = self.select(item_entries.into_iter().map(|entry| entry.path()));
 

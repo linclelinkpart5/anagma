@@ -3,7 +3,10 @@ use std::path::Path;
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
-use failure::Error;
+use failure::ResultExt;
+
+use error::Error;
+use error::ErrorKind;
 
 pub struct Selection(GlobSet);
 
@@ -16,10 +19,10 @@ impl Selection {
         let mut builder = GlobSetBuilder::new();
 
         for pattern in patterns.into_iter() {
-            builder.add(Glob::new(pattern.as_ref())?);
+            builder.add(Glob::new(pattern.as_ref()).context(ErrorKind::InvalidGlobPattern)?);
         }
 
-        let selection = builder.build()?;
+        let selection = builder.build().context(ErrorKind::CannotBuildSelector)?;
 
         Ok(Selection(selection))
     }

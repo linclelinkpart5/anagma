@@ -25,10 +25,23 @@ pub enum ErrorKind {
     NoMetadataFound,
     #[fail(display = "unable to parse/read meatadata file")]
     CannotParseMetadata,
-    #[fail(display = "unable to list item paths in directory")]
-    CannotListSubItems,
+    #[fail(display = "unable to read entries in directory")]
+    CannotReadDir,
+    #[fail(display = "unable to read directory entry")]
+    CannotReadDirEntry,
     #[fail(display = "unable to find meta path from item path")]
     CannotFindMetaPath,
+    #[fail(display = "invalid glob pattern")]
+    InvalidGlobPattern,
+    #[fail(display = "unable to build selector")]
+    CannotBuildSelector,
+    #[fail(display = "unable to open metadata file")]
+    CannotOpenMetadataFile,
+    #[fail(display = "unable to read metadata file")]
+    CannotReadMetadataFile,
+
+    #[fail(display = "unable to read YAML file")]
+    CannotReadYamlFile,
 }
 
 impl Fail for Error {
