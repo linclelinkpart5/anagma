@@ -96,6 +96,25 @@ mod tests {
 
     use std::path::Path;
 
+    use serde_yaml;
+
+    #[test]
+    fn test_deserialization() {
+        let text = "'*.flac'";
+        let selection: Selection = serde_yaml::from_str(&text).unwrap();
+
+        assert!(selection.is_match("music.flac"));
+        assert!(!selection.is_match("music.mp3"));
+        assert!(!selection.is_match("photo.png"));
+
+        let text = "- '*.flac'\n- '*.mp3'";
+        let selection: Selection = serde_yaml::from_str(&text).unwrap();
+
+        assert!(selection.is_match("music.flac"));
+        assert!(selection.is_match("music.mp3"));
+        assert!(!selection.is_match("photo.png"));
+    }
+
     #[test]
     fn test_from_patterns() {
         let inputs_and_expected = vec![
