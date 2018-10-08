@@ -65,6 +65,52 @@ mod tests {
     use std::path::Path;
 
     #[test]
+    fn test_from_patterns() {
+        let inputs_and_expected = vec![
+            (Selection::from_patterns(&["*"]), true),
+            (Selection::from_patterns(&["*.a", "*.b"]), true),
+            (Selection::from_patterns(&["?.a", "?.b"]), true),
+            (Selection::from_patterns(&["*.a"]), true),
+            (Selection::from_patterns(&["**"]), true),
+            (Selection::from_patterns(&["a/**/b"]), true),
+            (Selection::from_patterns(&[""; 0]), true),
+            (Selection::from_patterns(&[""]), true),
+            (Selection::from_patterns(&["[a-z]*.a"]), true),
+            (Selection::from_patterns(&["**", "[a-z]*.a"]), true),
+            (Selection::from_patterns(&["[!abc]"]), true),
+            (Selection::from_patterns(&["[*]"]), true),
+            (Selection::from_patterns(&["[?]"]), true),
+            (Selection::from_patterns(&["{*.a,*.b,*.c}"]), true),
+
+            // Invalid double star
+            (Selection::from_patterns(&["a**b"]), false),
+
+            // Unclosed character class
+            (Selection::from_patterns(&["[abc"]), false),
+
+            // Malformed character range
+            (Selection::from_patterns(&["[z-a]"]), false),
+
+            // Unclosed alternates
+            (Selection::from_patterns(&["{*.a,*.b,*.c"]), false),
+
+            // Unopened alternates
+            // (Selection::from_patterns(&["*.a,*.b,*.c}"]), false),
+
+            // Nested alternates
+            (Selection::from_patterns(&["{*.a,{*.b,*.c}}"]), false),
+
+            // Dangling escape
+            // (Selection::from_patterns(&["*.a\""]), false),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = input.is_ok();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
     fn test_is_match() {
         let selection_a = Selection::from_patterns(&["*.a", "*.b"]).unwrap();
         let selection_b = Selection::from_patterns(&["*.b"]).unwrap();
