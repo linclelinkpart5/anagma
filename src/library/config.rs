@@ -3,8 +3,6 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use serde::Deserialize;
-use serde::de::Deserializer;
 use failure::Fail;
 use failure::Error;
 use failure::ResultExt;
@@ -13,40 +11,9 @@ use library::sort_order::SortOrder;
 use library::selection::Selection;
 
 #[derive(Deserialize)]
-#[serde(untagged)]
-enum OneOrManyPatterns {
-    One(String),
-    Many(Vec<String>),
-}
-
-impl OneOrManyPatterns {
-    // TODO: Move deserialization logic/error management to parent module.
-    fn into_selection(self) -> Result<Selection, Error> {
-        match self {
-            OneOrManyPatterns::One(p) => {
-                Selection::from_patterns(&[p])
-            },
-            OneOrManyPatterns::Many(ps) => {
-                Selection::from_patterns(&ps)
-            },
-        }
-    }
-}
-
-fn coerce_to_selection<'de, D>(deserializer: D) -> Result<Selection, D::Error>
-where D: Deserializer<'de> {
-    use serde::de::Error;
-    let oom_patterns = OneOrManyPatterns::deserialize(deserializer).map_err(Error::custom)?;
-    let selection = oom_patterns.into_selection().map_err(Error::custom)?;
-    Ok(selection)
-}
-
-#[derive(Deserialize)]
 #[serde(default)]
 pub struct Config {
-    #[serde(deserialize_with = "coerce_to_selection")]
     pub include: Selection,
-    #[serde(deserialize_with = "coerce_to_selection")]
     pub exclude: Selection,
     pub sort_order: SortOrder,
     pub item_fn: String,

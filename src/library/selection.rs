@@ -8,6 +8,8 @@ use globset::GlobSetBuilder;
 use failure::Fail;
 use failure::Error;
 use failure::ResultExt;
+use serde::Deserialize;
+use serde::de::Deserializer;
 
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
@@ -17,7 +19,37 @@ pub enum ErrorKind {
     CannotBuildSelector,
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum OneOrManyPatterns {
+    One(String),
+    Many(Vec<String>),
+}
+
+impl OneOrManyPatterns {
+    fn into_selection(self) -> Result<Selection, Error> {
+        match self {
+            OneOrManyPatterns::One(p) => {
+                Selection::from_patterns(&[p])
+            },
+            OneOrManyPatterns::Many(ps) => {
+                Selection::from_patterns(&ps)
+            },
+        }
+    }
+}
+
 pub struct Selection(GlobSet);
+
+impl<'de> Deserialize<'de> for Selection {
+    fn deserialize<D>(deserializer: D) -> Result<Selection, D::Error>
+    where D: Deserializer<'de> {
+        use serde::de::Error;
+        let oom_patterns = OneOrManyPatterns::deserialize(deserializer).map_err(Error::custom)?;
+        let selection = oom_patterns.into_selection().map_err(Error::custom)?;
+        Ok(selection)
+    }
+}
 
 impl Selection {
     pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, Error>
