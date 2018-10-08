@@ -1,13 +1,14 @@
 //! Provides configuration options for a Taggu library, both programmatically and via YAML files.
+
 use std::path::Path;
 use std::path::PathBuf;
 
-use failure::ResultExt;
 use serde::Deserialize;
 use serde::de::Deserializer;
+use failure::Fail;
+use failure::Error;
+use failure::ResultExt;
 
-use error::Error;
-use error::ErrorKind;
 use library::sort_order::SortOrder;
 use library::selection::Selection;
 
@@ -19,6 +20,7 @@ enum OneOrManyPatterns {
 }
 
 impl OneOrManyPatterns {
+    // TODO: Move deserialization logic/error management to parent module.
     fn into_selection(self) -> Result<Selection, Error> {
         match self {
             OneOrManyPatterns::One(p) => {
@@ -94,8 +96,8 @@ impl Config {
     {
         let item_entries = dir_path
             .as_ref()
-            .read_dir().context(ErrorKind::CannotReadDir)?
-            .collect::<Result<Vec<_>, _>>().context(ErrorKind::CannotReadDirEntry)?;
+            .read_dir()?
+            .collect::<Result<Vec<_>, _>>()?;
 
         let item_paths = self.select(item_entries.into_iter().map(|entry| entry.path()));
 

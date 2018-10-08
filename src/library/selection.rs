@@ -1,25 +1,36 @@
+//! Represents a method of determining whether a potential item path is to be included in metadata lookup.
+
 use std::path::Path;
 
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
+use failure::Fail;
+use failure::Error;
 use failure::ResultExt;
 
-use error::Error;
-use error::ErrorKind;
+#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+pub enum ErrorKind {
+    #[fail(display = "invalid glob pattern: {}", _0)]
+    InvalidSelectionPattern(String),
+    #[fail(display = "cannot build selector")]
+    CannotBuildSelector,
+}
 
 pub struct Selection(GlobSet);
 
 impl Selection {
-    pub fn from_patterns<II, S>(patterns: II) -> Result<Self, Error>
+    pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, Error>
     where
         II: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
         let mut builder = GlobSetBuilder::new();
 
-        for pattern in patterns.into_iter() {
-            builder.add(Glob::new(pattern.as_ref()).context(ErrorKind::InvalidGlobPattern)?);
+        for pattern_str in pattern_strs.into_iter() {
+            let pattern_str = pattern_str.as_ref();
+            let pattern = Glob::new(&pattern_str).with_context(|_| ErrorKind::InvalidSelectionPattern(pattern_str.to_string()))?;
+            builder.add(pattern);
         }
 
         let selection = builder.build().context(ErrorKind::CannotBuildSelector)?;
