@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 
 use failure::Error;
 
+use error::ErrorKind;
 use library::config::Config;
 use metadata::types::MetaVal;
 use metadata::processor::MetaProcessor;
@@ -85,18 +86,34 @@ where
         // Assume that the paths in the frontier are directories.
         while let Some(frontier_item_path) = frontier.pop_front() {
             // Get sub items contained within.
-            let sub_item_paths = config.select_in_dir(frontier_item_path)?;
+            match config.select_in_dir(frontier_item_path) {
+                Ok(sub_item_paths) => {
+                    // Sub paths were found.
+                    for sub_item_path in sub_item_paths {
+                        match Self::resolve_field(&sub_item_path, &field, &config)? {
+                            Some(sub_meta_val) => {
+                                child_results.push(Some(sub_meta_val));
+                            },
+                            None => {
+                                // If the sub item is a directory, add it to the frontier.
+                                if sub_item_path.is_dir() {
+                                    // Since a depth-first search is desired, treat as a stack.
+                                    frontier.push_front(sub_item_path);
+                                }
+                            },
+                        }
+                    }
+                },
+                Err(err) => {
+                    // Unable to look inside frontier item, possible for it to not be a directory.
+                    match err.downcast_ref::<ErrorKind>() {
+                        // A non-directory was found in the frontier, just skip it.
+                        Some(ErrorKind::CannotReadDir(_)) => {},
 
-            for sub_item_path in sub_item_paths {
-                match Self::resolve_field(&sub_item_path, &field, &config)? {
-                    Some(sub_meta_val) => {
-                        child_results.push(Some(sub_meta_val));
-                    },
-                    None => {
-                        // Since a depth-first search is desired, treat as a stack.
-                        frontier.push_front(sub_item_path);
-                    },
-                }
+                        // Any other error is a raise-able offense.
+                        _ => Err(err)?,
+                    }
+                },
             }
         }
 

@@ -3,10 +3,10 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use failure::Fail;
 use failure::Error;
 use failure::ResultExt;
 
+use error::ErrorKind;
 use library::sort_order::SortOrder;
 use library::selection::Selection;
 
@@ -63,8 +63,8 @@ impl Config {
     {
         let item_entries = dir_path
             .as_ref()
-            .read_dir()?
-            .collect::<Result<Vec<_>, _>>()?;
+            .read_dir().map_err(|_| ErrorKind::CannotReadDir(dir_path.as_ref().to_path_buf()))?
+            .collect::<Result<Vec<_>, _>>().map_err(|_| ErrorKind::CannotReadDirEntry)?;
 
         let item_paths = self.select(item_entries.into_iter().map(|entry| entry.path()));
 
