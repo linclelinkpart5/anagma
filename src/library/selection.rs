@@ -40,6 +40,7 @@ impl OneOrManyPatterns {
     }
 }
 
+/// A filter for file paths, used to determine if a path is to be considered a metadata-containing item.
 #[derive(Debug)]
 pub struct Selection(GlobSet);
 

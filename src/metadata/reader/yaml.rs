@@ -6,7 +6,6 @@ use yaml_rust::YamlLoader;
 use failure::Error;
 use failure::ResultExt;
 
-use error::Error as TagguError;
 use error::ErrorKind;
 use metadata::reader::MetaReader;
 use metadata::location::MetaLocation;
@@ -20,17 +19,17 @@ use metadata::types::MetaBlockMap;
 pub struct YamlMetaReader;
 
 impl MetaReader for YamlMetaReader {
-    fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, TagguError> {
+    fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let s = s.as_ref();
-        let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s).context(ErrorKind::CannotReadYamlFile)?;
+        let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s)?;
 
         if yaml_docs.len() < 1 {
-            Err(ErrorKind::CannotReadYamlFile)?
+            Err(failure::err_msg("no documents in YAML file"))?
         }
 
         let yaml_doc = &yaml_docs[0];
 
-        Ok(yaml_as_metadata(yaml_doc, mt).context(ErrorKind::CannotReadYamlFile)?)
+        Ok(yaml_as_metadata(yaml_doc, mt)?)
     }
 }
 

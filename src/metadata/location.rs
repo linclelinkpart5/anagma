@@ -2,9 +2,9 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
 
+use failure::Error;
 use failure::ResultExt;
 
-use error::Error;
 use error::ErrorKind;
 use library::config::Config;
 
@@ -19,13 +19,13 @@ impl MetaLocation {
         let item_path = item_path.as_ref();
 
         if !item_path.exists() {
-            Err(ErrorKind::NonexistentPath)?
+            Err(ErrorKind::NonexistentPath(item_path.to_path_buf()))?
         }
 
         let meta_path = match *self {
             MetaLocation::Contains => {
                 if !item_path.is_dir() {
-                    Err(ErrorKind::NotADirPath)?
+                    Err(ErrorKind::InvalidDirPath(item_path.to_path_buf()))?
                 }
 
                 item_path.join("self.yml")
@@ -33,16 +33,16 @@ impl MetaLocation {
             MetaLocation::Siblings => {
                 match item_path.parent() {
                     Some(item_path_parent) => item_path_parent.join("item.yml"),
-                    None => Err(ErrorKind::NoPathParent)?,
+                    None => Err(ErrorKind::NoPathParent(item_path.to_path_buf()))?,
                 }
             }
         };
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentPath)?
+            Err(ErrorKind::NonexistentPath(meta_path.to_path_buf()))?
         }
         if !meta_path.is_file() {
-            Err(ErrorKind::NotAFilePath)?
+            Err(ErrorKind::InvalidFilePath(meta_path.to_path_buf()))?
         }
 
         Ok(meta_path)
@@ -56,11 +56,11 @@ impl MetaLocation {
         let meta_path = meta_path.as_ref();
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentPath)?
+            Err(ErrorKind::NonexistentPath(meta_path.to_path_buf()))?
         }
 
         if !meta_path.is_file() {
-            Err(ErrorKind::NotAFilePath)?
+            Err(ErrorKind::InvalidFilePath(meta_path.to_path_buf()))?
         }
 
         // Get the parent directory of the meta file.
@@ -75,8 +75,8 @@ impl MetaLocation {
                 },
                 MetaLocation::Siblings => {
                     // Return all children of this directory.
-                    for entry in fs::read_dir(&meta_parent_dir_path).context(ErrorKind::CannotReadDir)? {
-                        po_item_paths.push(entry.context(ErrorKind::CannotReadDirEntry)?.path());
+                    for entry in fs::read_dir(&meta_parent_dir_path).map_err(|_| ErrorKind::CannotReadDir(meta_parent_dir_path.to_path_buf()))? {
+                        po_item_paths.push(entry.map_err(|_| ErrorKind::CannotReadDirEntry)?.path());
                     }
                 },
             }
@@ -85,7 +85,7 @@ impl MetaLocation {
         }
         else {
             // This should never happen!
-            Err(ErrorKind::NoPathParent)?
+            Err(ErrorKind::NoPathParent(meta_path.to_path_buf()))?
         }
     }
 

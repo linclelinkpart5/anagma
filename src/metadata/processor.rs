@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 // use std::collections::hash_map::Entry;
 
 use failure::ResultExt;
+use failure::Error;
 
-use error::Error;
 use error::ErrorKind;
 use library::config::Config;
 use metadata::types::MetaBlock;
@@ -28,9 +28,9 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotParseMetadata)?;
+        let meta_structure = MR::from_file(&meta_path, meta_location)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotReadDir)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config)?;
 
         let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order);
 
@@ -45,7 +45,7 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
+        let meta_path = meta_location.get_meta_path(&item_path)?;
 
         let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
 
@@ -54,7 +54,7 @@ where
             Ok(meta_block)
         }
         else {
-            Err(ErrorKind::NoMetadataFound)?
+            Err(failure::err_msg("no metadata found"))?
         }
     }
 
