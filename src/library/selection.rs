@@ -5,6 +5,7 @@ use std::path::Path;
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
+use globset::Error as GlobError;
 use failure::Fail;
 use failure::Error;
 use failure::ResultExt;
@@ -14,9 +15,9 @@ use serde::de::Deserializer;
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum ErrorKind {
     #[fail(display = "invalid glob pattern: {}", _0)]
-    InvalidSelectionPattern(String),
+    InvalidSelectionPattern(String, #[cause] GlobError),
     #[fail(display = "cannot build selector")]
-    CannotBuildSelector,
+    CannotBuildSelector(#[cause] GlobError),
 }
 
 #[derive(Deserialize)]
@@ -39,6 +40,7 @@ impl OneOrManyPatterns {
     }
 }
 
+#[derive(Debug)]
 pub struct Selection(GlobSet);
 
 impl<'de> Deserialize<'de> for Selection {
@@ -61,11 +63,11 @@ impl Selection {
 
         for pattern_str in pattern_strs.into_iter() {
             let pattern_str = pattern_str.as_ref();
-            let pattern = Glob::new(&pattern_str).with_context(|_| ErrorKind::InvalidSelectionPattern(pattern_str.to_string()))?;
+            let pattern = Glob::new(&pattern_str).map_err(|e| ErrorKind::InvalidSelectionPattern(pattern_str.to_string(), e))?;
             builder.add(pattern);
         }
 
-        let selection = builder.build().context(ErrorKind::CannotBuildSelector)?;
+        let selection = builder.build().map_err(|e| ErrorKind::CannotBuildSelector(e))?;
 
         Ok(Selection(selection))
     }
@@ -93,6 +95,7 @@ impl Default for Selection {
 #[cfg(test)]
 mod tests {
     use super::Selection;
+    use super::ErrorKind;
 
     use std::path::Path;
 
@@ -156,6 +159,20 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
+            // if input.is_err() {
+            //     let err = input.unwrap_err();
+            //     println!("{:?}", err);
+
+            //     match err.downcast_ref::<ErrorKind>() {
+            //         Some(kind) => {
+            //             match kind {
+            //                 ErrorKind::InvalidSelectionPattern(ref s, _) => println!("invalid sel pattern {}", s),
+            //                 _ => println!("error, but don't care"),
+            //             }
+            //         },
+            //         None => println!("did not match error"),
+            //     }
+            // }
             let produced = input.is_ok();
             assert_eq!(expected, produced);
         }
