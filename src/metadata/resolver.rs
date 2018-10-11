@@ -78,7 +78,9 @@ where
 
         let mut frontier = VecDeque::new();
 
-        frontier.push_back(item_path.to_owned());
+        if item_path.is_dir() {
+            frontier.push_back(item_path.to_owned());
+        }
 
         let mut child_results = vec![];
 
