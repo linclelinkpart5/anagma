@@ -10,7 +10,7 @@ use metadata::structure::MetaStructure;
 use metadata::types::MetaBlock;
 use util::GenConverter;
 
-#[derive(Fail, Debug)]
+#[derive(Fail, Debug, PartialEq, Eq, Hash)]
 pub enum PlexItemError {
     #[fail(display = "item path was unused in plexing: {:?}", _0)]
     UnusedItemPath(PathBuf),
@@ -101,7 +101,7 @@ impl MetaPlexer {
             };
         };
 
-        std::iter::empty()
+        GenConverter::gen_to_iter(closure)
     }
 
     pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II, sort_order: SortOrder) -> HashMap<PathBuf, MetaBlock>
@@ -185,6 +185,7 @@ impl MetaPlexer {
 #[cfg(test)]
 mod tests {
     use super::MetaPlexer;
+    use super::PlexItemError;
 
     use std::path::Path;
     use std::path::PathBuf;
@@ -192,6 +193,81 @@ mod tests {
     use library::sort_order::SortOrder;
     use metadata::structure::MetaStructure;
     use metadata::types::val::MetaVal;
+
+    #[test]
+    fn test_plex_gen() {
+        let mb_a = btreemap![
+            String::from("key_1a") => MetaVal::Str(String::from("val_1a")),
+            String::from("key_1b") => MetaVal::Str(String::from("val_1b")),
+            String::from("key_1c") => MetaVal::Str(String::from("val_1c")),
+        ];
+        let mb_b = btreemap![
+            String::from("key_2a") => MetaVal::Str(String::from("val_2a")),
+            String::from("key_2b") => MetaVal::Str(String::from("val_2b")),
+            String::from("key_2c") => MetaVal::Str(String::from("val_2c")),
+        ];
+        let mb_c = btreemap![
+            String::from("key_3a") => MetaVal::Str(String::from("val_3a")),
+            String::from("key_3b") => MetaVal::Str(String::from("val_3b")),
+            String::from("key_3c") => MetaVal::Str(String::from("val_3c")),
+        ];
+
+        let ms_a = MetaStructure::One(mb_a.clone());
+        let ms_b = MetaStructure::Seq(vec![mb_a.clone(), mb_b.clone(), mb_c.clone()]);
+        let ms_c = MetaStructure::Map(hashmap![
+            String::from("item_c.file") => mb_c.clone(),
+            String::from("item_a.file") => mb_a.clone(),
+            String::from("item_b.file") => mb_b.clone(),
+        ]);
+
+        let inputs_and_expected = vec![
+            (
+                (ms_a.clone(), vec![Path::new("item_a.file")]),
+                hashset![
+                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                ],
+            ),
+            (
+                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
+                hashset![
+                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b.file"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c.file"), mb_c.clone())),
+                ],
+            ),
+            (
+                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file"), Path::new("item_d.file")]),
+                hashset![
+                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b.file"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c.file"), mb_c.clone())),
+                    Err(PlexItemError::UnusedItemPath(PathBuf::from("item_d.file"))),
+                ],
+            ),
+            (
+                (ms_b.clone(), vec![Path::new("item_a.file")]),
+                hashset![
+                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                    Err(PlexItemError::UnusedMetaBlock(mb_b.clone(), None)),
+                    Err(PlexItemError::UnusedMetaBlock(mb_c.clone(), None)),
+                ],
+            ),
+            (
+                (ms_c.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
+                hashset![
+                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b.file"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c.file"), mb_c.clone())),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (meta_structure, item_paths) = input;
+            let produced = MetaPlexer::plex_gen(meta_structure, item_paths, SortOrder::Name).collect();
+            assert_eq!(expected, produced);
+        }
+    }
 
     #[test]
     fn test_plex() {
