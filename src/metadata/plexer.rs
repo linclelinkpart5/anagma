@@ -9,6 +9,16 @@ use library::sort_order::SortOrder;
 use metadata::structure::MetaStructure;
 use metadata::types::MetaBlock;
 
+#[derive(Fail, Debug)]
+pub enum PlexItemError {
+    #[fail(display = "item path was unused in plexing: {:?}", _0)]
+    UnusedItemPath(PathBuf),
+    #[fail(display = "meta block was unused in plexing")]
+    UnusedMetaBlock(MetaBlock),
+    #[fail(display = "item path did not have a file name: {:?}", _0)]
+    NamelessItemPath(PathBuf),
+}
+
 pub struct MetaPlexer;
 
 impl MetaPlexer {
