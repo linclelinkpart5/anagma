@@ -8,12 +8,11 @@ use globset::GlobSetBuilder;
 use globset::Error as GlobError;
 use failure::Fail;
 use failure::Error;
-use failure::ResultExt;
 use serde::Deserialize;
 use serde::de::Deserializer;
 
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
-pub enum ErrorKind {
+pub enum SelectionError {
     #[fail(display = "invalid glob pattern: {}", _0)]
     InvalidSelectionPattern(String, #[cause] GlobError),
     #[fail(display = "cannot build selector")]
@@ -28,7 +27,7 @@ enum OneOrManyPatterns {
 }
 
 impl OneOrManyPatterns {
-    fn into_selection(self) -> Result<Selection, Error> {
+    fn into_selection(self) -> Result<Selection, SelectionError> {
         match self {
             OneOrManyPatterns::One(p) => {
                 Selection::from_patterns(&[p])
@@ -55,7 +54,7 @@ impl<'de> Deserialize<'de> for Selection {
 }
 
 impl Selection {
-    pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, Error>
+    pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, SelectionError>
     where
         II: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -64,11 +63,11 @@ impl Selection {
 
         for pattern_str in pattern_strs.into_iter() {
             let pattern_str = pattern_str.as_ref();
-            let pattern = Glob::new(&pattern_str).map_err(|e| ErrorKind::InvalidSelectionPattern(pattern_str.to_string(), e))?;
+            let pattern = Glob::new(&pattern_str).map_err(|e| SelectionError::InvalidSelectionPattern(pattern_str.to_string(), e))?;
             builder.add(pattern);
         }
 
-        let selection = builder.build().map_err(|e| ErrorKind::CannotBuildSelector(e))?;
+        let selection = builder.build().map_err(|e| SelectionError::CannotBuildSelector(e))?;
 
         Ok(Selection(selection))
     }
@@ -96,7 +95,7 @@ impl Default for Selection {
 #[cfg(test)]
 mod tests {
     use super::Selection;
-    use super::ErrorKind;
+    use super::SelectionError;
 
     use std::path::Path;
 
@@ -121,61 +120,59 @@ mod tests {
 
     #[test]
     fn test_from_patterns() {
-        let inputs_and_expected = vec![
-            (Selection::from_patterns(&["*"]), true),
-            (Selection::from_patterns(&["*.a", "*.b"]), true),
-            (Selection::from_patterns(&["?.a", "?.b"]), true),
-            (Selection::from_patterns(&["*.a"]), true),
-            (Selection::from_patterns(&["**"]), true),
-            (Selection::from_patterns(&["a/**/b"]), true),
-            (Selection::from_patterns(&[""; 0]), true),
-            (Selection::from_patterns(&[""]), true),
-            (Selection::from_patterns(&["[a-z]*.a"]), true),
-            (Selection::from_patterns(&["**", "[a-z]*.a"]), true),
-            (Selection::from_patterns(&["[!abc]"]), true),
-            (Selection::from_patterns(&["[*]"]), true),
-            (Selection::from_patterns(&["[?]"]), true),
-            (Selection::from_patterns(&["{*.a,*.b,*.c}"]), true),
-
-            // Invalid double star
-            (Selection::from_patterns(&["a**b"]), false),
-
-            // Unclosed character class
-            (Selection::from_patterns(&["[abc"]), false),
-
-            // Malformed character range
-            (Selection::from_patterns(&["[z-a]"]), false),
-
-            // Unclosed alternates
-            (Selection::from_patterns(&["{*.a,*.b,*.c"]), false),
-
-            // Unopened alternates
-            // (Selection::from_patterns(&["*.a,*.b,*.c}"]), false),
-
-            // Nested alternates
-            (Selection::from_patterns(&["{*.a,{*.b,*.c}}"]), false),
-
-            // Dangling escape
-            // (Selection::from_patterns(&["*.a\""]), false),
+        let passing_inputs = vec![
+            Selection::from_patterns(&["*"]),
+            Selection::from_patterns(&["*.a", "*.b"]),
+            Selection::from_patterns(&["?.a", "?.b"]),
+            Selection::from_patterns(&["*.a"]),
+            Selection::from_patterns(&["**"]),
+            Selection::from_patterns(&["a/**/b"]),
+            Selection::from_patterns(&[""; 0]),
+            Selection::from_patterns(&[""]),
+            Selection::from_patterns(&["[a-z]*.a"]),
+            Selection::from_patterns(&["**", "[a-z]*.a"]),
+            Selection::from_patterns(&["[!abc]"]),
+            Selection::from_patterns(&["[*]"]),
+            Selection::from_patterns(&["[?]"]),
+            Selection::from_patterns(&["{*.a,*.b,*.c}"]),
         ];
 
-        for (input, expected) in inputs_and_expected {
-            // if input.is_err() {
-            //     let err = input.unwrap_err();
-            //     println!("{:?}", err);
-
-            //     match err.downcast_ref::<ErrorKind>() {
-            //         Some(kind) => {
-            //             match kind {
-            //                 ErrorKind::InvalidSelectionPattern(ref s, _) => println!("invalid sel pattern {}", s),
-            //                 _ => println!("error, but don't care"),
-            //             }
-            //         },
-            //         None => println!("did not match error"),
-            //     }
-            // }
+        for input in passing_inputs {
+            let expected = true;
             let produced = input.is_ok();
             assert_eq!(expected, produced);
+        }
+
+        let failing_inputs = vec![
+            // Invalid double star
+            Selection::from_patterns(&["a**b"]),
+
+            // Unclosed character class
+            Selection::from_patterns(&["[abc"]),
+
+            // Malformed character range
+            Selection::from_patterns(&["[z-a]"]),
+
+            // Unclosed alternates
+            Selection::from_patterns(&["{*.a,*.b,*.c"]),
+
+            // Unopened alternates
+            // Selection::from_patterns(&["*.a,*.b,*.c}"]),
+
+            // Nested alternates
+            Selection::from_patterns(&["{*.a,{*.b,*.c}}"]),
+
+            // Dangling escape
+            // Selection::from_patterns(&["*.a\""]),
+        ];
+
+        for input in failing_inputs {
+            match input {
+                Err(SelectionError::InvalidSelectionPattern(_, _)) => {},
+                _ => {
+                    panic!();
+                },
+            }
         }
     }
 
