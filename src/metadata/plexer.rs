@@ -73,6 +73,7 @@ impl MetaPlexer {
                 MetaStructure::Map(mut meta_block_map) => {
                     for item_path in item_paths {
                         // Use the file name of the item path as a key into the mapping.
+                        // LEARN: The string clone is due to a limitation of references, none can be alive during a yield.
                         let key = match item_path.as_ref().file_name().and_then(|os| os.to_str()).map(|s| s.to_string()) {
                             Some(file_name) => file_name,
                             None => {
@@ -189,6 +190,7 @@ mod tests {
 
     use std::path::Path;
     use std::path::PathBuf;
+    use std::collections::HashSet;
 
     use library::sort_order::SortOrder;
     use metadata::structure::MetaStructure;
@@ -215,56 +217,106 @@ mod tests {
         let ms_a = MetaStructure::One(mb_a.clone());
         let ms_b = MetaStructure::Seq(vec![mb_a.clone(), mb_b.clone(), mb_c.clone()]);
         let ms_c = MetaStructure::Map(hashmap![
-            String::from("item_c.file") => mb_c.clone(),
-            String::from("item_a.file") => mb_a.clone(),
-            String::from("item_b.file") => mb_b.clone(),
+            String::from("item_c") => mb_c.clone(),
+            String::from("item_a") => mb_a.clone(),
+            String::from("item_b") => mb_b.clone(),
         ]);
 
+        // Test single and sequence structures.
         let inputs_and_expected = vec![
             (
-                (ms_a.clone(), vec![Path::new("item_a.file")]),
-                hashset![
-                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                (ms_a.clone(), vec![Path::new("item_a")]),
+                vec![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
-                hashset![
-                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b.file"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c.file"), mb_c.clone())),
+                (ms_a.clone(), vec![Path::new("item_a"), Path::new("item_b")]),
+                vec![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Err(PlexItemError::UnusedItemPath(PathBuf::from("item_b"))),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file"), Path::new("item_d.file")]),
-                hashset![
-                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b.file"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c.file"), mb_c.clone())),
-                    Err(PlexItemError::UnusedItemPath(PathBuf::from("item_d.file"))),
+                (ms_a.clone(), vec![]),
+                vec![
+                    Err(PlexItemError::UnusedMetaBlock(mb_a.clone(), None)),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a.file")]),
-                hashset![
-                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
+                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
+                vec![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                ],
+            ),
+            (
+                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c"), Path::new("item_d")]),
+                vec![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                    Err(PlexItemError::UnusedItemPath(PathBuf::from("item_d"))),
+                ],
+            ),
+            (
+                (ms_b.clone(), vec![Path::new("item_a")]),
+                vec![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Err(PlexItemError::UnusedMetaBlock(mb_b.clone(), None)),
                     Err(PlexItemError::UnusedMetaBlock(mb_c.clone(), None)),
-                ],
-            ),
-            (
-                (ms_c.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
-                hashset![
-                    Ok((PathBuf::from("item_a.file"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b.file"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c.file"), mb_c.clone())),
                 ],
             ),
         ];
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::plex_gen(meta_structure, item_paths, SortOrder::Name).collect();
+            let produced: Vec<_> = MetaPlexer::plex_gen(meta_structure, item_paths, SortOrder::Name).collect();
+            assert_eq!(expected, produced);
+        }
+
+        // Test mapping structures.
+        let inputs_and_expected = vec![
+            (
+                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
+                hashset![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                ],
+            ),
+            (
+                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b")]),
+                hashset![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Err(PlexItemError::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
+                ],
+            ),
+            (
+                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c"), Path::new("item_d")]),
+                hashset![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                    Err(PlexItemError::UnusedItemPath(PathBuf::from("item_d"))),
+                ],
+            ),
+            (
+                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_d")]),
+                hashset![
+                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Err(PlexItemError::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Err(PlexItemError::UnusedItemPath(PathBuf::from("item_d"))),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (meta_structure, item_paths) = input;
+            let produced: HashSet<_> = MetaPlexer::plex_gen(meta_structure, item_paths, SortOrder::Name).collect();
             assert_eq!(expected, produced);
         }
     }
@@ -290,46 +342,46 @@ mod tests {
         let ms_a = MetaStructure::One(mb_a.clone());
         let ms_b = MetaStructure::Seq(vec![mb_a.clone(), mb_b.clone(), mb_c.clone()]);
         let ms_c = MetaStructure::Map(hashmap![
-            String::from("item_c.file") => mb_c.clone(),
-            String::from("item_a.file") => mb_a.clone(),
-            String::from("item_b.file") => mb_b.clone(),
+            String::from("item_c") => mb_c.clone(),
+            String::from("item_a") => mb_a.clone(),
+            String::from("item_b") => mb_b.clone(),
         ]);
 
         let inputs_and_expected = vec![
             (
-                (ms_a.clone(), vec![Path::new("item_a.file")]),
+                (ms_a.clone(), vec![Path::new("item_a")]),
                 hashmap![
-                    PathBuf::from("item_a.file") => mb_a.clone(),
+                    PathBuf::from("item_a") => mb_a.clone(),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
+                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
                 hashmap![
-                    PathBuf::from("item_a.file") => mb_a.clone(),
-                    PathBuf::from("item_b.file") => mb_b.clone(),
-                    PathBuf::from("item_c.file") => mb_c.clone(),
+                    PathBuf::from("item_a") => mb_a.clone(),
+                    PathBuf::from("item_b") => mb_b.clone(),
+                    PathBuf::from("item_c") => mb_c.clone(),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file"), Path::new("item_d.file")]),
+                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c"), Path::new("item_d")]),
                 hashmap![
-                    PathBuf::from("item_a.file") => mb_a.clone(),
-                    PathBuf::from("item_b.file") => mb_b.clone(),
-                    PathBuf::from("item_c.file") => mb_c.clone(),
+                    PathBuf::from("item_a") => mb_a.clone(),
+                    PathBuf::from("item_b") => mb_b.clone(),
+                    PathBuf::from("item_c") => mb_c.clone(),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a.file")]),
+                (ms_b.clone(), vec![Path::new("item_a")]),
                 hashmap![
-                    PathBuf::from("item_a.file") => mb_a.clone(),
+                    PathBuf::from("item_a") => mb_a.clone(),
                 ],
             ),
             (
-                (ms_c.clone(), vec![Path::new("item_a.file"), Path::new("item_b.file"), Path::new("item_c.file")]),
+                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
                 hashmap![
-                    PathBuf::from("item_a.file") => mb_a.clone(),
-                    PathBuf::from("item_b.file") => mb_b.clone(),
-                    PathBuf::from("item_c.file") => mb_c.clone(),
+                    PathBuf::from("item_a") => mb_a.clone(),
+                    PathBuf::from("item_b") => mb_b.clone(),
+                    PathBuf::from("item_c") => mb_c.clone(),
                 ],
             ),
         ];
