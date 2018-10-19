@@ -2,13 +2,18 @@
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::io::Error as IoError;
 
-use failure::Error;
-use failure::ResultExt;
-
-use error::ErrorKind;
 use library::sort_order::SortOrder;
 use library::selection::Selection;
+
+#[derive(Fail, Debug)]
+pub enum ConfigError {
+    #[fail(display = "cannot read directory: {:?}", _0)]
+    CannotReadDir(PathBuf, #[cause] IoError),
+    #[fail(display = "cannot read directory entry")]
+    CannotReadDirEntry(#[cause] IoError),
+}
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -33,42 +38,48 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Indicates if a path is selected as part of this config.
+    /// Returns true if the path matches the pattern of this config.
     /// This only uses the lexical content of the path.
     pub fn is_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
         self.include.is_match(&path) && !self.exclude.is_match(&path)
     }
 
-    /// Indicates if a path is selected as part of this config.
+    /// Returns true if a path is selected as part of this config.
     /// Directories are always marked as included.
+    /// Files are included if they meet the pattern criteria.
     pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
         path.as_ref().is_dir() || (path.as_ref().is_file() && self.is_pattern_match(path))
     }
 
     // NOTE: Sorting is now only done during plexing.
-    pub fn select<II, P>(&self, item_paths: II) -> Vec<P>
+    /// Returns items from the input that are selected according to this config.
+    pub fn select<'a, II, P>(&'a self, item_paths: II) -> impl Iterator<Item = P> + 'a
     where
         II: IntoIterator<Item = P>,
+        II::IntoIter: 'a,
         P: AsRef<Path>,
     {
-        item_paths
+        let filtered = item_paths
             .into_iter()
-            .filter(|ip| self.is_selected(ip))
-            .collect()
+            .filter(move |ip| self.is_selected(ip));
+
+        filtered
     }
 
-    pub fn select_in_dir<P>(&self, dir_path: P) -> Result<Vec<PathBuf>, Error>
+    pub fn select_in_dir<'a, P>(&'a self, dir_path: P) -> Result<impl Iterator<Item = PathBuf> + 'a, ConfigError>
     where
         P: AsRef<Path>,
     {
         let item_entries = dir_path
             .as_ref()
-            .read_dir().map_err(|_| ErrorKind::CannotReadDir(dir_path.as_ref().to_path_buf()))?
-            .collect::<Result<Vec<_>, _>>().map_err(|_| ErrorKind::CannotReadDirEntry)?;
+            .read_dir()
+            .map_err(|e| ConfigError::CannotReadDir(dir_path.as_ref().to_path_buf(), e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| ConfigError::CannotReadDirEntry(e))?;
 
-        let item_paths = self.select(item_entries.into_iter().map(|entry| entry.path()));
+        let sel_item_paths = self.select::<'a>(item_entries.into_iter().map(|entry| entry.path()));
 
-        Ok(item_paths)
+        Ok(sel_item_paths)
     }
 }
 

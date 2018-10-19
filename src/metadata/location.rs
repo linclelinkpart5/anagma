@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::fs;
 
 use failure::Error;
-use failure::ResultExt;
 
 use error::ErrorKind;
 use library::config::Config;
@@ -99,6 +98,6 @@ impl MetaLocation {
         let item_paths = self.get_item_paths(meta_path)?;
 
         // Use the config object to select the item paths.
-        Ok(config.select(item_paths))
+        Ok(config.select(item_paths).collect())
     }
 }

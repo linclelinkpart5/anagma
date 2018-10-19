@@ -4,9 +4,7 @@ use std::collections::BTreeMap;
 use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
 use failure::Error;
-use failure::ResultExt;
 
-use error::ErrorKind;
 use metadata::reader::MetaReader;
 use metadata::location::MetaLocation;
 use metadata::structure::MetaStructure;
