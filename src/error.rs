@@ -12,7 +12,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
+#[derive(Clone, Eq, PartialEq, Debug, Fail, Hash)]
 #[non_exhaustive]
 pub enum ErrorKind {
     #[fail(display = "invalid directory path: {:?}", _0)]

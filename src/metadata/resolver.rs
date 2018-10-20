@@ -6,7 +6,6 @@ use std::collections::VecDeque;
 
 use failure::Error;
 
-use error::ErrorKind;
 use library::config::Config;
 use metadata::types::MetaVal;
 use metadata::processor::MetaProcessor;

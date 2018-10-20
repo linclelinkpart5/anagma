@@ -7,7 +7,6 @@ use std::marker::PhantomData;
 use failure::ResultExt;
 use failure::Error;
 
-use error::ErrorKind;
 use library::config::Config;
 use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
