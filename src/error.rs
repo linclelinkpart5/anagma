@@ -28,10 +28,8 @@ pub enum ErrorKind {
     #[fail(display = "unable to read directory entry")]
     CannotReadDirEntry,
 
-    #[fail(display = "error when working with meta path")]
-    MetaPathContext,
-    #[fail(display = "error when working with item path")]
-    ItemPathContext,
+    #[fail(display = "malformed metadata file: {:?}", _0)]
+    MalformedMetadata(PathBuf),
 }
 
 impl Fail for Error {

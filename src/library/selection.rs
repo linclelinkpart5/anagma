@@ -14,7 +14,7 @@ use serde::de::Deserializer;
 #[derive(Clone, Eq, PartialEq, Debug, Fail)]
 pub enum SelectionError {
     #[fail(display = "invalid glob pattern: {}", _0)]
-    InvalidSelectionPattern(String, #[cause] GlobError),
+    InvalidPattern(String, #[cause] GlobError),
     #[fail(display = "cannot build selector")]
     CannotBuildSelector(#[cause] GlobError),
 }
@@ -63,7 +63,7 @@ impl Selection {
 
         for pattern_str in pattern_strs.into_iter() {
             let pattern_str = pattern_str.as_ref();
-            let pattern = Glob::new(&pattern_str).map_err(|e| SelectionError::InvalidSelectionPattern(pattern_str.to_string(), e))?;
+            let pattern = Glob::new(&pattern_str).map_err(|e| SelectionError::InvalidPattern(pattern_str.to_string(), e))?;
             builder.add(pattern);
         }
 
@@ -168,7 +168,7 @@ mod tests {
 
         for input in failing_inputs {
             match input {
-                Err(SelectionError::InvalidSelectionPattern(_, _)) => {},
+                Err(SelectionError::InvalidPattern(_, _)) => {},
                 _ => {
                     panic!();
                 },
