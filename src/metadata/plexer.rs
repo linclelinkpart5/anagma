@@ -23,7 +23,7 @@ pub enum PlexItemError {
 pub struct MetaPlexer;
 
 impl MetaPlexer {
-    pub fn plex_gen<II, P>(
+    pub fn plex<II, P>(
         meta_structure: MetaStructure,
         item_paths: II,
         sort_order: SortOrder,
@@ -104,83 +104,6 @@ impl MetaPlexer {
 
         GenConverter::gen_to_iter(closure)
     }
-
-    pub fn plex<II, P>(meta_structure: MetaStructure, item_paths: II, sort_order: SortOrder) -> HashMap<PathBuf, MetaBlock>
-    where II: IntoIterator<Item = P>,
-          P: AsRef<Path>,
-    {
-        let mut item_paths = item_paths.into_iter();
-
-        let mut result = hashmap![];
-
-        match meta_structure {
-            MetaStructure::One(meta_block) => {
-                // Exactly one item path is expected.
-                if let Some(item_path) = item_paths.next() {
-                    // If there are excess paths provided, warn for each of them.
-                    for excess_item_path in item_paths {
-                        warn!("unused item path \"{}\"", excess_item_path.as_ref().to_string_lossy());
-                    }
-
-                    result.insert(item_path.as_ref().to_path_buf(), meta_block);
-                }
-                else {
-                    warn!("no item paths provided");
-                }
-            },
-            MetaStructure::Seq(meta_block_seq) => {
-                let mut item_paths: Vec<_> = item_paths.into_iter().collect();
-
-                // Need to sort in order to get correct matches.
-                item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
-
-                for eob in item_paths.into_iter().zip_longest(meta_block_seq) {
-                    match eob {
-                        EitherOrBoth::Both(item_path, meta_block) => {
-                            result.insert(item_path.as_ref().to_path_buf(), meta_block);
-                        },
-                        EitherOrBoth::Left(item_path) => {
-                            warn!("unused item path \"{}\"", item_path.as_ref().to_string_lossy());
-                        },
-                        EitherOrBoth::Right(meta_block) => {
-                            warn!("unused meta block \"{:?}\"", meta_block);
-                        },
-                    }
-                }
-            },
-            // TODO: See if there is a way to do this without mutating the original value.
-            MetaStructure::Map(mut meta_block_map) => {
-                for item_path in item_paths {
-                    // Use the file name of the item path as a key into the mapping.
-                    let key = match item_path.as_ref().file_name().and_then(|os| os.to_str()) {
-                        Some(file_name) => file_name,
-                        None => {
-                            warn!("item path does not have a file name");
-                            continue;
-                        },
-                    };
-
-                    match meta_block_map.remove(key) {
-                        Some(meta_block) => {
-                            result.insert(item_path.as_ref().to_path_buf(), meta_block);
-                        },
-                        None => {
-                            // Key was not found, encountered a file that was not tagged in the mapping.
-                            warn!("item file name \"{}\" not found in mapping", key);
-                            continue;
-                        },
-                    };
-                }
-
-                // Warn for any leftover map entries.
-                for (k, _) in meta_block_map.drain() {
-                    warn!("key \"{}\" not found in item file paths", k);
-                }
-            },
-        };
-
-        result
-    }
 }
 
 #[cfg(test)]
@@ -197,7 +120,7 @@ mod tests {
     use metadata::types::val::MetaVal;
 
     #[test]
-    fn test_plex_gen() {
+    fn test_plex() {
         let mb_a = btreemap![
             String::from("key_1a") => MetaVal::Str(String::from("val_1a")),
             String::from("key_1b") => MetaVal::Str(String::from("val_1b")),
@@ -272,7 +195,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: Vec<_> = MetaPlexer::plex_gen(meta_structure, item_paths, SortOrder::Name).collect();
+            let produced: Vec<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).collect();
             assert_eq!(expected, produced);
         }
 
@@ -316,79 +239,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: HashSet<_> = MetaPlexer::plex_gen(meta_structure, item_paths, SortOrder::Name).collect();
-            assert_eq!(expected, produced);
-        }
-    }
-
-    #[test]
-    fn test_plex() {
-        let mb_a = btreemap![
-            String::from("key_1a") => MetaVal::Str(String::from("val_1a")),
-            String::from("key_1b") => MetaVal::Str(String::from("val_1b")),
-            String::from("key_1c") => MetaVal::Str(String::from("val_1c")),
-        ];
-        let mb_b = btreemap![
-            String::from("key_2a") => MetaVal::Str(String::from("val_2a")),
-            String::from("key_2b") => MetaVal::Str(String::from("val_2b")),
-            String::from("key_2c") => MetaVal::Str(String::from("val_2c")),
-        ];
-        let mb_c = btreemap![
-            String::from("key_3a") => MetaVal::Str(String::from("val_3a")),
-            String::from("key_3b") => MetaVal::Str(String::from("val_3b")),
-            String::from("key_3c") => MetaVal::Str(String::from("val_3c")),
-        ];
-
-        let ms_a = MetaStructure::One(mb_a.clone());
-        let ms_b = MetaStructure::Seq(vec![mb_a.clone(), mb_b.clone(), mb_c.clone()]);
-        let ms_c = MetaStructure::Map(hashmap![
-            String::from("item_c") => mb_c.clone(),
-            String::from("item_a") => mb_a.clone(),
-            String::from("item_b") => mb_b.clone(),
-        ]);
-
-        let inputs_and_expected = vec![
-            (
-                (ms_a.clone(), vec![Path::new("item_a")]),
-                hashmap![
-                    PathBuf::from("item_a") => mb_a.clone(),
-                ],
-            ),
-            (
-                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
-                hashmap![
-                    PathBuf::from("item_a") => mb_a.clone(),
-                    PathBuf::from("item_b") => mb_b.clone(),
-                    PathBuf::from("item_c") => mb_c.clone(),
-                ],
-            ),
-            (
-                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c"), Path::new("item_d")]),
-                hashmap![
-                    PathBuf::from("item_a") => mb_a.clone(),
-                    PathBuf::from("item_b") => mb_b.clone(),
-                    PathBuf::from("item_c") => mb_c.clone(),
-                ],
-            ),
-            (
-                (ms_b.clone(), vec![Path::new("item_a")]),
-                hashmap![
-                    PathBuf::from("item_a") => mb_a.clone(),
-                ],
-            ),
-            (
-                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
-                hashmap![
-                    PathBuf::from("item_a") => mb_a.clone(),
-                    PathBuf::from("item_b") => mb_b.clone(),
-                    PathBuf::from("item_c") => mb_c.clone(),
-                ],
-            ),
-        ];
-
-        for (input, expected) in inputs_and_expected {
-            let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name);
+            let produced: HashSet<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).collect();
             assert_eq!(expected, produced);
         }
     }

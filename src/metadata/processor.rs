@@ -31,7 +31,8 @@ where
 
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config)?;
 
-        let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order);
+        // TODO: Figure out how to return multiple errors from this.
+        let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order).collect::<Result<_, _>>()?;
 
         Ok(meta_plexed)
     }
