@@ -4,10 +4,10 @@ use std::collections::BTreeMap;
 use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
 use failure::ResultExt;
-use failure::Fail;
 
+use metadata::reader::Error;
+use metadata::reader::ErrorKind;
 use metadata::reader::MetaReader;
-use metadata::reader::MetaReaderError;
 use metadata::location::MetaLocation;
 use metadata::structure::MetaStructure;
 use metadata::types::key::MetaKey;
@@ -19,12 +19,12 @@ use metadata::types::MetaBlockMap;
 pub struct YamlMetaReader;
 
 impl MetaReader for YamlMetaReader {
-    fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, MetaReaderError> {
+    fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let s = s.as_ref();
-        let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s).map_err(|_| MetaReaderError::Parse)?;
+        let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s).context(ErrorKind::Parse)?;
 
         if yaml_docs.len() < 1 {
-            Err(MetaReaderError::Empty)?
+            Err(ErrorKind::Empty)?
         }
 
         let yaml_doc = &yaml_docs[0];
@@ -35,13 +35,13 @@ impl MetaReader for YamlMetaReader {
 
 // TODO: Encapsulate these functions in an `impl` block.
 
-fn yaml_as_string(y: &Yaml) -> Result<String, MetaReaderError> {
+fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
     const TARGET: &str = "string";
 
     match *y {
-        Yaml::Null => Err(MetaReaderError::Convert("null", TARGET)),
-        Yaml::Array(_) => Err(MetaReaderError::Convert("sequence", TARGET)),
-        Yaml::Hash(_) => Err(MetaReaderError::Convert("mapping", TARGET)),
+        Yaml::Null => Err(ErrorKind::Convert("null", TARGET))?,
+        Yaml::Array(_) => Err(ErrorKind::Convert("sequence", TARGET))?,
+        Yaml::Hash(_) => Err(ErrorKind::Convert("mapping", TARGET))?,
         Yaml::String(ref s) => Ok(s.to_string()),
 
         // TODO: The rest of these need to be revisited.
@@ -49,20 +49,20 @@ fn yaml_as_string(y: &Yaml) -> Result<String, MetaReaderError> {
         Yaml::Real(ref r) => Ok(r.to_string()),
         Yaml::Integer(i) => Ok(i.to_string()),
         Yaml::Boolean(b) => Ok(b.to_string()),
-        Yaml::Alias(_) => Err(MetaReaderError::Convert("alias", TARGET)),
-        Yaml::BadValue => Err(MetaReaderError::Convert("bad value", TARGET)),
+        Yaml::Alias(_) => Err(ErrorKind::Convert("alias", TARGET))?,
+        Yaml::BadValue => Err(ErrorKind::Convert("bad value", TARGET))?,
     }
 }
 
-fn yaml_as_meta_key(y: &Yaml) -> Result<MetaKey, MetaReaderError> {
+fn yaml_as_meta_key(y: &Yaml) -> Result<MetaKey, Error> {
     match *y {
         Yaml::Null => Ok(MetaKey::Nil),
         // _ => yaml_as_string(y).map(|s| MetaKey::Str(s)).chain_err(|| "cannot convert YAML to meta key"),
-        _ => yaml_as_string(y).map(|s| MetaKey::Str(s)).map_err(|e| MetaReaderError::Convert("YAML", "meta key")),
+        _ => Ok(yaml_as_string(y).map(|s| MetaKey::Str(s)).context(ErrorKind::Convert("YAML", "meta key"))?),
     }
 }
 
-fn yaml_as_meta_value(y: &Yaml) -> Result<MetaVal, MetaReaderError> {
+fn yaml_as_meta_value(y: &Yaml) -> Result<MetaVal, Error> {
     match *y {
         Yaml::Null => Ok(MetaVal::Nil),
         Yaml::Array(ref arr) => {
@@ -93,7 +93,7 @@ fn yaml_as_meta_value(y: &Yaml) -> Result<MetaVal, MetaReaderError> {
     }
 }
 
-fn yaml_as_meta_block(y: &Yaml) -> Result<MetaBlock, MetaReaderError> {
+fn yaml_as_meta_block(y: &Yaml) -> Result<MetaBlock, Error> {
     // Try to convert to a hash.
     match *y {
         Yaml::Hash(ref hsh) => {
@@ -110,11 +110,11 @@ fn yaml_as_meta_block(y: &Yaml) -> Result<MetaBlock, MetaReaderError> {
 
             Ok(mb)
         },
-        _ => Err(MetaReaderError::Convert("YAML", "meta block")),
+        _ => Err(ErrorKind::Convert("YAML", "meta block"))?,
     }
 }
 
-pub fn yaml_as_meta_block_seq(y: &Yaml) -> Result<MetaBlockSeq, MetaReaderError> {
+pub fn yaml_as_meta_block_seq(y: &Yaml) -> Result<MetaBlockSeq, Error> {
     // Try to convert to sequenced item-metadata.
     // We expect a vector of meta blocks.
     match y {
@@ -127,11 +127,11 @@ pub fn yaml_as_meta_block_seq(y: &Yaml) -> Result<MetaBlockSeq, MetaReaderError>
 
             Ok(item_seq)
         },
-        _ => Err(MetaReaderError::Convert("YAML", "meta block sequence")),
+        _ => Err(ErrorKind::Convert("YAML", "meta block sequence"))?,
     }
 }
 
-pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, MetaReaderError> {
+pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, Error> {
     // Try to convert to mapped item-metadata.
     // We expect a mapping of file names to meta blocks.
     match y {
@@ -150,11 +150,11 @@ pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, MetaReaderError>
 
             Ok(item_map)
         },
-        _ => Err(MetaReaderError::Convert("YAML", "meta block mapping")),
+        _ => Err(ErrorKind::Convert("YAML", "meta block mapping"))?,
     }
 }
 
-pub fn yaml_as_metadata(y: &Yaml, meta_target: MetaLocation) -> Result<MetaStructure, MetaReaderError> {
+pub fn yaml_as_metadata(y: &Yaml, meta_target: MetaLocation) -> Result<MetaStructure, Error> {
     match meta_target {
         MetaLocation::Contains => {
             yaml_as_meta_block(y).map(|m| MetaStructure::One(m))
