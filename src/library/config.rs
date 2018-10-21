@@ -1,19 +1,54 @@
 //! Provides configuration options for a Taggu library, both programmatically and via YAML files.
 
+use std::fmt::Display;
+use std::fmt::Result as FmtResult;
+use std::fmt::Formatter;
+
+use failure::Backtrace;
+use failure::Context;
+use failure::Fail;
+use failure::ResultExt;
+
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
+#[non_exhaustive]
+pub enum ErrorKind {
+    #[fail(display = "cannot read directory")]
+    CannotReadDir,
+    #[fail(display = "cannot read directory entry")]
+    CannotReadDirEntry,
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
+    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
+}
+
+impl Error {
+    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
+}
+
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::Error as IoError;
 
 use library::sort_order::SortOrder;
 use library::selection::Selection;
-
-#[derive(Fail, Debug)]
-pub enum ConfigError {
-    #[fail(display = "cannot read directory: {:?}", _0)]
-    CannotReadDir(PathBuf, #[cause] IoError),
-    #[fail(display = "cannot read directory entry")]
-    CannotReadDirEntry(#[cause] IoError),
-}
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -66,16 +101,14 @@ impl Config {
         filtered
     }
 
-    pub fn select_in_dir<'a, P>(&'a self, dir_path: P) -> Result<impl Iterator<Item = PathBuf> + 'a, ConfigError>
+    pub fn select_in_dir<'a, P>(&'a self, dir_path: P) -> Result<impl Iterator<Item = PathBuf> + 'a, Error>
     where
         P: AsRef<Path>,
     {
         let item_entries = dir_path
             .as_ref()
-            .read_dir()
-            .map_err(|e| ConfigError::CannotReadDir(dir_path.as_ref().to_path_buf(), e))?
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|e| ConfigError::CannotReadDirEntry(e))?;
+            .read_dir().context(ErrorKind::CannotReadDir)?
+            .collect::<Result<Vec<_>, _>>().context(ErrorKind::CannotReadDirEntry)?;
 
         let sel_item_paths = self.select::<'a>(item_entries.into_iter().map(|entry| entry.path()));
 

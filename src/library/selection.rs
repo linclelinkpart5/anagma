@@ -1,23 +1,58 @@
 //! Represents a method of determining whether a potential item path is to be included in metadata lookup.
 
+use std::fmt::Display;
+use std::fmt::Result as FmtResult;
+use std::fmt::Formatter;
+
+use failure::Backtrace;
+use failure::Context;
+use failure::Fail;
+use failure::ResultExt;
+
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
+#[non_exhaustive]
+pub enum ErrorKind {
+    #[fail(display = "invalid pattern")]
+    InvalidPattern,
+    #[fail(display = "cannot build selector")]
+    CannotBuildSelector,
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
+    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
+}
+
+impl Error {
+    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
+}
+
 use std::path::Path;
+use std::path::PathBuf;
 
 use globset::Glob;
+use globset::Error as GlobError;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
-use globset::Error as GlobError;
-use failure::Fail;
-use failure::Error;
 use serde::Deserialize;
 use serde::de::Deserializer;
-
-#[derive(Clone, Eq, PartialEq, Debug, Fail)]
-pub enum SelectionError {
-    #[fail(display = "invalid glob pattern: {}", _0)]
-    InvalidPattern(String, #[cause] GlobError),
-    #[fail(display = "cannot build selector")]
-    CannotBuildSelector(#[cause] GlobError),
-}
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -27,7 +62,7 @@ enum OneOrManyPatterns {
 }
 
 impl OneOrManyPatterns {
-    fn into_selection(self) -> Result<Selection, SelectionError> {
+    fn into_selection(self) -> Result<Selection, Error> {
         match self {
             OneOrManyPatterns::One(p) => {
                 Selection::from_patterns(&[p])
@@ -54,7 +89,7 @@ impl<'de> Deserialize<'de> for Selection {
 }
 
 impl Selection {
-    pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, SelectionError>
+    pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, Error>
     where
         II: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -63,11 +98,11 @@ impl Selection {
 
         for pattern_str in pattern_strs.into_iter() {
             let pattern_str = pattern_str.as_ref();
-            let pattern = Glob::new(&pattern_str).map_err(|e| SelectionError::InvalidPattern(pattern_str.to_string(), e))?;
+            let pattern = Glob::new(&pattern_str).context(ErrorKind::InvalidPattern)?;
             builder.add(pattern);
         }
 
-        let selection = builder.build().map_err(|e| SelectionError::CannotBuildSelector(e))?;
+        let selection = builder.build().context(ErrorKind::CannotBuildSelector)?;
 
         Ok(Selection(selection))
     }
@@ -95,7 +130,7 @@ impl Default for Selection {
 #[cfg(test)]
 mod tests {
     use super::Selection;
-    use super::SelectionError;
+    use super::ErrorKind;
 
     use std::path::Path;
 
@@ -167,11 +202,9 @@ mod tests {
         ];
 
         for input in failing_inputs {
-            match input {
-                Err(SelectionError::InvalidPattern(_, _)) => {},
-                _ => {
-                    panic!();
-                },
+            match input.unwrap_err().kind() {
+                ErrorKind::InvalidPattern => {},
+                _ => { panic!(); },
             }
         }
     }
