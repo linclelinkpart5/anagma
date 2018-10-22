@@ -1,10 +1,65 @@
+use std::fmt::Display;
+use std::fmt::Result as FmtResult;
+use std::fmt::Formatter;
+
+use failure::Backtrace;
+use failure::Context;
+use failure::Fail;
+use failure::ResultExt;
+
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
+#[non_exhaustive]
+pub enum ErrorKind {
+    #[fail(display = "invalid directory path")]
+    InvalidDirPath,
+    #[fail(display = "invalid file path")]
+    InvalidFilePath,
+    #[fail(display = "path does not exist")]
+    NonexistentPath,
+    #[fail(display = "path does not have a parent and/or is filesystem root")]
+    NoPathParent,
+    #[fail(display = "unable to read entries in directory")]
+    CannotReadDir,
+    #[fail(display = "unable to read directory entry")]
+    CannotReadDirEntry,
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
+    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
+}
+
+impl Error {
+    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum FileTarget {
+    Item,
+    Meta,
+}
+
 use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
 
-use failure::Error;
-
-use error::ErrorKind;
 use library::config::Config;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
@@ -18,13 +73,13 @@ impl MetaLocation {
         let item_path = item_path.as_ref();
 
         if !item_path.exists() {
-            Err(ErrorKind::NonexistentPath(item_path.to_path_buf()))?
+            Err(ErrorKind::NonexistentPath)?
         }
 
         let meta_path = match *self {
             MetaLocation::Contains => {
                 if !item_path.is_dir() {
-                    Err(ErrorKind::InvalidDirPath(item_path.to_path_buf()))?
+                    Err(ErrorKind::InvalidDirPath)?
                 }
 
                 item_path.join("self.yml")
@@ -32,16 +87,16 @@ impl MetaLocation {
             MetaLocation::Siblings => {
                 match item_path.parent() {
                     Some(item_path_parent) => item_path_parent.join("item.yml"),
-                    None => Err(ErrorKind::NoPathParent(item_path.to_path_buf()))?,
+                    None => Err(ErrorKind::NoPathParent)?,
                 }
             }
         };
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentPath(meta_path.to_path_buf()))?
+            Err(ErrorKind::NonexistentPath)?
         }
         if !meta_path.is_file() {
-            Err(ErrorKind::InvalidFilePath(meta_path.to_path_buf()))?
+            Err(ErrorKind::InvalidFilePath)?
         }
 
         Ok(meta_path)
@@ -55,11 +110,11 @@ impl MetaLocation {
         let meta_path = meta_path.as_ref();
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentPath(meta_path.to_path_buf()))?
+            Err(ErrorKind::NonexistentPath)?
         }
 
         if !meta_path.is_file() {
-            Err(ErrorKind::InvalidFilePath(meta_path.to_path_buf()))?
+            Err(ErrorKind::InvalidFilePath)?
         }
 
         // Get the parent directory of the meta file.
@@ -74,7 +129,7 @@ impl MetaLocation {
                 },
                 MetaLocation::Siblings => {
                     // Return all children of this directory.
-                    for entry in fs::read_dir(&meta_parent_dir_path).map_err(|_| ErrorKind::CannotReadDir(meta_parent_dir_path.to_path_buf()))? {
+                    for entry in fs::read_dir(&meta_parent_dir_path).context(ErrorKind::CannotReadDir)? {
                         po_item_paths.push(entry.map_err(|_| ErrorKind::CannotReadDirEntry)?.path());
                     }
                 },
@@ -84,7 +139,7 @@ impl MetaLocation {
         }
         else {
             // This should never happen!
-            Err(ErrorKind::NoPathParent(meta_path.to_path_buf()))?
+            Err(ErrorKind::NoPathParent)?
         }
     }
 
