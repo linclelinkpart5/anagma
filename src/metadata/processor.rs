@@ -58,6 +58,7 @@ use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
 use metadata::reader::MetaReader;
 use metadata::plexer::MetaPlexer;
+use metadata::plexer::ErrorKind as PlexErrorKind;
 
 pub struct MetaProcessor<MR>(PhantomData<MR>);
 
@@ -69,7 +70,7 @@ where
         meta_path: P,
         meta_location: MetaLocation,
         config: &Config,
-    ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
+    ) -> Result<(HashMap<PathBuf, MetaBlock>, Vec<PlexErrorKind>), Error>
     where
         P: AsRef<Path>,
     {
@@ -77,31 +78,33 @@ where
 
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotFindItemPaths)?;
 
-        // TODO: Figure out how to return multiple errors from this.
-        let meta_plexed = {
-            MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order)
-            .collect::<Result<_, _>>()
-            .context(ErrorKind::CannotPlexMetadata)?
-        };
+        let mut meta_plexed = hashmap![];
+        let mut eks = vec![];
+        for meta_plex_res in MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order) {
+            match meta_plex_res {
+                Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
+                Err(e) => { eks.push(e.kind().clone()); },
+            }
+        }
 
-        Ok(meta_plexed)
+        Ok((meta_plexed, eks))
     }
 
     pub fn process_item_file<P>(
         item_path: P,
         meta_location: MetaLocation,
         config: &Config,
-    ) -> Result<MetaBlock, Error>
+    ) -> Result<(MetaBlock, Vec<PlexErrorKind>), Error>
     where
         P: AsRef<Path>,
     {
         let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
 
-        let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
+        let (mut processed_meta_file, eks) = Self::process_meta_file(&meta_path, meta_location, config)?;
 
         // The remaining results can be thrown away.
         if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
-            Ok(meta_block)
+            Ok((meta_block, eks))
         }
         else {
             Err(ErrorKind::MissingMetadata)?
@@ -114,20 +117,22 @@ where
         item_path: P,
         meta_locations: II,
         config: &Config,
-    ) -> Result<MetaBlock, Error>
+    ) -> Result<(MetaBlock, Vec<PlexErrorKind>), Error>
     where
         P: AsRef<Path>,
         II: IntoIterator<Item = MetaLocation>,
     {
         let mut comp_mb = MetaBlock::new();
+        let mut all_eks = vec![];
 
         for meta_location in meta_locations.into_iter() {
-            let mb = Self::process_item_file(&item_path, meta_location, &config)?;
+            let (mut mb, eks) = Self::process_item_file(&item_path, meta_location, &config)?;
 
             comp_mb.extend(mb);
+            all_eks.extend(eks);
         }
 
-        Ok(comp_mb)
+        Ok((comp_mb, all_eks))
     }
 
     // pub fn process_meta_file_cached<'c, MR, P>(
@@ -269,7 +274,8 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, &config).unwrap();
+            // TODO: Test errors.
+            let (produced, _) = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, &config).unwrap();
             assert_eq!(expected, produced);
         }
 
@@ -324,7 +330,9 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::<YamlMetaReader>::process_item_file(meta_path, meta_location, &config).unwrap();
+            let (produced, _) = MetaProcessor::<YamlMetaReader>::process_item_file(meta_path, meta_location, &config).unwrap();
+
+            // TODO: Test errors.
             assert_eq!(expected, produced);
         }
 
