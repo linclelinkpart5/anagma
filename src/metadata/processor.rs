@@ -1,11 +1,57 @@
+use std::fmt::Display;
+use std::fmt::Result as FmtResult;
+use std::fmt::Formatter;
+
+use failure::Backtrace;
+use failure::Context;
+use failure::Fail;
+use failure::ResultExt;
+
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
+#[non_exhaustive]
+pub enum ErrorKind {
+    #[fail(display = "cannot read metadata file")]
+    CannotReadMetadata,
+    #[fail(display = "cannot find item file paths")]
+    CannotFindItemPaths,
+    #[fail(display = "cannot find meta file path")]
+    CannotFindMetaPath,
+    #[fail(display = "cannot plex metadata")]
+    CannotPlexMetadata,
+    #[fail(display = "missing metadata")]
+    MissingMetadata,
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
+    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
+}
+
+impl Error {
+    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
+}
+
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-// use std::collections::hash_map::Entry;
-
-use failure::ResultExt;
-use failure::Error;
 
 use library::config::Config;
 use metadata::types::MetaBlock;
@@ -27,12 +73,16 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_structure = MR::from_file(&meta_path, meta_location)?;
+        let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotReadMetadata)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotFindItemPaths)?;
 
         // TODO: Figure out how to return multiple errors from this.
-        let meta_plexed = MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order).collect::<Result<_, _>>()?;
+        let meta_plexed = {
+            MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order)
+            .collect::<Result<_, _>>()
+            .context(ErrorKind::CannotPlexMetadata)?
+        };
 
         Ok(meta_plexed)
     }
@@ -45,7 +95,7 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_path = meta_location.get_meta_path(&item_path)?;
+        let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
 
         let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
 
@@ -54,7 +104,7 @@ where
             Ok(meta_block)
         }
         else {
-            Err(failure::err_msg("no metadata found"))?
+            Err(ErrorKind::MissingMetadata)?
         }
     }
 
