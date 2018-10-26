@@ -104,7 +104,7 @@ where P: AsRef<Path>,
 
     // Create self meta file for this directory.
     let mut self_meta_file = File::create(target_dir_path.join("self.yml")).expect("unable to create self meta file");
-    writeln!(self_meta_file, "const_key: const_val\nself_key: self_val\n{}_self_key: {}_self_val", identifier, identifier).expect("unable to write to self meta file");
+    writeln!(self_meta_file, "const_key: const_val\nself_key: self_val\n{}_self_key: {}_self_val\noverridden: {}_self", identifier, identifier, identifier).expect("unable to write to self meta file");
 
     // Create all sub-entries, and collect info to create item metadata.
     let mut item_meta_contents = String::new();
@@ -123,7 +123,7 @@ where P: AsRef<Path>,
             }
         }
 
-        let entry_string = format!("- const_key: const_val\n  item_key: item_val\n  {}_item_key: {}_item_val\n", subentry.name(), subentry.name());
+        let entry_string = format!("- const_key: const_val\n  item_key: item_val\n  {}_item_key: {}_item_val\n  overridden: {}_item\n", subentry.name(), subentry.name(), subentry.name());
         item_meta_contents.push_str(&entry_string);
     }
 
