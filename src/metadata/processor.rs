@@ -21,8 +21,6 @@ pub enum ErrorKind {
     CannotFindItemPaths,
     #[fail(display = "cannot find meta file path")]
     CannotFindMetaPath,
-    #[fail(display = "cannot plex metadata")]
-    CannotPlexMetadata,
     #[fail(display = "missing metadata")]
     MissingMetadata,
 }
@@ -56,7 +54,9 @@ use std::marker::PhantomData;
 use library::config::Config;
 use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
+use metadata::location::ErrorKind as LocationErrorKind;
 use metadata::reader::MetaReader;
+use metadata::reader::ErrorKind as ReaderErrorKind;
 use metadata::plexer::MetaPlexer;
 use metadata::plexer::ErrorKind as PlexErrorKind;
 
@@ -70,41 +70,64 @@ where
         meta_path: P,
         meta_location: MetaLocation,
         config: &Config,
-    ) -> Result<(HashMap<PathBuf, MetaBlock>, Vec<PlexErrorKind>), Error>
+    ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
         P: AsRef<Path>,
     {
-        let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotReadMetadata)?;
+        let meta_structure = match MR::from_file(&meta_path, meta_location) {
+            Err(e) => {
+                let ek = e.kind().clone();
+                match ek {
+                    ReaderErrorKind::FileOpen => { return Ok(hashmap![]); },
+                    _ => { return Err(e).context(ErrorKind::CannotReadMetadata)?; }
+                }
+            },
+            Ok(ms) => ms,
+        };
+
+        // let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotReadMetadata)?;
 
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotFindItemPaths)?;
 
         let mut meta_plexed = hashmap![];
-        let mut eks = vec![];
         for meta_plex_res in MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order) {
             match meta_plex_res {
                 Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
-                Err(e) => { eks.push(e.kind().clone()); },
+                Err(e) => { warn!("{}", e); },
             }
         }
 
-        Ok((meta_plexed, eks))
+        Ok(meta_plexed)
     }
 
     pub fn process_item_file<P>(
         item_path: P,
         meta_location: MetaLocation,
         config: &Config,
-    ) -> Result<(MetaBlock, Vec<PlexErrorKind>), Error>
+    ) -> Result<MetaBlock, Error>
     where
         P: AsRef<Path>,
     {
-        let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
+        let meta_path = match meta_location.get_meta_path(&item_path) {
+            Err(e) => {
+                let ek = e.kind().clone();
+                match ek {
+                    LocationErrorKind::NonexistentMetaPath |
+                        LocationErrorKind::InvalidItemDirPath |
+                        LocationErrorKind::NoItemPathParent => { return Ok(MetaBlock::new()); },
+                    _ => { return Err(e).context(ErrorKind::CannotFindMetaPath)?; }
+                }
+            },
+            Ok(p) => p,
+        };
 
-        let (mut processed_meta_file, eks) = Self::process_meta_file(&meta_path, meta_location, config)?;
+        // let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
+
+        let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
 
         // The remaining results can be thrown away.
         if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
-            Ok((meta_block, eks))
+            Ok(meta_block)
         }
         else {
             Err(ErrorKind::MissingMetadata)?
@@ -113,26 +136,24 @@ where
 
     // Processes multiple locations for a target item at once, merging the results.
     // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
-    pub fn composite_item_file<P, II>(
+    pub fn process_item_file_flattened<P, II>(
         item_path: P,
         meta_locations: II,
         config: &Config,
-    ) -> Result<(MetaBlock, Vec<PlexErrorKind>), Error>
+    ) -> Result<MetaBlock, Error>
     where
         P: AsRef<Path>,
         II: IntoIterator<Item = MetaLocation>,
     {
         let mut comp_mb = MetaBlock::new();
-        let mut all_eks = vec![];
 
         for meta_location in meta_locations.into_iter() {
-            let (mut mb, eks) = Self::process_item_file(&item_path, meta_location, &config)?;
+            let mut mb = Self::process_item_file(&item_path, meta_location, &config)?;
 
             comp_mb.extend(mb);
-            all_eks.extend(eks);
         }
 
-        Ok((comp_mb, all_eks))
+        Ok(comp_mb)
     }
 
     // pub fn process_meta_file_cached<'c, MR, P>(
@@ -274,14 +295,9 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            // TODO: Test errors.
-            let (produced, _) = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, &config).unwrap();
+            let produced = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, &config).unwrap();
             assert_eq!(expected, produced);
         }
-
-        // let result = MetaProcessor::process_meta_file::<YamlMetaReader, _>(path.join("ALBUM_01").join("item.yml"), MetaLocation::Contains, &config);
-
-        // println!("{:?}", result);
     }
 
     #[test]
@@ -328,12 +344,70 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (meta_path, meta_location) = input;
+            let (item_path, meta_location) = input;
 
-            let (produced, _) = MetaProcessor::<YamlMetaReader>::process_item_file(meta_path, meta_location, &config).unwrap();
-
-            // TODO: Test errors.
+            let produced = MetaProcessor::<YamlMetaReader>::process_item_file(item_path, meta_location, &config).unwrap();
             assert_eq!(expected, produced);
+        }
+
+        // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01"), MetaLocation::Contains, &config);
+
+        // println!("{:?}", result);
+    }
+
+    #[test]
+    fn test_process_item_file_flattened() {
+        let temp_dir = create_temp_media_test_dir("test_process_item_file_flattened");
+        let path = temp_dir.path();
+
+        let config = Config::default();
+
+        // Success cases
+        let inputs_and_expected = vec![
+            (
+                (path.to_owned(), MetaLocation::Contains),
+                btreemap![
+                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                ],
+            ),
+            (
+                (path.join("ALBUM_01"), MetaLocation::Siblings),
+                btreemap![
+                    "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                ],
+            ),
+            (
+                (path.join("ALBUM_01"), MetaLocation::Contains),
+                btreemap![
+                    "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                ],
+            ),
+            (
+                (path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"), MetaLocation::Siblings),
+                btreemap![
+                    "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                ],
+            ),
+        ];
+
+        let meta_locations = vec![MetaLocation::Siblings, MetaLocation::Contains];
+
+        for (input, expected) in inputs_and_expected {
+            let (item_path, meta_location) = input;
+
+            println!("{:?}", item_path);
+            let result = MetaProcessor::<YamlMetaReader>::process_item_file_flattened(item_path, meta_locations.clone(), &config);
+            eprintln!("{:?}", result);
+            // let produced = MetaProcessor::<YamlMetaReader>::process_item_file_flattened(item_path, meta_locations.clone(), &config).unwrap();
+            // assert_eq!(expected, produced);
         }
 
         // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01"), MetaLocation::Contains, &config);

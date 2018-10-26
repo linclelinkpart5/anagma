@@ -15,18 +15,31 @@ pub struct Error {
 #[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
 #[non_exhaustive]
 pub enum ErrorKind {
-    #[fail(display = "invalid {} directory path", _0)]
-    InvalidDirPath(FileTarget),
-    #[fail(display = "invalid {} file path", _0)]
-    InvalidFilePath(FileTarget),
-    #[fail(display = "{} path does not exist", _0)]
-    NonexistentPath(FileTarget),
-    #[fail(display = "{} path does not have a parent and/or is filesystem root", _0)]
-    NoPathParent(FileTarget),
-    #[fail(display = "unable to read entries in {} directory", _0)]
-    CannotReadDir(FileTarget),
-    #[fail(display = "unable to read {} directory entry", _0)]
-    CannotReadDirEntry(FileTarget),
+    #[fail(display = "invalid item directory path")]
+    InvalidItemDirPath,
+    #[fail(display = "invalid item file path")]
+    InvalidItemFilePath,
+    #[fail(display = "item path does not exist")]
+    NonexistentItemPath,
+    #[fail(display = "item path does not have a parent and/or is filesystem root")]
+    NoItemPathParent,
+    #[fail(display = "unable to read entries in item directory")]
+    CannotReadItemDir,
+    #[fail(display = "unable to read item directory entry")]
+    CannotReadItemDirEntry,
+
+    #[fail(display = "invalid meta directory path")]
+    InvalidMetaDirPath,
+    #[fail(display = "invalid meta file path")]
+    InvalidMetaFilePath,
+    #[fail(display = "meta path does not exist")]
+    NonexistentMetaPath,
+    #[fail(display = "meta path does not have a parent and/or is filesystem root")]
+    NoMetaPathParent,
+    #[fail(display = "unable to read entries in meta directory")]
+    CannotReadMetaDir,
+    #[fail(display = "unable to read meta directory entry")]
+    CannotReadMetaDirEntry,
 }
 
 impl Fail for Error {
@@ -84,13 +97,13 @@ impl MetaLocation {
         let item_path = item_path.as_ref();
 
         if !item_path.exists() {
-            Err(ErrorKind::NonexistentPath(FileTarget::Item))?
+            Err(ErrorKind::NonexistentItemPath)?
         }
 
         let meta_path = match *self {
             MetaLocation::Contains => {
                 if !item_path.is_dir() {
-                    Err(ErrorKind::InvalidDirPath(FileTarget::Item))?
+                    Err(ErrorKind::InvalidItemDirPath)?
                 }
 
                 item_path.join("self.yml")
@@ -98,16 +111,16 @@ impl MetaLocation {
             MetaLocation::Siblings => {
                 match item_path.parent() {
                     Some(item_path_parent) => item_path_parent.join("item.yml"),
-                    None => Err(ErrorKind::NoPathParent(FileTarget::Item))?,
+                    None => Err(ErrorKind::NoItemPathParent)?,
                 }
             }
         };
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentPath(FileTarget::Meta))?
+            Err(ErrorKind::NonexistentMetaPath)?
         }
         if !meta_path.is_file() {
-            Err(ErrorKind::InvalidFilePath(FileTarget::Meta))?
+            Err(ErrorKind::InvalidMetaFilePath)?
         }
 
         Ok(meta_path)
@@ -121,11 +134,11 @@ impl MetaLocation {
         let meta_path = meta_path.as_ref();
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentPath(FileTarget::Meta))?
+            Err(ErrorKind::NonexistentMetaPath)?
         }
 
         if !meta_path.is_file() {
-            Err(ErrorKind::InvalidFilePath(FileTarget::Meta))?
+            Err(ErrorKind::InvalidMetaFilePath)?
         }
 
         // Get the parent directory of the meta file.
@@ -140,8 +153,8 @@ impl MetaLocation {
                 },
                 MetaLocation::Siblings => {
                     // Return all children of this directory.
-                    for entry in fs::read_dir(&meta_parent_dir_path).context(ErrorKind::CannotReadDir(FileTarget::Item))? {
-                        po_item_paths.push(entry.context(ErrorKind::CannotReadDirEntry(FileTarget::Item))?.path());
+                    for entry in fs::read_dir(&meta_parent_dir_path).context(ErrorKind::CannotReadItemDir)? {
+                        po_item_paths.push(entry.context(ErrorKind::CannotReadItemDirEntry)?.path());
                     }
                 },
             }
@@ -150,7 +163,7 @@ impl MetaLocation {
         }
         else {
             // This should never happen!
-            Err(ErrorKind::NoPathParent(FileTarget::Meta))?
+            Err(ErrorKind::NoMetaPathParent)?
         }
     }
 
