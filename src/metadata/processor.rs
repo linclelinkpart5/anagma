@@ -56,9 +56,7 @@ use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
 use metadata::location::ErrorKind as LocationErrorKind;
 use metadata::reader::MetaReader;
-use metadata::reader::ErrorKind as ReaderErrorKind;
 use metadata::plexer::MetaPlexer;
-use metadata::plexer::ErrorKind as PlexErrorKind;
 
 pub struct MetaProcessor<MR>(PhantomData<MR>);
 
@@ -74,17 +72,6 @@ where
     where
         P: AsRef<Path>,
     {
-        // let meta_structure = match MR::from_file(&meta_path, meta_location) {
-        //     Err(e) => {
-        //         let ek = e.kind().clone();
-        //         match ek {
-        //             ReaderErrorKind::FileOpen => { return Ok(hashmap![]); },
-        //             _ => { return Err(e).context(ErrorKind::CannotReadMetadata)?; }
-        //         }
-        //     },
-        //     Ok(ms) => ms,
-        // };
-
         let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotReadMetadata)?;
 
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotFindItemPaths)?;
@@ -148,56 +135,11 @@ where
         let mut comp_mb = MetaBlock::new();
 
         for meta_location in meta_locations.into_iter() {
-            let mut mb = Self::process_item_file(&item_path, meta_location, &config)?;
-
-            comp_mb.extend(mb);
+            comp_mb.extend(Self::process_item_file(&item_path, meta_location, &config)?);
         }
 
         Ok(comp_mb)
     }
-
-    // pub fn process_meta_file_cached<'c, MR, P>(
-    //     meta_path: P,
-    //     meta_location: MetaLocation,
-    //     config: &Config,
-    //     cache: &'c mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
-    //     force: bool,
-    // ) -> Result<&'c HashMap<PathBuf, MetaBlock>, Error>
-    // where
-    //     MR: MetaReader,
-    //     P: AsRef<Path>,
-    // {
-    //     let meta_path = meta_path.as_ref();
-
-    //     if force {
-    //         cache.remove(meta_path);
-    //     }
-
-    //     let meta_file_results = match cache.entry(meta_path.to_owned()) {
-    //         Entry::Occupied(e) => e.into_mut(),
-    //         Entry::Vacant(e) => e.insert(Self::process_meta_file::<MR, _>(meta_path, meta_location, config)?),
-    //     };
-
-    //     Ok(meta_file_results)
-    // }
-
-    // pub fn process_item_file_cached<'c, MR, P>(
-    //     item_path: P,
-    //     meta_location: MetaLocation,
-    //     config: &Config,
-    //     cache: &'c mut HashMap<PathBuf, HashMap<PathBuf, MetaBlock>>,
-    //     force: bool,
-    // ) -> Result<&'c MetaBlock, Error>
-    // where
-    //     MR: MetaReader,
-    //     P: AsRef<Path>,
-    // {
-    //     let meta_path = meta_location.get_meta_path(&item_path)?;
-
-    //     let processed_meta_file = Self::process_meta_file_cached::<MR, _>(&meta_path, meta_location, config, cache, force)?;
-    //     processed_meta_file.get(item_path.as_ref())
-    //         .ok_or(bail!("item path not found in processed metadata: \"{}\"", item_path.as_ref().to_string_lossy()))
-    // }
 }
 
 #[cfg(test)]
