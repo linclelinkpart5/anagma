@@ -48,13 +48,13 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use library::sort_order::SortOrder;
-use library::selection::Selection;
+use library::selection::matcher::Matcher;
 
 #[derive(Deserialize)]
 #[serde(default)]
 pub struct Config {
-    pub include: Selection,
-    pub exclude: Selection,
+    pub include: Matcher,
+    pub exclude: Matcher,
     pub sort_order: SortOrder,
     pub item_fn: String,
     pub self_fn: String,
@@ -63,8 +63,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            include: Selection::any(),
-            exclude: Selection::from_patterns(&["*.yml"]).unwrap(),
+            include: Matcher::any(),
+            exclude: Matcher::from_patterns(&["*.yml"]).unwrap(),
             sort_order: SortOrder::Name,
             item_fn: String::from("item.yml"),
             self_fn: String::from("self.yml"),
@@ -120,7 +120,7 @@ impl Config {
 mod tests {
     use serde_yaml;
 
-    use library::selection::Selection;
+    use library::selection::matcher::Matcher;
 
     use super::Config;
     use super::SortOrder;
@@ -128,8 +128,8 @@ mod tests {
     #[test]
     fn test_is_pattern_match() {
         let config = Config {
-            include: Selection::from_patterns(&["*.flac", "*.mp3"]).unwrap(),
-            exclude: Selection::from_patterns(&["*.yml", "*.jpg"]).unwrap(),
+            include: Matcher::from_patterns(&["*.flac", "*.mp3"]).unwrap(),
+            exclude: Matcher::from_patterns(&["*.yml", "*.jpg"]).unwrap(),
             ..Default::default()
         };
 
