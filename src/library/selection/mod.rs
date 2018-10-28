@@ -1,36 +1,28 @@
 pub mod matcher;
 
-use std::fmt::Display;
-use std::fmt::Result as FmtResult;
-use std::fmt::Formatter;
-use std::error::Error as StdError;
-
-use globset::Error as GlobError;
+use library::selection::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {
-    InvalidPattern(GlobError),
-    CannotBuildSelector(GlobError),
+    CannotBuildMatcher(MatcherError),
     CannotReadDir(std::io::Error),
     CannotReadDirEntry(std::io::Error),
 }
 
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
-            Error::CannotBuildSelector(ref err) => write!(f, "cannot build selector: {}", err),
+            Error::CannotBuildMatcher(ref err) => write!(f, "cannot build matcher: {}", err),
             Error::CannotReadDir(ref err) => write!(f, "cannot read directory: {}", err),
             Error::CannotReadDirEntry(ref err) => write!(f, "cannot read directory entry: {}", err),
         }
     }
 }
 
-impl StdError for Error {
-    fn cause(&self) -> Option<&StdError> {
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::InvalidPattern(ref err) => Some(err),
-            Error::CannotBuildSelector(ref err) => Some(err),
+            Error::CannotBuildMatcher(ref err) => Some(err),
             Error::CannotReadDir(ref err) => Some(err),
             Error::CannotReadDirEntry(ref err) => Some(err),
         }
@@ -56,8 +48,8 @@ impl Selection {
         IIE: IntoIterator<Item = SE>,
         SE: AsRef<str>,
     {
-        let include_selection = Matcher::from_patterns(include_pattern_strs)?;
-        let exclude_selection = Matcher::from_patterns(exclude_pattern_strs)?;
+        let include_selection = Matcher::from_patterns(include_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_selection = Matcher::from_patterns(exclude_pattern_strs).map_err(Error::CannotBuildMatcher)?;
 
         Ok(Self::from_matchers(include_selection, exclude_selection))
     }
@@ -66,20 +58,21 @@ impl Selection {
         Selection { include, exclude }
     }
 
-    /// Returns true if the path is selected.
-    /// This only uses the lexical content of the path.
+    /// Returns true if the path is a pattern match.
+    /// In order to be a pattern match, the path must match the include filter, and must NOT match the exclude filter.
+    /// This uses only the lexical content of the path, and does not access the filesystem.
     pub fn is_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
         self.include.is_match(&path) && !self.exclude.is_match(&path)
     }
 
     /// Returns true if a path is selected.
-    /// Directories are always marked as included.
-    /// Files are included if they meet the pattern criteria.
+    /// Directories are always marked as selected.
+    /// Files are selected if they are also a pattern match.
     pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
         path.as_ref().is_dir() || (path.as_ref().is_file() && self.is_pattern_match(path))
     }
 
-    /// Returns items from the input that are selected.
+    /// Returns items from the input iterable that are selected.
     pub fn select<'a, II, P>(&'a self, item_paths: II) -> impl Iterator<Item = P> + 'a
     where
         II: IntoIterator<Item = P>,

@@ -1,8 +1,37 @@
 //! Represents a method of determining whether a potential item path is to be included in metadata lookup.
 
+use std::fmt::Display;
+use std::fmt::Result as FmtResult;
+use std::fmt::Formatter;
+use std::error::Error as StdError;
+
+use globset::Error as GlobError;
+
+#[derive(Debug)]
+pub enum Error {
+    InvalidPattern(GlobError),
+    CannotBuildSelector(GlobError),
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        match *self {
+            Error::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
+            Error::CannotBuildSelector(ref err) => write!(f, "cannot build selector: {}", err),
+        }
+    }
+}
+
+impl StdError for Error {
+    fn cause(&self) -> Option<&StdError> {
+        match *self {
+            Error::InvalidPattern(ref err) => Some(err),
+            Error::CannotBuildSelector(ref err) => Some(err),
+        }
+    }
+}
+
 use std::path::Path;
-use std::path::PathBuf;
-use std::collections::BTreeSet;
 use std::hash::Hash;
 use std::hash::Hasher;
 
@@ -11,8 +40,6 @@ use globset::GlobSet;
 use globset::GlobSetBuilder;
 use serde::Deserialize;
 use serde::de::Deserializer;
-
-use library::selection::Error;
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -65,6 +92,9 @@ impl Matcher {
         }
 
         let matcher = builder.build().map_err(Error::CannotBuildSelector)?;
+
+        // TODO: Add sort on vector here?
+        // TODO: Add deduping?
 
         Ok(Matcher(matcher, cached_patterns))
     }
