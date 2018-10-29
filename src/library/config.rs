@@ -104,48 +104,48 @@ mod tests {
 
 //         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-//         assert!(config.include.is_match("music.flac"));
-//         assert!(!config.include.is_match("music.mp3"));
-//         assert!(!config.include.is_match("photo.png"));
-//         assert!(config.exclude.is_match("self.yml"));
-//         assert!(config.exclude.is_match("item.yml"));
-//         assert!(!config.exclude.is_match("music.flac"));
+//         assert!(config.selection.is_pattern_match("music.flac"));
+//         assert!(!config.selection.is_pattern_match("music.mp3"));
+//         assert!(!config.selection.is_pattern_match("photo.png"));
+//         assert!(!config.selection.is_pattern_match("self.yml"));
+//         assert!(!config.selection.is_pattern_match("item.yml"));
 //         assert_eq!(config.sort_order, SortOrder::Name);
 //         assert_eq!(config.item_fn, "item.yml");
 //         assert_eq!(config.self_fn, "self.yml");
 
-//         let text_config = "include:\n  - '*.flac'\n  - '*.mp3'\nsort_order: mod_time";
+//         let text_config = "selection:\n  include:\n    - '*.flac'\n    - '*.mp3'\nsort_order: mod_time";
 
 //         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-//         assert!(config.include.is_match("music.flac"));
-//         assert!(config.include.is_match("music.mp3"));
-//         assert!(!config.include.is_match("photo.png"));
+//         assert!(config.selection.is_pattern_match("music.flac"));
+//         assert!(config.selection.is_pattern_match("music.mp3"));
+//         assert!(!config.selection.is_pattern_match("photo.png"));
 //         assert_eq!(config.sort_order, SortOrder::ModTime);
 //         assert_eq!(config.item_fn, "item.yml");
 //         assert_eq!(config.self_fn, "self.yml");
 
-//         let text_config = "include: '*'\nsort_order: mod_time";
+//         let text_config = "selection:\n  include: '*'\nsort_order: mod_time";
 
 //         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-//         assert!(config.include.is_match("music.flac"));
-//         assert!(config.include.is_match("music.mp3"));
-//         assert!(config.include.is_match("photo.png"));
+//         assert!(config.selection.is_pattern_match("music.flac"));
+//         assert!(config.selection.is_pattern_match("music.mp3"));
+//         assert!(config.selection.is_pattern_match("photo.png"));
 //         assert_eq!(config.sort_order, SortOrder::ModTime);
 //         assert_eq!(config.item_fn, "item.yml");
 //         assert_eq!(config.self_fn, "self.yml");
 
-//         let text_config = "include: '*'
+//         let text_config = "selection:
+//   include: '*'
 // sort_order: name
 // item_fn: item_meta.yml
 // ";
 
 //         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-//         assert!(config.include.is_match("music.flac"));
-//         assert!(config.include.is_match("music.mp3"));
-//         assert!(config.include.is_match("photo.png"));
+//         assert!(config.selection.is_pattern_match("music.flac"));
+//         assert!(config.selection.is_pattern_match("music.mp3"));
+//         assert!(config.selection.is_pattern_match("photo.png"));
 //         assert_eq!(config.sort_order, SortOrder::Name);
 //         assert_eq!(config.item_fn, "item_meta.yml");
 //         assert_eq!(config.self_fn, "self.yml");
