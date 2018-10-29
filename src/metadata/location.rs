@@ -177,6 +177,6 @@ impl MetaLocation {
         let item_paths = self.get_item_paths(meta_path)?;
 
         // Use the config object to select the item paths.
-        Ok(config.select(item_paths).collect())
+        Ok(config.selection.select(item_paths).collect())
     }
 }

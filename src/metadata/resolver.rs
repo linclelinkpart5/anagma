@@ -129,7 +129,7 @@ where
         // Assume that the paths in the frontier are directories.
         while let Some(frontier_item_path) = frontier.pop_front() {
             // Get sub items contained within.
-            let sub_item_paths = config.select_in_dir(frontier_item_path).context(ErrorKind::CannotReadDirFiles)?;
+            let sub_item_paths = config.selection.select_in_dir(frontier_item_path).context(ErrorKind::CannotReadDirFiles)?;
 
             for sub_item_path in sub_item_paths {
                 match Self::resolve_field(&sub_item_path, &field, &config)? {

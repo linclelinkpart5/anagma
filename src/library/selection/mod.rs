@@ -32,7 +32,8 @@ impl std::error::Error for Error {
 use std::path::Path;
 use std::path::PathBuf;
 
-use library::selection::matcher::Matcher;
+// Reexport.
+pub use library::selection::matcher::Matcher;
 
 #[derive(PartialEq, Eq, Hash, Deserialize)]
 pub struct Selection {
