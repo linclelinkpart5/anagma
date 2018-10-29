@@ -113,12 +113,6 @@ impl Matcher {
     }
 }
 
-impl Default for Matcher {
-    fn default() -> Self {
-        Matcher::any()
-    }
-}
-
 impl Hash for Matcher {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.1.hash(state)

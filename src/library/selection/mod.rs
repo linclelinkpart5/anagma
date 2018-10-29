@@ -36,9 +36,19 @@ use std::path::PathBuf;
 pub use library::selection::matcher::Matcher;
 
 #[derive(PartialEq, Eq, Hash, Deserialize)]
+#[serde(default)]
 pub struct Selection {
     include: Matcher,
     exclude: Matcher,
+}
+
+impl Default for Selection {
+    fn default() -> Self {
+        Selection {
+            include: Matcher::any(),
+            exclude: Matcher::from_patterns(&["item*", "self*"]).unwrap(),
+        }
+    }
 }
 
 impl Selection {
