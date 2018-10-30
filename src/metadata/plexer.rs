@@ -5,7 +5,7 @@ use itertools::Itertools;
 use itertools::EitherOrBoth;
 
 use library::sort_order::SortOrder;
-use metadata::structure::MetaStructure;
+use metadata::types::MetaStructure;
 use metadata::types::MetaBlock;
 use util::GenConverter;
 
@@ -133,7 +133,7 @@ mod tests {
     use std::collections::HashSet;
 
     use library::sort_order::SortOrder;
-    use metadata::structure::MetaStructure;
+    use metadata::types::MetaStructure;
     use metadata::types::val::MetaVal;
 
     #[test]

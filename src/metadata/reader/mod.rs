@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::Read;
 
 use metadata::location::MetaLocation;
-use metadata::structure::MetaStructure;
+use metadata::types::MetaStructure;
 
 #[derive(Debug)]
 pub enum Error {

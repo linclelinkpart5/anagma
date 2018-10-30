@@ -6,7 +6,7 @@ use yaml_rust::YamlLoader;
 use metadata::reader::Error;
 use metadata::reader::MetaReader;
 use metadata::location::MetaLocation;
-use metadata::structure::MetaStructure;
+use metadata::types::MetaStructure;
 use metadata::types::key::MetaKey;
 use metadata::types::val::MetaVal;
 use metadata::types::MetaBlock;
@@ -29,8 +29,6 @@ impl MetaReader for YamlMetaReader {
         Ok(yaml_as_metadata(yaml_doc, mt)?)
     }
 }
-
-// TODO: Encapsulate these functions in an `impl` block.
 
 fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
     const TARGET: &str = "string";
