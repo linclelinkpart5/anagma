@@ -1,36 +1,5 @@
 //! Represents a method of determining whether a potential item path is to be included in metadata lookup.
 
-use std::fmt::Display;
-use std::fmt::Result as FmtResult;
-use std::fmt::Formatter;
-use std::error::Error as StdError;
-
-use globset::Error as GlobError;
-
-#[derive(Debug)]
-pub enum Error {
-    InvalidPattern(GlobError),
-    CannotBuildSelector(GlobError),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        match *self {
-            Error::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
-            Error::CannotBuildSelector(ref err) => write!(f, "cannot build selector: {}", err),
-        }
-    }
-}
-
-impl StdError for Error {
-    fn cause(&self) -> Option<&StdError> {
-        match *self {
-            Error::InvalidPattern(ref err) => Some(err),
-            Error::CannotBuildSelector(ref err) => Some(err),
-        }
-    }
-}
-
 use std::path::Path;
 use std::hash::Hash;
 use std::hash::Hasher;
@@ -38,8 +7,33 @@ use std::hash::Hasher;
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
+use globset::Error as GlobError;
 use serde::Deserialize;
 use serde::de::Deserializer;
+
+#[derive(Debug)]
+pub enum Error {
+    InvalidPattern(GlobError),
+    CannotBuildSelector(GlobError),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Error::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
+            Error::CannotBuildSelector(ref err) => write!(f, "cannot build selector: {}", err),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Error::InvalidPattern(ref err) => Some(err),
+            Error::CannotBuildSelector(ref err) => Some(err),
+        }
+    }
+}
 
 #[derive(Deserialize)]
 #[serde(untagged)]

@@ -2,54 +2,37 @@
 
 pub mod yaml;
 
-use std::fmt::Display;
-use std::fmt::Result as FmtResult;
-use std::fmt::Formatter;
-
-use failure::Backtrace;
-use failure::Context;
-use failure::Fail;
-use failure::ResultExt;
-
 #[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
+pub enum Error {
+    CannotOpenFile(std::io::Error),
+    CannotReadFile(std::io::Error),
+    CannotParseMetadata,
+    EmptyMetadata,
+    CannotConvert(&'static str, &'static str),
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
-#[non_exhaustive]
-pub enum ErrorKind {
-    #[fail(display = "cannot open metadata file")]
-    FileOpen,
-    #[fail(display = "cannot read metadata file to string")]
-    FileRead,
-    #[fail(display = "cannot parse metadata")]
-    Parse,
-    #[fail(display = "metadata is empty")]
-    Empty,
-    #[fail(display = "cannot convert from {} to {}", _0, _1)]
-    Convert(&'static str, &'static str),
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Error::CannotOpenFile(ref err) => write!(f, "cannot open metadata file: {}", err),
+            Error::CannotReadFile(ref err) => write!(f, "cannot read metadata file: {}", err),
+            Error::CannotParseMetadata => write!(f, "cannot parse metadata"),
+            Error::EmptyMetadata => write!(f, "metadata is empty"),
+            Error::CannotConvert(source, target) => write!(f, "cannot convert from {} to {}", source, target),
+        }
+    }
 }
 
-impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
-    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
-}
-
-impl Error {
-    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Error::CannotOpenFile(ref err) => Some(err),
+            Error::CannotReadFile(ref err) => Some(err),
+            Error::CannotParseMetadata => None,
+            Error::EmptyMetadata => None,
+            Error::CannotConvert(..) => None,
+        }
+    }
 }
 
 use std::path::Path;
@@ -64,10 +47,10 @@ pub trait MetaReader {
 
     fn from_file<P: AsRef<Path>>(p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
-        let mut f = File::open(p).context(ErrorKind::FileOpen)?;
+        let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
-        f.read_to_string(&mut buffer).context(ErrorKind::FileRead)?;
+        f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
         Self::from_str(buffer, mt)
     }
