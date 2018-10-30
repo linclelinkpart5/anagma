@@ -1,49 +1,3 @@
-use std::fmt::Display;
-use std::fmt::Result as FmtResult;
-use std::fmt::Formatter;
-
-use failure::Backtrace;
-use failure::Context;
-use failure::Fail;
-use failure::ResultExt;
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Clone, Eq, PartialEq, Debug, Fail, Hash)]
-#[non_exhaustive]
-pub enum ErrorKind {
-    #[fail(display = "item path was unused in plexing")]
-    UnusedItemPath(PathBuf),
-    #[fail(display = "meta block was unused in plexing")]
-    UnusedMetaBlock(MetaBlock, Option<String>),
-    #[fail(display = "item path did not have a file name")]
-    NamelessItemPath(PathBuf),
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
-    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
-}
-
-impl Error {
-    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
-}
-
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
@@ -55,6 +9,34 @@ use library::sort_order::SortOrder;
 use metadata::structure::MetaStructure;
 use metadata::types::MetaBlock;
 use util::GenConverter;
+
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub enum Error {
+    UnusedItemPath(PathBuf),
+    UnusedMetaBlock(MetaBlock, Option<String>),
+    NamelessItemPath(PathBuf),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.to_string_lossy()),
+            // TODO: Make this error message better.
+            Error::UnusedMetaBlock(_, ref opt_tag) => write!(f, "meta block was unused in plexing: {:?}", opt_tag),
+            Error::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.to_string_lossy()),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Error::UnusedItemPath(..) => None,
+            Error::UnusedMetaBlock(..) => None,
+            Error::NamelessItemPath(..) => None,
+        }
+    }
+}
 
 pub struct MetaPlexer;
 
@@ -78,11 +60,11 @@ impl MetaPlexer {
 
                         // If there are excess paths provided, error for each of them.
                         for excess_item_path in item_paths {
-                            yield Err(Error::from(ErrorKind::UnusedItemPath(excess_item_path.as_ref().to_path_buf())));
+                            yield Err(Error::UnusedItemPath(excess_item_path.as_ref().to_path_buf()));
                         }
                     }
                     else {
-                        yield Err(Error::from(ErrorKind::UnusedMetaBlock(meta_block, None)));
+                        yield Err(Error::UnusedMetaBlock(meta_block, None));
                     }
                 },
                 MetaStructure::Seq(meta_block_seq) => {
@@ -97,10 +79,10 @@ impl MetaPlexer {
                                 yield Ok((item_path.as_ref().to_path_buf(), meta_block));
                             },
                             EitherOrBoth::Left(item_path) => {
-                                yield Err(Error::from(ErrorKind::UnusedItemPath(item_path.as_ref().to_path_buf())));
+                                yield Err(Error::UnusedItemPath(item_path.as_ref().to_path_buf()));
                             },
                             EitherOrBoth::Right(meta_block) => {
-                                yield Err(Error::from(ErrorKind::UnusedMetaBlock(meta_block, None)));
+                                yield Err(Error::UnusedMetaBlock(meta_block, None));
                             },
                         }
                     }
@@ -113,7 +95,7 @@ impl MetaPlexer {
                         let key = match item_path.as_ref().file_name().and_then(|os| os.to_str()).map(|s| s.to_string()) {
                             Some(file_name) => file_name,
                             None => {
-                                yield Err(Error::from(ErrorKind::NamelessItemPath(item_path.as_ref().to_path_buf())));
+                                yield Err(Error::NamelessItemPath(item_path.as_ref().to_path_buf()));
                                 continue;
                             },
                         };
@@ -124,7 +106,7 @@ impl MetaPlexer {
                             },
                             None => {
                                 // Key was not found, encountered a file that was not tagged in the mapping.
-                                yield Err(Error::from(ErrorKind::UnusedItemPath(item_path.as_ref().to_path_buf())));
+                                yield Err(Error::UnusedItemPath(item_path.as_ref().to_path_buf()));
                                 continue;
                             },
                         };
@@ -132,7 +114,7 @@ impl MetaPlexer {
 
                     // Warn for any leftover map entries.
                     for (k, mb) in meta_block_map.into_iter() {
-                        yield Err(Error::from(ErrorKind::UnusedMetaBlock(mb, Some(k))));
+                        yield Err(Error::UnusedMetaBlock(mb, Some(k)));
                     }
                 },
             };
@@ -145,7 +127,7 @@ impl MetaPlexer {
 #[cfg(test)]
 mod tests {
     use super::MetaPlexer;
-    use super::ErrorKind;
+    use super::Error;
 
     use std::path::Path;
     use std::path::PathBuf;
@@ -193,13 +175,13 @@ mod tests {
                 (ms_a.clone(), vec![Path::new("item_a"), Path::new("item_b")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Err(ErrorKind::UnusedItemPath(PathBuf::from("item_b"))),
+                    Err(Error::UnusedItemPath(PathBuf::from("item_b"))),
                 ],
             ),
             (
                 (ms_a.clone(), vec![]),
                 vec![
-                    Err(ErrorKind::UnusedMetaBlock(mb_a.clone(), None)),
+                    Err(Error::UnusedMetaBlock(mb_a.clone(), None)),
                 ],
             ),
             (
@@ -216,22 +198,22 @@ mod tests {
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
                     Ok((PathBuf::from("item_c"), mb_c.clone())),
-                    Err(ErrorKind::UnusedItemPath(PathBuf::from("item_d"))),
+                    Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
             (
                 (ms_b.clone(), vec![Path::new("item_a")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Err(ErrorKind::UnusedMetaBlock(mb_b.clone(), None)),
-                    Err(ErrorKind::UnusedMetaBlock(mb_c.clone(), None)),
+                    Err(Error::UnusedMetaBlock(mb_b.clone(), None)),
+                    Err(Error::UnusedMetaBlock(mb_c.clone(), None)),
                 ],
             ),
         ];
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: Vec<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).map(|r| r.map_err(|e| e.kind().clone())).collect();
+            let produced: Vec<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).collect();
             assert_eq!(expected, produced);
         }
 
@@ -250,7 +232,7 @@ mod tests {
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Err(ErrorKind::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Err(Error::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
                 ],
             ),
             (
@@ -259,7 +241,7 @@ mod tests {
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
                     Ok((PathBuf::from("item_c"), mb_c.clone())),
-                    Err(ErrorKind::UnusedItemPath(PathBuf::from("item_d"))),
+                    Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
             (
@@ -267,15 +249,15 @@ mod tests {
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Err(ErrorKind::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
-                    Err(ErrorKind::UnusedItemPath(PathBuf::from("item_d"))),
+                    Err(Error::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
         ];
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: HashSet<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).map(|r| r.map_err(|e| e.kind().clone())).collect();
+            let produced: HashSet<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).collect();
             assert_eq!(expected, produced);
         }
     }
