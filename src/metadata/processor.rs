@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use library::config::Config;
+use library::selection::Selection;
+use library::sort_order::SortOrder;
 use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
 use metadata::location::Error as LocationError;
@@ -50,17 +51,18 @@ where
     pub fn process_meta_file<P>(
         meta_path: P,
         meta_location: MetaLocation,
-        config: &Config,
+        selection: &Selection,
+        sort_order: SortOrder,
     ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
         P: AsRef<Path>,
     {
         let meta_structure = MR::from_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).map_err(Error::CannotFindItemPaths)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, selection).map_err(Error::CannotFindItemPaths)?;
 
         let mut meta_plexed = hashmap![];
-        for meta_plex_res in MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order) {
+        for meta_plex_res in MetaPlexer::plex(meta_structure, selected_item_paths, sort_order) {
             match meta_plex_res {
                 Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
                 Err(e) => { warn!("{}", e); },
@@ -73,7 +75,8 @@ where
     pub fn process_item_file<P>(
         item_path: P,
         meta_location: MetaLocation,
-        config: &Config,
+        selection: &Selection,
+        sort_order: SortOrder,
     ) -> Result<MetaBlock, Error>
     where
         P: AsRef<Path>,
@@ -92,7 +95,7 @@ where
 
         // let meta_path = meta_location.get_meta_path(&item_path).context(Error::CannotFindMetaPath)?;
 
-        let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
+        let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, selection, sort_order)?;
 
         // The remaining results can be thrown away.
         if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
@@ -108,7 +111,8 @@ where
     pub fn process_item_file_flattened<P, II>(
         item_path: P,
         meta_locations: II,
-        config: &Config,
+        selection: &Selection,
+        sort_order: SortOrder,
     ) -> Result<MetaBlock, Error>
     where
         P: AsRef<Path>,
@@ -117,7 +121,7 @@ where
         let mut comp_mb = MetaBlock::new();
 
         for meta_location in meta_locations.into_iter() {
-            comp_mb.extend(Self::process_item_file(&item_path, meta_location, &config)?);
+            comp_mb.extend(Self::process_item_file(&item_path, meta_location, selection, sort_order)?);
         }
 
         Ok(comp_mb)
@@ -141,6 +145,8 @@ mod tests {
         let path = temp_dir.path();
 
         let config = Config::default();
+        let selection = &config.selection;
+        let sort_order = config.sort_order;
 
         // Success cases
         let inputs_and_expected = vec![
@@ -229,7 +235,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, &config).unwrap();
+            let produced = MetaProcessor::<YamlMetaReader>::process_meta_file(meta_path, meta_location, selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -240,6 +246,8 @@ mod tests {
         let path = temp_dir.path();
 
         let config = Config::default();
+        let selection = &config.selection;
+        let sort_order = config.sort_order;
 
         // Success cases
         let inputs_and_expected = vec![
@@ -284,13 +292,9 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (item_path, meta_location) = input;
 
-            let produced = MetaProcessor::<YamlMetaReader>::process_item_file(item_path, meta_location, &config).unwrap();
+            let produced = MetaProcessor::<YamlMetaReader>::process_item_file(item_path, meta_location, selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
-
-        // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01"), MetaLocation::Contains, &config);
-
-        // println!("{:?}", result);
     }
 
     #[test]
@@ -302,6 +306,8 @@ mod tests {
         // sleep_ms(10000000);
 
         let config = Config::default();
+        let selection = &config.selection;
+        let sort_order = config.sort_order;
 
         // Success cases
         let inputs_and_expected = vec![
@@ -341,12 +347,8 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::<YamlMetaReader>::process_item_file_flattened(item_path, meta_locations.clone(), &config).unwrap();
+            let produced = MetaProcessor::<YamlMetaReader>::process_item_file_flattened(item_path, meta_locations.clone(), selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
-
-        // let result = MetaProcessor::process_item_file::<YamlMetaReader, _>(path.join("ALBUM_01"), MetaLocation::Contains, &config);
-
-        // println!("{:?}", result);
     }
 }

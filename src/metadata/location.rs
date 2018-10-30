@@ -2,41 +2,41 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
 
-use library::config::Config;
+use library::selection::Selection;
 
 #[derive(Debug)]
 pub enum Error {
     InvalidItemDirPath(PathBuf),
-    InvalidItemFilePath(PathBuf),
+    // InvalidItemFilePath(PathBuf),
     NonexistentItemPath(PathBuf),
     NoItemPathParent(PathBuf),
     CannotReadItemDir(std::io::Error),
     CannotReadItemDirEntry(std::io::Error),
 
-    InvalidMetaDirPath(PathBuf),
+    // InvalidMetaDirPath(PathBuf),
     InvalidMetaFilePath(PathBuf),
     NonexistentMetaPath(PathBuf),
     NoMetaPathParent(PathBuf),
-    CannotReadMetaDir(std::io::Error),
-    CannotReadMetaDirEntry(std::io::Error),
+    // CannotReadMetaDir(std::io::Error),
+    // CannotReadMetaDirEntry(std::io::Error),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.to_string_lossy()),
-            Error::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.to_string_lossy()),
+            // Error::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.to_string_lossy()),
             Error::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.to_string_lossy()),
             Error::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.to_string_lossy()),
             Error::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
             Error::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
 
-            Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.to_string_lossy()),
+            // Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.to_string_lossy()),
             Error::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.to_string_lossy()),
             Error::NonexistentMetaPath(ref p) => write!(f, "meta path does not exist: {}", p.to_string_lossy()),
             Error::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.to_string_lossy()),
-            Error::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
-            Error::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
+            // Error::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
+            // Error::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
         }
     }
 }
@@ -46,8 +46,8 @@ impl std::error::Error for Error {
         match *self {
             Error::CannotReadItemDir(ref err) => Some(err),
             Error::CannotReadItemDirEntry(ref err) => Some(err),
-            Error::CannotReadMetaDir(ref err) => Some(err),
-            Error::CannotReadMetaDirEntry(ref err) => Some(err),
+            // Error::CannotReadMetaDir(ref err) => Some(err),
+            // Error::CannotReadMetaDirEntry(ref err) => Some(err),
             _ => None,
         }
     }
@@ -83,15 +83,12 @@ impl MetaLocation {
             }
         };
 
-        // TODO: Try and use match statement to avoid calling `.clone()`.
-        if !meta_path.exists() {
-            Err(Error::NonexistentMetaPath(meta_path.clone()))?
+        // LEARN: This is done to avoid calling `.clone()` unnecessarily.
+        match (meta_path.exists(), meta_path.is_file()) {
+            (false, _) => Err(Error::NonexistentMetaPath(meta_path)),
+            (_, false) => Err(Error::InvalidMetaFilePath(meta_path)),
+            (true, true) => Ok(meta_path),
         }
-        if !meta_path.is_file() {
-            Err(Error::InvalidMetaFilePath(meta_path.clone()))?
-        }
-
-        Ok(meta_path)
     }
 
     /// Provides the possible owned item paths of this location.
@@ -139,12 +136,12 @@ impl MetaLocation {
     pub fn get_selected_item_paths<P: AsRef<Path>>(
         &self,
         meta_path: P,
-        config: &Config,
+        selection: &Selection,
         ) -> Result<Vec<PathBuf>, Error>
     {
         let item_paths = self.get_item_paths(meta_path)?;
 
         // Use the config object to select the item paths.
-        Ok(config.selection.select(item_paths).collect())
+        Ok(selection.select(item_paths).collect())
     }
 }

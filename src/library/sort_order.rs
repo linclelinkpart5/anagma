@@ -26,11 +26,15 @@ impl SortOrder {
     }
 }
 
+impl Default for SortOrder {
+    fn default() -> Self {
+        SortOrder::Name
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs::File;
-    use std::thread;
-    use std::time::Duration;
     use std::time::SystemTime;
 
     use tempdir::TempDir;
@@ -54,7 +58,7 @@ mod tests {
         for fp in &fps {
             // LEARN: Because we're iterating over a ref to a vector, the iter vars are also refs.
             File::create(fp).expect(&format!(r#"Unable to create file "{:?}""#, fp));
-            thread::sleep(Duration::from_millis(10));
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
 
         // Test sorting by mod time.
@@ -85,13 +89,13 @@ mod tests {
 
         let time_a = SystemTime::now();
 
-        thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(std::time::Duration::from_millis(10));
 
         // Create a file to get the mtime of.
         let path = tp.join("file");
         File::create(&path).unwrap();
 
-        thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(std::time::Duration::from_millis(10));
 
         let time_b = SystemTime::now();
 
