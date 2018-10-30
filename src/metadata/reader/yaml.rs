@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 
 use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
-use failure::ResultExt;
 
 use metadata::reader::Error;
 use metadata::reader::MetaReader;

@@ -2,7 +2,6 @@
 #![feature(generator_trait)]
 #![feature(non_exhaustive)]
 
-#[macro_use] extern crate failure;
 #[macro_use] extern crate maplit;
 extern crate yaml_rust;
 extern crate serde;
