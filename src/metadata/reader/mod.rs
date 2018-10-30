@@ -2,6 +2,13 @@
 
 pub mod yaml;
 
+use std::path::Path;
+use std::fs::File;
+use std::io::Read;
+
+use metadata::location::MetaLocation;
+use metadata::structure::MetaStructure;
+
 #[derive(Debug)]
 pub enum Error {
     CannotOpenFile(std::io::Error),
@@ -34,13 +41,6 @@ impl std::error::Error for Error {
         }
     }
 }
-
-use std::path::Path;
-use std::fs::File;
-use std::io::Read;
-
-use metadata::location::MetaLocation;
-use metadata::structure::MetaStructure;
 
 pub trait MetaReader {
     fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;

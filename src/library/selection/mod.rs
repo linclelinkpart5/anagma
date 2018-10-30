@@ -2,6 +2,12 @@ pub mod matcher;
 
 use library::selection::matcher::Error as MatcherError;
 
+use std::path::Path;
+use std::path::PathBuf;
+
+// Reexport.
+pub use library::selection::matcher::Matcher;
+
 #[derive(Debug)]
 pub enum Error {
     CannotBuildMatcher(MatcherError),
@@ -28,12 +34,6 @@ impl std::error::Error for Error {
         }
     }
 }
-
-use std::path::Path;
-use std::path::PathBuf;
-
-// Reexport.
-pub use library::selection::matcher::Matcher;
 
 #[derive(PartialEq, Eq, Hash, Deserialize)]
 #[serde(default)]

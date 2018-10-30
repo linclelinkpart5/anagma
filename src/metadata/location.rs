@@ -1,90 +1,57 @@
-use std::fmt::Display;
-use std::fmt::Result as FmtResult;
-use std::fmt::Formatter;
-
-use failure::Backtrace;
-use failure::Context;
-use failure::Fail;
-use failure::ResultExt;
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
-#[non_exhaustive]
-pub enum ErrorKind {
-    #[fail(display = "invalid item directory path")]
-    InvalidItemDirPath,
-    #[fail(display = "invalid item file path")]
-    InvalidItemFilePath,
-    #[fail(display = "item path does not exist")]
-    NonexistentItemPath,
-    #[fail(display = "item path does not have a parent and/or is filesystem root")]
-    NoItemPathParent,
-    #[fail(display = "unable to read entries in item directory")]
-    CannotReadItemDir,
-    #[fail(display = "unable to read item directory entry")]
-    CannotReadItemDirEntry,
-
-    #[fail(display = "invalid meta directory path")]
-    InvalidMetaDirPath,
-    #[fail(display = "invalid meta file path")]
-    InvalidMetaFilePath,
-    #[fail(display = "meta path does not exist")]
-    NonexistentMetaPath,
-    #[fail(display = "meta path does not have a parent and/or is filesystem root")]
-    NoMetaPathParent,
-    #[fail(display = "unable to read entries in meta directory")]
-    CannotReadMetaDir,
-    #[fail(display = "unable to read meta directory entry")]
-    CannotReadMetaDirEntry,
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
-    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
-}
-
-impl Error {
-    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-enum FileTarget {
-    Item,
-    Meta,
-}
-
-impl Display for FileTarget {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        let s = match *self {
-            FileTarget::Item => "item",
-            FileTarget::Meta => "meta",
-        };
-
-        Display::fmt(s, f)
-    }
-}
-
 use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
 
 use library::config::Config;
+
+#[derive(Debug)]
+pub enum Error {
+    InvalidItemDirPath(PathBuf),
+    InvalidItemFilePath(PathBuf),
+    NonexistentItemPath(PathBuf),
+    NoItemPathParent(PathBuf),
+    CannotReadItemDir(std::io::Error),
+    CannotReadItemDirEntry(std::io::Error),
+
+    InvalidMetaDirPath(PathBuf),
+    InvalidMetaFilePath(PathBuf),
+    NonexistentMetaPath(PathBuf),
+    NoMetaPathParent(PathBuf),
+    CannotReadMetaDir(std::io::Error),
+    CannotReadMetaDirEntry(std::io::Error),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Error::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.to_string_lossy()),
+            Error::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.to_string_lossy()),
+            Error::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.to_string_lossy()),
+            Error::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.to_string_lossy()),
+            Error::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
+            Error::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
+
+            Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.to_string_lossy()),
+            Error::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.to_string_lossy()),
+            Error::NonexistentMetaPath(ref p) => write!(f, "meta path does not exist: {}", p.to_string_lossy()),
+            Error::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.to_string_lossy()),
+            Error::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
+            Error::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Error::CannotReadItemDir(ref err) => Some(err),
+            Error::CannotReadItemDirEntry(ref err) => Some(err),
+            Error::CannotReadMetaDir(ref err) => Some(err),
+            Error::CannotReadMetaDirEntry(ref err) => Some(err),
+            _ => None,
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
 pub enum MetaLocation {
@@ -97,13 +64,13 @@ impl MetaLocation {
         let item_path = item_path.as_ref();
 
         if !item_path.exists() {
-            Err(ErrorKind::NonexistentItemPath)?
+            Err(Error::NonexistentItemPath(item_path.to_path_buf()))?
         }
 
         let meta_path = match *self {
             MetaLocation::Contains => {
                 if !item_path.is_dir() {
-                    Err(ErrorKind::InvalidItemDirPath)?
+                    Err(Error::InvalidItemDirPath(item_path.to_path_buf()))?
                 }
 
                 item_path.join("self.yml")
@@ -111,16 +78,17 @@ impl MetaLocation {
             MetaLocation::Siblings => {
                 match item_path.parent() {
                     Some(item_path_parent) => item_path_parent.join("item.yml"),
-                    None => Err(ErrorKind::NoItemPathParent)?,
+                    None => Err(Error::NoItemPathParent(item_path.to_path_buf()))?,
                 }
             }
         };
 
+        // TODO: Try and use match statement to avoid calling `.clone()`.
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentMetaPath)?
+            Err(Error::NonexistentMetaPath(meta_path.clone()))?
         }
         if !meta_path.is_file() {
-            Err(ErrorKind::InvalidMetaFilePath)?
+            Err(Error::InvalidMetaFilePath(meta_path.clone()))?
         }
 
         Ok(meta_path)
@@ -134,11 +102,11 @@ impl MetaLocation {
         let meta_path = meta_path.as_ref();
 
         if !meta_path.exists() {
-            Err(ErrorKind::NonexistentMetaPath)?
+            Err(Error::NonexistentMetaPath(meta_path.to_path_buf()))?
         }
 
         if !meta_path.is_file() {
-            Err(ErrorKind::InvalidMetaFilePath)?
+            Err(Error::InvalidMetaFilePath(meta_path.to_path_buf()))?
         }
 
         // Get the parent directory of the meta file.
@@ -153,8 +121,8 @@ impl MetaLocation {
                 },
                 MetaLocation::Siblings => {
                     // Return all children of this directory.
-                    for entry in fs::read_dir(&meta_parent_dir_path).context(ErrorKind::CannotReadItemDir)? {
-                        po_item_paths.push(entry.context(ErrorKind::CannotReadItemDirEntry)?.path());
+                    for entry in fs::read_dir(&meta_parent_dir_path).map_err(Error::CannotReadItemDir)? {
+                        po_item_paths.push(entry.map_err(Error::CannotReadItemDirEntry)?.path());
                     }
                 },
             }
@@ -163,7 +131,7 @@ impl MetaLocation {
         }
         else {
             // This should never happen!
-            Err(ErrorKind::NoMetaPathParent)?
+            Err(Error::NoMetaPathParent(meta_path.to_path_buf()))?
         }
     }
 

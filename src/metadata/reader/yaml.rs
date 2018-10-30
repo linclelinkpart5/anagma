@@ -56,7 +56,6 @@ fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
 fn yaml_as_meta_key(y: &Yaml) -> Result<MetaKey, Error> {
     match *y {
         Yaml::Null => Ok(MetaKey::Nil),
-        // _ => yaml_as_string(y).map(|s| MetaKey::Str(s)).chain_err(|| "cannot convert YAML to meta key"),
         _ => Ok(yaml_as_string(y).map(|s| MetaKey::Str(s)).map_err(|_| Error::CannotConvert("YAML", "meta key"))?),
     }
 }
@@ -87,7 +86,6 @@ fn yaml_as_meta_value(y: &Yaml) -> Result<MetaVal, Error> {
 
             Ok(MetaVal::Map(map))
         },
-        // _ => yaml_as_string(&y).map(|s| MetaVal::Str(s)).chain_err(|| "cannot convert YAML to meta value"),
         _ => yaml_as_string(&y).map(|s| MetaVal::Str(s)),
     }
 }

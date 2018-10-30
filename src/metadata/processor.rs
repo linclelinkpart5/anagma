@@ -1,51 +1,3 @@
-use std::fmt::Display;
-use std::fmt::Result as FmtResult;
-use std::fmt::Formatter;
-
-use failure::Backtrace;
-use failure::Context;
-use failure::Fail;
-use failure::ResultExt;
-
-#[derive(Debug)]
-pub struct Error {
-    inner: Context<ErrorKind>,
-}
-
-#[derive(Clone, Copy, Eq, PartialEq, Debug, Fail, Hash)]
-#[non_exhaustive]
-pub enum ErrorKind {
-    #[fail(display = "cannot read metadata file")]
-    CannotReadMetadata,
-    #[fail(display = "cannot find item file paths")]
-    CannotFindItemPaths,
-    #[fail(display = "cannot find meta file path")]
-    CannotFindMetaPath,
-    #[fail(display = "missing metadata")]
-    MissingMetadata,
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> { self.inner.cause() }
-    fn backtrace(&self) -> Option<&Backtrace> { self.inner.backtrace() }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult { Display::fmt(&self.inner, f) }
-}
-
-impl Error {
-    pub fn kind(&self) -> &ErrorKind { self.inner.get_context() }
-}
-
-impl From<ErrorKind> for Error {
-    fn from(kind: ErrorKind) -> Error { Error { inner: Context::new(kind) } }
-}
-
-impl From<Context<ErrorKind>> for Error {
-    fn from(inner: Context<ErrorKind>) -> Error { Error { inner: inner } }
-}
-
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
@@ -54,9 +6,40 @@ use std::marker::PhantomData;
 use library::config::Config;
 use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
-use metadata::location::ErrorKind as LocationErrorKind;
+use metadata::location::Error as LocationError;
 use metadata::reader::MetaReader;
+use metadata::reader::Error as ReaderError;
 use metadata::plexer::MetaPlexer;
+
+#[derive(Debug)]
+pub enum Error {
+    CannotReadMetadata(ReaderError),
+    CannotFindItemPaths(LocationError),
+    CannotFindMetaPath(LocationError),
+    MissingMetadata,
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Error::CannotReadMetadata(ref err) => write!(f, "cannot read metadata file: {}", err),
+            Error::CannotFindItemPaths(ref err) => write!(f, "cannot find item file paths: {}", err),
+            Error::CannotFindMetaPath(ref err) => write!(f, "cannot find meta file path: {}", err),
+            Error::MissingMetadata => write!(f, "missing metadata"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Error::CannotReadMetadata(ref err) => Some(err),
+            Error::CannotFindItemPaths(ref err) => Some(err),
+            Error::CannotFindMetaPath(ref err) => Some(err),
+            Error::MissingMetadata => None,
+        }
+    }
+}
 
 pub struct MetaProcessor<MR>(PhantomData<MR>);
 
@@ -72,9 +55,9 @@ where
     where
         P: AsRef<Path>,
     {
-        let meta_structure = MR::from_file(&meta_path, meta_location).context(ErrorKind::CannotReadMetadata)?;
+        let meta_structure = MR::from_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).context(ErrorKind::CannotFindItemPaths)?;
+        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, config).map_err(Error::CannotFindItemPaths)?;
 
         let mut meta_plexed = hashmap![];
         for meta_plex_res in MetaPlexer::plex(meta_structure, selected_item_paths, config.sort_order) {
@@ -97,18 +80,17 @@ where
     {
         let meta_path = match meta_location.get_meta_path(&item_path) {
             Err(e) => {
-                let ek = e.kind().clone();
-                match ek {
-                    LocationErrorKind::NonexistentMetaPath |
-                        LocationErrorKind::InvalidItemDirPath |
-                        LocationErrorKind::NoItemPathParent => { return Ok(MetaBlock::new()); },
-                    _ => { return Err(e).context(ErrorKind::CannotFindMetaPath)?; }
+                match e {
+                    LocationError::NonexistentMetaPath(..) |
+                        LocationError::InvalidItemDirPath(..) |
+                        LocationError::NoItemPathParent(..) => { return Ok(MetaBlock::new()); },
+                    _ => { return Err(e).map_err(Error::CannotFindMetaPath)?; }
                 }
             },
             Ok(p) => p,
         };
 
-        // let meta_path = meta_location.get_meta_path(&item_path).context(ErrorKind::CannotFindMetaPath)?;
+        // let meta_path = meta_location.get_meta_path(&item_path).context(Error::CannotFindMetaPath)?;
 
         let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, config)?;
 
@@ -117,7 +99,7 @@ where
             Ok(meta_block)
         }
         else {
-            Err(ErrorKind::MissingMetadata)?
+            Err(Error::MissingMetadata)?
         }
     }
 
