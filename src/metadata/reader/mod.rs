@@ -42,16 +42,39 @@ impl std::error::Error for Error {
     }
 }
 
-pub trait MetaReader {
-    fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum MetaFormat {
+    Yaml,
+}
 
-    fn from_file<P: AsRef<Path>>(p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+impl MetaFormat {
+    pub fn read_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
+        match *self {
+            MetaFormat::Yaml => yaml::read_str(s, mt),
+        }
+    }
+
+    pub fn read_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-        Self::from_str(buffer, mt)
+        self.read_str(buffer, mt)
     }
 }
+
+// pub trait MetaReader {
+//     fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
+
+//     fn from_file<P: AsRef<Path>>(p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+//         let p = p.as_ref();
+//         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
+
+//         let mut buffer = String::new();
+//         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
+
+//         Self::from_str(buffer, mt)
+//     }
+// }

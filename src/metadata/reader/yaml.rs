@@ -4,7 +4,6 @@ use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
 
 use metadata::reader::Error;
-use metadata::reader::MetaReader;
 use metadata::location::MetaLocation;
 use metadata::types::MetaStructure;
 use metadata::types::key::MetaKey;
@@ -13,21 +12,17 @@ use metadata::types::MetaBlock;
 use metadata::types::MetaBlockSeq;
 use metadata::types::MetaBlockMap;
 
-pub struct YamlMetaReader;
+pub fn read_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    let s = s.as_ref();
+    let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s).map_err(|_| Error::CannotParseMetadata)?;
 
-impl MetaReader for YamlMetaReader {
-    fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
-        let s = s.as_ref();
-        let yaml_docs: Vec<Yaml> = YamlLoader::load_from_str(s).map_err(|_| Error::CannotParseMetadata)?;
-
-        if yaml_docs.len() < 1 {
-            Err(Error::EmptyMetadata)?
-        }
-
-        let yaml_doc = &yaml_docs[0];
-
-        Ok(yaml_as_metadata(yaml_doc, mt)?)
+    if yaml_docs.len() < 1 {
+        Err(Error::EmptyMetadata)?
     }
+
+    let yaml_doc = &yaml_docs[0];
+
+    Ok(yaml_as_metadata(yaml_doc, mt)?)
 }
 
 fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
