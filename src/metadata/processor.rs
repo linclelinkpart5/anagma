@@ -93,8 +93,6 @@ where
             Ok(p) => p,
         };
 
-        // let meta_path = meta_location.get_meta_path(&item_path).context(Error::CannotFindMetaPath)?;
-
         let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, selection, sort_order)?;
 
         // The remaining results can be thrown away.
@@ -301,9 +299,6 @@ mod tests {
     fn test_process_item_file_flattened() {
         let temp_dir = create_temp_media_test_dir("test_process_item_file_flattened");
         let path = temp_dir.path();
-
-        // use std::thread::sleep_ms;
-        // sleep_ms(10000000);
 
         let config = Config::default();
         let selection = &config.selection;
