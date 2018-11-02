@@ -16,6 +16,7 @@ pub enum Error {
     CannotParseMetadata,
     EmptyMetadata,
     CannotConvert(&'static str, &'static str),
+    InvalidItemName(String),
 }
 
 impl std::fmt::Display for Error {
@@ -26,6 +27,7 @@ impl std::fmt::Display for Error {
             Error::CannotParseMetadata => write!(f, "cannot parse metadata"),
             Error::EmptyMetadata => write!(f, "metadata is empty"),
             Error::CannotConvert(source, target) => write!(f, "cannot convert from {} to {}", source, target),
+            Error::InvalidItemName(ref item_name) => write!(f, "invalid item name: {}", item_name),
         }
     }
 }
@@ -38,6 +40,7 @@ impl std::error::Error for Error {
             Error::CannotParseMetadata => None,
             Error::EmptyMetadata => None,
             Error::CannotConvert(..) => None,
+            Error::InvalidItemName(..) => None,
         }
     }
 }

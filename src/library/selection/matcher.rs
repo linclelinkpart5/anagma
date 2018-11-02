@@ -87,8 +87,9 @@ impl Matcher {
 
         let matcher = builder.build().map_err(Error::CannotBuildSelector)?;
 
-        // TODO: Add sort on vector here?
-        // TODO: Add deduping?
+        // Sort and dedupe the patterns.
+        cached_patterns.sort_by(|pa, pb| pa.glob().cmp(pb.glob()));
+        cached_patterns.dedup();
 
         Ok(Matcher(matcher, cached_patterns))
     }

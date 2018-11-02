@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
 
+use util;
 use metadata::reader::Error;
 use metadata::location::MetaLocation;
 use metadata::types::MetaStructure;
@@ -34,7 +35,7 @@ fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
         Yaml::Hash(_) => Err(Error::CannotConvert("mapping", TARGET))?,
         Yaml::String(ref s) => Ok(s.to_string()),
 
-        // TODO: The rest of these need to be revisited.
+        // Due to limitations in the YAML spec/library, these types get automatically converted.
         // Ideally we would keep them as strings and not convert when parsing.
         Yaml::Real(ref r) => Ok(r.to_string()),
         Yaml::Integer(i) => Ok(i.to_string()),
@@ -129,11 +130,15 @@ pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, Error> {
             for (key_y, val_y) in hsh {
                 let key = yaml_as_string(&key_y)?;
 
-                // TODO: Check that key is a valid item name!
+                // Ensure that the key is a valid item name.
+                if !util::is_valid_item_name(&key) {
+                    Err(Error::InvalidItemName(key))?
+                }
+                else {
+                    let val = yaml_as_meta_block(&val_y)?;
 
-                let val = yaml_as_meta_block(&val_y)?;
-
-                item_map.insert(key, val);
+                    item_map.insert(key, val);
+                }
             }
 
             Ok(item_map)
@@ -183,7 +188,7 @@ mod tests {
             // Integers
             ("27", Some("27".to_string())),
             ("-27", Some("-27".to_string())),
-            // TODO: This does not work, due to it getting parsed as an int and losing the plus.
+            // NOTE: This does not work, due to it getting parsed as an int and losing the plus.
             // ("+27", Some("+27".to_string())),
 
             // Floats
@@ -237,7 +242,7 @@ mod tests {
             // Integers
             ("27", Some(MetaKey::Str("27".to_string()))),
             ("-27", Some(MetaKey::Str("-27".to_string()))),
-            // TODO: This does not work, due to it getting parsed as an int and losing the plus.
+            // NOTE: This does not work, due to it getting parsed as an int and losing the plus.
             // ("+27", Some(MetaKey::Str("+27".to_string()))),
 
             // Floats
@@ -291,7 +296,7 @@ mod tests {
             // Integers
             ("27", Some(MetaVal::Str("27".to_string()))),
             ("-27", Some(MetaVal::Str("-27".to_string()))),
-            // TODO: This does not work, due to it getting parsed as an int and losing the plus.
+            // NOTE: This does not work, due to it getting parsed as an int and losing the plus.
             // ("+27", Some(MetaVal::Str("+27".to_string()))),
 
             // Floats

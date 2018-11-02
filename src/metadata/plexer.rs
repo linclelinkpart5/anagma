@@ -20,8 +20,14 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.to_string_lossy()),
-            // TODO: Make this error message better.
-            Error::UnusedMetaBlock(_, ref opt_tag) => write!(f, "meta block was unused in plexing: {:?}", opt_tag),
+            Error::UnusedMetaBlock(_, ref opt_tag) => {
+                let tag_desc = match opt_tag {
+                    Some(tag) => format!(", with tag: {}", tag),
+                    None => String::from(""),
+                };
+
+                write!(f, "meta block was unused in plexing{}", tag_desc)
+            },
             Error::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.to_string_lossy()),
         }
     }
