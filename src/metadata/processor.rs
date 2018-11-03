@@ -41,6 +41,8 @@ impl std::error::Error for Error {
     }
 }
 
+const META_LOCATION_ORDER: &[MetaLocation] = &[MetaLocation::Siblings, MetaLocation::Contains];
+
 pub struct MetaProcessor;
 
 impl MetaProcessor {
@@ -104,21 +106,17 @@ impl MetaProcessor {
 
     // Processes multiple locations for a target item at once, merging the results.
     // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
-    pub fn process_item_file_flattened<P, II>(
+    pub fn process_item_file_flattened<P: AsRef<Path>>(
         item_path: P,
-        meta_locations: II,
         meta_format: MetaFormat,
         selection: &Selection,
         sort_order: SortOrder,
     ) -> Result<MetaBlock, Error>
-    where
-        P: AsRef<Path>,
-        II: IntoIterator<Item = MetaLocation>,
     {
         let mut comp_mb = MetaBlock::new();
 
-        for meta_location in meta_locations.into_iter() {
-            comp_mb.extend(Self::process_item_file(&item_path, meta_location, meta_format, selection, sort_order)?);
+        for meta_location in META_LOCATION_ORDER.into_iter() {
+            comp_mb.extend(Self::process_item_file(&item_path, *meta_location, meta_format, selection, sort_order)?);
         }
 
         Ok(comp_mb)
@@ -336,12 +334,10 @@ mod tests {
             ),
         ];
 
-        let meta_locations = vec![MetaLocation::Siblings, MetaLocation::Contains];
-
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::process_item_file_flattened(item_path, meta_locations.clone(), MetaFormat::Yaml, selection, sort_order).unwrap();
+            let produced = MetaProcessor::process_item_file_flattened(item_path, MetaFormat::Yaml, selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
     }
