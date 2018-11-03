@@ -1,4 +1,4 @@
-//! Provides configuration options for a Taggu library, both programmatically and via YAML files.
+//! Provides configuration options for a library, both programmatically and via YAML files.
 
 use library::sort_order::SortOrder;
 use library::selection::Selection;

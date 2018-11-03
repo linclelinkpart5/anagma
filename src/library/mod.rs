@@ -1,4 +1,4 @@
-//! A 'library' is an instance of a Taggu metadata hierarchy.
+//! A 'library' is an instance of a metadata hierarchy.
 
 pub mod sort_order;
 pub mod selection;
