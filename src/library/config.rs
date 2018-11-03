@@ -2,6 +2,7 @@
 
 use library::sort_order::SortOrder;
 use library::selection::Selection;
+use metadata::reader::MetaFormat;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -10,6 +11,7 @@ pub struct Config {
     pub sort_order: SortOrder,
     pub item_fn: String,
     pub self_fn: String,
+    pub meta_format: MetaFormat,
 }
 
 impl Default for Config {
@@ -19,6 +21,7 @@ impl Default for Config {
             sort_order: SortOrder::Name,
             item_fn: String::from("item.yml"),
             self_fn: String::from("self.yml"),
+            meta_format: MetaFormat::Yaml,
         }
     }
 }
@@ -28,26 +31,10 @@ mod tests {
     use serde_yaml;
 
     use library::selection::Selection;
+    use metadata::reader::MetaFormat;
 
     use super::Config;
     use super::SortOrder;
-
-    #[test]
-    fn test_is_pattern_match() {
-        let config = Config {
-            selection: Selection::from_patterns(
-                &["*.flac", "*.mp3"],
-                &["*.yml", "*.jpg"],
-            ).unwrap(),
-            ..Default::default()
-        };
-
-        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
-        assert_eq!(config.selection.is_pattern_match("music.mp3"), true);
-        assert_eq!(config.selection.is_pattern_match("photo.png"), false);
-        assert_eq!(config.selection.is_pattern_match("self.yml"), false);
-        assert_eq!(config.selection.is_pattern_match("unknown"), false);
-    }
 
     #[test]
     fn test_deserialization() {
@@ -63,6 +50,7 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
 
         let text_config = "selection:\n  include:\n    - '*.flac'\n    - '*.mp3'\nsort_order: mod_time";
 
@@ -74,6 +62,7 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
 
         let text_config = "selection:\n  include: '*'\nsort_order: mod_time";
 
@@ -85,12 +74,14 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
 
         let text_config = "selection:
   include: '*'
   exclude: '*.mp3'
 sort_order: name
 item_fn: item_meta.yml
+meta_format: yaml
 ";
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
@@ -101,5 +92,6 @@ item_fn: item_meta.yml
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item_meta.yml");
         assert_eq!(config.self_fn, "self.yml");
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
     }
 }
