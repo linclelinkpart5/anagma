@@ -46,7 +46,7 @@ impl std::error::Error for Error {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum MetaFormat {
     Yaml,
 }

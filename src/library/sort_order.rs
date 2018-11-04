@@ -3,10 +3,9 @@ use std::cmp::Ordering;
 use std::time::SystemTime;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
 pub enum SortOrder {
-    #[serde(rename = "name")]
     Name,
-    #[serde(rename = "mod_time")]
     ModTime,
 }
 

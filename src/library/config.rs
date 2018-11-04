@@ -18,7 +18,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             selection: Selection::default(),
-            sort_order: SortOrder::Name,
+            sort_order: SortOrder::default(),
             item_fn: String::from("item.yml"),
             self_fn: String::from("self.yml"),
             meta_format: MetaFormat::Yaml,
