@@ -51,6 +51,12 @@ pub enum MetaFormat {
     Yaml,
 }
 
+impl Default for MetaFormat {
+    fn default() -> Self {
+        MetaFormat::Yaml
+    }
+}
+
 impl MetaFormat {
     pub fn read_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
         match *self {

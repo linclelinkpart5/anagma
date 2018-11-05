@@ -1,8 +1,11 @@
 //! Provides configuration options for a library, both programmatically and via YAML files.
 
+use std::collections::HashMap;
+
 use library::sort_order::SortOrder;
 use library::selection::Selection;
 use metadata::reader::MetaFormat;
+use metadata::aggregator::AggMethod;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -12,6 +15,7 @@ pub struct Config {
     pub item_fn: String,
     pub self_fn: String,
     pub meta_format: MetaFormat,
+    pub agg_methods: HashMap<String, AggMethod>,
 }
 
 impl Default for Config {
@@ -21,7 +25,8 @@ impl Default for Config {
             sort_order: SortOrder::default(),
             item_fn: String::from("item.yml"),
             self_fn: String::from("self.yml"),
-            meta_format: MetaFormat::Yaml,
+            meta_format: MetaFormat::default(),
+            agg_methods: HashMap::default(),
         }
     }
 }

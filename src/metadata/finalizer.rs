@@ -11,6 +11,7 @@ use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
 use metadata::reader::MetaFormat;
+use metadata::aggregator::AggMethod;
 
 #[derive(Debug)]
 pub enum Error {
@@ -31,12 +32,6 @@ impl std::error::Error for Error {
             Error::CannotProcessMetadata(ref err) => Some(err),
         }
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
-pub enum AggMethod {
-    Collect,
-    First,
 }
 
 pub struct MetaFinalizer;
