@@ -80,21 +80,33 @@ impl MetaAggregator {
         P: AsRef<Path>,
         S: AsRef<str>,
     {
-        let gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order);
-
-        for res in gen {
-            match res {
-                Ok(mv) => {
-                    // The `First` method returns the first available result.
-                    if agg_method == AggMethod::First {
-                        return Ok(mv);
-                    }
+        // This iterates over and unwraps `Ok` values, while also logging `Err` values.
+        let mut gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order)
+            .filter_map(|res| match res {
+                Ok(mv) => Some(mv),
+                Err(err) => {
+                    warn!("{}", err);
+                    None
                 },
-                Err(err) => { warn!("{}", err); },
-            }
-        }
+            });
 
-        Ok(MetaVal::Nil)
+        let ret_mv = match agg_method {
+            AggMethod::First => {
+                // Get the first item from the generator.
+                match gen.next() {
+                    Some(mv) => mv,
+                    None => MetaVal::Nil,
+                }
+            },
+            AggMethod::Collect => {
+                // Collect all items from the generator.
+                let mvs = gen.collect::<Vec<_>>();
+
+                MetaVal::Seq(mvs)
+            },
+        };
+
+        Ok(ret_mv)
     }
 
     pub fn resolve_field_children_helper<'a, P, S>(
