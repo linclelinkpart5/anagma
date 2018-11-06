@@ -84,8 +84,13 @@ impl MetaAggregator {
 
         for res in gen {
             match res {
-                Ok(_mv) => {},
-                Err(_err) => {},
+                Ok(mv) => {
+                    // The `First` method returns the first available result.
+                    if agg_method == AggMethod::First {
+                        return Ok(mv);
+                    }
+                },
+                Err(err) => { warn!("{}", err); },
             }
         }
 
