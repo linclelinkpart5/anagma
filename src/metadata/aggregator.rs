@@ -35,7 +35,6 @@ pub enum AggMethod {
 }
 
 use std::path::Path;
-use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
 use library::selection::Selection;
@@ -43,6 +42,7 @@ use library::selection::Error as SelectionError;
 use library::sort_order::SortOrder;
 use metadata::reader::MetaFormat;
 use metadata::types::MetaVal;
+use util::GenConverter;
 
 pub struct MetaAggregator;
 
@@ -58,48 +58,69 @@ impl MetaAggregator {
         P: AsRef<Path>,
         S: AsRef<str>,
     {
-        let mut mb = MetaProcessor::process_item_file_flattened(item_path, meta_format, selection, sort_order).map_err(Error::CannotProcessMetadata)?;
+        let mut mb = MetaProcessor::process_item_file_flattened(
+            item_path,
+            meta_format,
+            selection,
+            sort_order,
+        ).map_err(Error::CannotProcessMetadata)?;
+
         Ok(mb.remove(field.as_ref()))
     }
 
-    pub fn resolve_field_children_helper<P, S>(
+    pub fn resolve_field_children_helper<'a, P, S>(
         item_path: P,
         field: S,
         meta_format: MetaFormat,
-        selection: &Selection,
+        selection: &'a Selection,
         sort_order: SortOrder,
-        agg_methods: &BTreeMap<String, AggMethod>,
-    ) -> Result<Vec<MetaVal>, Error>
+        agg_method: AggMethod,
+    ) -> impl Iterator<Item = Result<MetaVal, Error>> + 'a
     where
         P: AsRef<Path>,
-        S: AsRef<str>,
+        S: AsRef<str> + 'a,
     {
         let item_path = item_path.as_ref();
         let mut frontier = VecDeque::new();
         if item_path.is_dir() {
             frontier.push_back(item_path.to_owned());
         }
-        let mut child_results = vec![];
-        // For each path in the frontier, look at the items contained within it.
-        // Assume that the paths in the frontier are directories.
-        while let Some(frontier_item_path) = frontier.pop_front() {
-            // Get sub items contained within.
-            let sub_item_paths = selection.select_in_dir(frontier_item_path).map_err(Error::CannotSelectPaths)?;
-            for sub_item_path in sub_item_paths {
-                match Self::resolve_field(&sub_item_path, &field, meta_format, &selection, sort_order)? {
-                    Some(sub_meta_val) => {
-                        child_results.push(sub_meta_val);
+
+        let closure = move || {
+            // For each path in the frontier, look at the items contained within it.
+            // Assume that the paths in the frontier are directories.
+            while let Some(frontier_item_path) = frontier.pop_front() {
+                // Get sub items contained within.
+                match selection.select_in_dir(frontier_item_path).map_err(Error::CannotSelectPaths) {
+                    Err(err) => {
+                        yield Err(err);
+                        continue;
                     },
-                    None => {
-                        // If the sub item is a directory, add it to the frontier.
-                        if sub_item_path.is_dir() {
-                            // Since a depth-first search is desired, treat as a stack.
-                            frontier.push_front(sub_item_path);
+                    Ok(sub_item_paths) => {
+                        for sub_item_path in sub_item_paths {
+                            match Self::resolve_field(&sub_item_path, &field, meta_format, &selection, sort_order) {
+                                Err(err) => {
+                                    yield Err(err);
+                                    continue;
+                                },
+                                Ok(Some(sub_meta_val)) => {
+                                    yield Ok(sub_meta_val);
+                                },
+                                Ok(None) => {
+                                    // If the sub item is a directory, add it to the frontier.
+                                    if sub_item_path.is_dir() {
+                                        // Since a depth-first search is desired, treat as a stack.
+                                        frontier.push_front(sub_item_path);
+                                    }
+                                },
+                            }
                         }
                     },
                 }
             }
-        }
-        Ok(child_results)
+        };
+
+
+        GenConverter::gen_to_iter(closure)
     }
 }
