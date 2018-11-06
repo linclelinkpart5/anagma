@@ -68,13 +68,36 @@ impl MetaAggregator {
         Ok(mb.remove(field.as_ref()))
     }
 
+    pub fn resolve_field_children<P, S>(
+        item_path: P,
+        field: S,
+        meta_format: MetaFormat,
+        selection: &Selection,
+        sort_order: SortOrder,
+        agg_method: AggMethod,
+    ) -> Result<MetaVal, Error>
+    where
+        P: AsRef<Path>,
+        S: AsRef<str>,
+    {
+        let gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order);
+
+        for res in gen {
+            match res {
+                Ok(_mv) => {},
+                Err(_err) => {},
+            }
+        }
+
+        Ok(MetaVal::Nil)
+    }
+
     pub fn resolve_field_children_helper<'a, P, S>(
         item_path: P,
         field: S,
         meta_format: MetaFormat,
         selection: &'a Selection,
         sort_order: SortOrder,
-        agg_method: AggMethod,
     ) -> impl Iterator<Item = Result<MetaVal, Error>> + 'a
     where
         P: AsRef<Path>,
