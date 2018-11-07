@@ -35,7 +35,7 @@ impl std::error::Error for Error {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Deserialize)]
+#[derive(PartialEq, Eq, Hash, Deserialize, Debug)]
 #[serde(default)]
 pub struct Selection {
     include: Matcher,

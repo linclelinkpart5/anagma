@@ -95,7 +95,9 @@ impl Matcher {
     }
 
     pub fn is_match<P: AsRef<Path>>(&self, path: P) -> bool {
-        self.0.is_match(path.as_ref())
+        // LEARN: Matching on the file name explicitly is needed for patterns such as "self*".
+        path.as_ref().file_name().map(|f| self.0.is_match(f)).unwrap_or(false)
+        // self.0.is_match(path.as_ref())
     }
 
     pub fn any() -> Self {

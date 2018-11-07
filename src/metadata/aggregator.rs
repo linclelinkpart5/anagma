@@ -164,3 +164,32 @@ impl MetaAggregator {
         GenConverter::gen_to_iter(closure)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::MetaAggregator;
+
+    use library::config::Config;
+    use library::sort_order::SortOrder;
+    use metadata::reader::MetaFormat;
+    use metadata::location::MetaLocation;
+    use metadata::types::MetaVal;
+
+    use test_util::create_temp_media_test_dir;
+
+    #[test]
+    fn test_resolve_field_children_helper() {
+        let temp_dir = create_temp_media_test_dir("test_resolve_field_children_helper");
+        let path = temp_dir.path();
+
+        let config = Config::default();
+        let selection = &config.selection;
+
+        let gen = MetaAggregator::resolve_field_children_helper(path, "TRACK_01_item_key", MetaFormat::Yaml, selection, SortOrder::Name);
+
+        for mv in gen {
+            println!("{:?}", mv.unwrap());
+        }
+    }
+}
+
