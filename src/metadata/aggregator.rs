@@ -129,20 +129,19 @@ impl MetaAggregator {
 
         let closure = move || {
             // Process the initial potential item in the frontier.
-            match frontier.pop_front() {
-                None => {},
-                Some(start_item_path) => {
-                    match selection.select_in_dir_sorted(start_item_path, sort_order).map_err(Error::CannotSelectPaths) {
-                        Err(err) => {
-                            yield Err(err);
-                        },
-                        Ok(mut sub_item_paths) => {
-                            for p in sub_item_paths.drain(..) {
-                                frontier.push_back(p);
-                            }
-                        },
-                    }
-                },
+            // LEARN: This awkward step is needed due to lifetime/generator issues and wanting to have errors in the generator.
+            // TODO: Maybe OK to have an error outside of the generator?
+            if let Some(start_item_path) = frontier.pop_front() {
+                match selection.select_in_dir_sorted(start_item_path, sort_order).map_err(Error::CannotSelectPaths) {
+                    Err(err) => {
+                        yield Err(err);
+                    },
+                    Ok(mut sub_item_paths) => {
+                        for p in sub_item_paths.drain(..) {
+                            frontier.push_back(p);
+                        }
+                    },
+                }
             }
 
             // For each path in the frontier, look at the items contained within it.
@@ -162,8 +161,7 @@ impl MetaAggregator {
                                     yield Err(err);
                                 },
                                 Ok(mut sub_item_paths) => {
-                                    sub_item_paths.reverse();
-                                    for p in sub_item_paths.drain(..) {
+                                    for p in sub_item_paths.drain(..).rev() {
                                         frontier.push_front(p);
                                     }
                                 },
@@ -189,11 +187,11 @@ mod tests {
     use metadata::location::MetaLocation;
     use metadata::types::MetaVal;
 
-    use test_util::create_temp_media_test_dir;
+    use test_util::create_temp_media_test_dir_staggered;
 
     #[test]
     fn test_resolve_field_children_helper() {
-        let temp_dir = create_temp_media_test_dir("test_resolve_field_children_helper");
+        let temp_dir = create_temp_media_test_dir_staggered("test_resolve_field_children_helper");
         let path = temp_dir.path();
 
         let config = Config::default();
@@ -218,6 +216,28 @@ mod tests {
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/TRACK_01.flac")),
+                ],
+            ),
+            (
+                (path, "SUBTRACK_01_item_key"),
+                vec![
+                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_02/SUBTRACK_01.flac")),
+                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_05/DISC_01/SUBTRACK_01.flac")),
+                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+                ],
+            ),
+            (
+                (path, "staggered_key"),
+                vec![
+                    (MetaVal::Str(String::from("TRACK_02")), path.join("ALBUM_01/DISC_01/TRACK_02.flac")),
+                    (MetaVal::Str(String::from("DISC_02")), path.join("ALBUM_01/DISC_02")),
+                    (MetaVal::Str(String::from("DISC_01")), path.join("ALBUM_02/DISC_01")),
+                    (MetaVal::Str(String::from("TRACK_02")), path.join("ALBUM_02/TRACK_02.flac")),
+                    (MetaVal::Str(String::from("ALBUM_03")), path.join("ALBUM_03")),
+                    (MetaVal::Str(String::from("DISC_01")), path.join("ALBUM_05/DISC_01")),
+                    (MetaVal::Str(String::from("SUBTRACK_01")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01")), path.join("ALBUM_05/TRACK_01.flac")),
                 ],
             ),
         ];
