@@ -1,12 +1,12 @@
 pub mod matcher;
 
-use library::selection::matcher::Error as MatcherError;
-
 use std::path::Path;
 use std::path::PathBuf;
 
 // Reexport.
 pub use library::selection::matcher::Matcher;
+use library::sort_order::SortOrder;
+use library::selection::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -107,6 +107,16 @@ impl Selection {
             .collect::<Result<Vec<_>, _>>().map_err(Error::CannotReadDirEntry)?;
 
         let sel_item_paths = self.select::<'a>(item_entries.into_iter().map(|entry| entry.path()));
+
+        Ok(sel_item_paths)
+    }
+
+    pub fn select_in_dir_sorted<P>(&self, dir_path: P, sort_order: SortOrder) -> Result<Vec<PathBuf>, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let mut sel_item_paths: Vec<_> = self.select_in_dir(dir_path)?.collect();
+        sel_item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
 
         Ok(sel_item_paths)
     }
