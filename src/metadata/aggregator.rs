@@ -128,51 +128,48 @@ impl MetaAggregator {
         }
 
         let closure = move || {
-            // For each path in the frontier, look at the items contained within it.
-            // Assume that the paths in the frontier are directories.
-            while let Some(frontier_item_path) = frontier.pop_front() {
-                debug!("popping item path from frontier: {:?}", frontier_item_path);
+            // Process the initial potential item in the frontier.
+            match frontier.pop_front() {
+                None => {},
+                Some(start_item_path) => {
+                    match selection.select_in_dir_sorted(start_item_path, sort_order).map_err(Error::CannotSelectPaths) {
+                        Err(err) => {
+                            yield Err(err);
+                        },
+                        Ok(mut sub_item_paths) => {
+                            for p in sub_item_paths.drain(..) {
+                                frontier.push_back(p);
+                            }
+                        },
+                    }
+                },
+            }
 
-                // Get sub items contained within.
-                match selection.select_in_dir(frontier_item_path).map_err(Error::CannotSelectPaths) {
+            // For each path in the frontier, look at the items contained within it.
+            while let Some(frontier_item_path) = frontier.pop_front() {
+                match Self::resolve_field(&frontier_item_path, &field, meta_format, &selection, sort_order) {
                     Err(err) => {
                         yield Err(err);
-                        continue;
                     },
-                    Ok(sub_item_paths) => {
-                        // Need to sort the item paths based on the sort order.
-                        // However, this sort
-                        let mut sub_item_paths = sub_item_paths.collect::<Vec<_>>();
-                        sub_item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
-
-                        let mut to_explore = VecDeque::new();
-
-                        for sub_item_path in sub_item_paths {
-                            match Self::resolve_field(&sub_item_path, &field, meta_format, &selection, sort_order) {
+                    Ok(Some(sub_meta_val)) => {
+                        yield Ok((sub_meta_val, frontier_item_path));
+                    },
+                    Ok(None) => {
+                        // If the sub item is a directory, add its children to the frontier.
+                        if frontier_item_path.is_dir() {
+                            match selection.select_in_dir_sorted(frontier_item_path, sort_order).map_err(Error::CannotSelectPaths) {
                                 Err(err) => {
                                     yield Err(err);
-                                    continue;
                                 },
-                                Ok(Some(sub_meta_val)) => {
-                                    debug!("found value for field \"{}\": {:?}", field.as_ref(), sub_item_path);
-                                    yield Ok((sub_meta_val, sub_item_path));
-                                },
-                                Ok(None) => {
-                                    // If the sub item is a directory, add it to the frontier.
-                                    if sub_item_path.is_dir() {
-                                        debug!("pushing item directory path into frontier: {:?}", sub_item_path);
-                                        to_explore.push_front(sub_item_path);
-                                        debug!("frontier contents: {:?}", frontier);
+                                Ok(mut sub_item_paths) => {
+                                    sub_item_paths.reverse();
+                                    for p in sub_item_paths.drain(..) {
+                                        frontier.push_front(p);
                                     }
-                                    else { debug!("not pushing item path onto frontier, not a directory: {:?}", sub_item_path); }
                                 },
                             }
                         }
-
-                        for te in to_explore.drain(..) {
-                            frontier.push_front(te);
-                        }
-                    },
+                    }
                 }
             }
         };
@@ -215,12 +212,12 @@ mod tests {
                 vec![
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_01/TRACK_01.flac")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_02/TRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/TRACK_01.flac")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/DISC_01/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/TRACK_01.flac")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_01/TRACK_01.flac")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/TRACK_01.flac")),
                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/TRACK_01.flac")),
                 ],
             ),
         ];
@@ -241,4 +238,3 @@ mod tests {
         }
     }
 }
-

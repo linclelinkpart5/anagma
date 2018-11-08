@@ -246,7 +246,7 @@ mod tests {
         assert_eq!(matcher.is_match(Path::new("path.a")), true);
         assert_eq!(matcher.is_match(Path::new("path.a.b.c")), true);
         assert_eq!(matcher.is_match(Path::new("path.ab")), true);
-        assert_eq!(matcher.is_match(Path::new("")), true);
+        assert_eq!(matcher.is_match(Path::new("")), false);
     }
 
     #[test]
