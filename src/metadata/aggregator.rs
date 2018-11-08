@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
@@ -94,13 +95,13 @@ impl MetaAggregator {
             AggMethod::First => {
                 // Get the first item from the generator.
                 match gen.next() {
-                    Some(mv) => mv,
+                    Some((mv, _)) => mv,
                     None => MetaVal::Nil,
                 }
             },
             AggMethod::Collect => {
                 // Collect all items from the generator.
-                let mvs = gen.collect::<Vec<_>>();
+                let mvs = gen.map(|(mv, _)| mv).collect::<Vec<_>>();
 
                 MetaVal::Seq(mvs)
             },
@@ -115,7 +116,7 @@ impl MetaAggregator {
         meta_format: MetaFormat,
         selection: &'a Selection,
         sort_order: SortOrder,
-    ) -> impl Iterator<Item = Result<MetaVal, Error>> + 'a
+    ) -> impl Iterator<Item = Result<(MetaVal, PathBuf), Error>> + 'a
     where
         P: AsRef<Path>,
         S: AsRef<str> + 'a,
@@ -130,6 +131,8 @@ impl MetaAggregator {
             // For each path in the frontier, look at the items contained within it.
             // Assume that the paths in the frontier are directories.
             while let Some(frontier_item_path) = frontier.pop_front() {
+                debug!("popping item path from frontier: {:?}", frontier_item_path);
+
                 // Get sub items contained within.
                 match selection.select_in_dir(frontier_item_path).map_err(Error::CannotSelectPaths) {
                     Err(err) => {
@@ -137,6 +140,13 @@ impl MetaAggregator {
                         continue;
                     },
                     Ok(sub_item_paths) => {
+                        // Need to sort the item paths based on the sort order.
+                        // However, this sort
+                        let mut sub_item_paths = sub_item_paths.collect::<Vec<_>>();
+                        sub_item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
+
+                        let mut to_explore = VecDeque::new();
+
                         for sub_item_path in sub_item_paths {
                             match Self::resolve_field(&sub_item_path, &field, meta_format, &selection, sort_order) {
                                 Err(err) => {
@@ -144,16 +154,23 @@ impl MetaAggregator {
                                     continue;
                                 },
                                 Ok(Some(sub_meta_val)) => {
-                                    yield Ok(sub_meta_val);
+                                    debug!("found value for field \"{}\": {:?}", field.as_ref(), sub_item_path);
+                                    yield Ok((sub_meta_val, sub_item_path));
                                 },
                                 Ok(None) => {
                                     // If the sub item is a directory, add it to the frontier.
                                     if sub_item_path.is_dir() {
-                                        // Since a depth-first search is desired, treat as a stack.
-                                        frontier.push_front(sub_item_path);
+                                        debug!("pushing item directory path into frontier: {:?}", sub_item_path);
+                                        to_explore.push_front(sub_item_path);
+                                        debug!("frontier contents: {:?}", frontier);
                                     }
+                                    else { debug!("not pushing item path onto frontier, not a directory: {:?}", sub_item_path); }
                                 },
                             }
+                        }
+
+                        for te in to_explore.drain(..) {
+                            frontier.push_front(te);
                         }
                     },
                 }
@@ -185,10 +202,42 @@ mod tests {
         let config = Config::default();
         let selection = &config.selection;
 
-        let gen = MetaAggregator::resolve_field_children_helper(path, "TRACK_01_item_key", MetaFormat::Yaml, selection, SortOrder::Name);
+        let inputs_and_expected = vec![
+            (
+                (path, "TRACK_01_self_key"),
+                vec![
+                    (MetaVal::Str(String::from("TRACK_01_self_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
+                    (MetaVal::Str(String::from("TRACK_01_self_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
+                ],
+            ),
+            (
+                (path, "TRACK_01_item_key"),
+                vec![
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_01/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_02/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/DISC_01/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_01/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
+                ],
+            ),
+        ];
 
-        for mv in gen {
-            println!("{:?}", mv.unwrap());
+        for (input, expected) in inputs_and_expected {
+            let (path, field) = input;
+            let produced: Vec<_> = MetaAggregator::resolve_field_children_helper(
+                path,
+                field,
+                MetaFormat::Yaml,
+                selection,
+                SortOrder::Name,
+            )
+            .filter_map(|res| res.ok())
+            .collect();
+
+            assert_eq!(expected, produced);
         }
     }
 }
