@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use config::selection::Error as SelectionError;
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
 
@@ -38,10 +39,9 @@ pub enum AggMethod {
 use std::path::Path;
 use std::collections::VecDeque;
 
-use library::selection::Selection;
-use library::selection::Error as SelectionError;
-use library::sort_order::SortOrder;
-use metadata::reader::MetaFormat;
+use config::selection::Selection;
+use config::sort_order::SortOrder;
+use config::meta_format::MetaFormat;
 use metadata::types::MetaVal;
 use util::GenConverter;
 
@@ -181,10 +181,9 @@ impl MetaAggregator {
 mod tests {
     use super::MetaAggregator;
 
-    use library::config::Config;
-    use library::sort_order::SortOrder;
-    use metadata::reader::MetaFormat;
-    use metadata::location::MetaLocation;
+    use config::Config;
+    use config::sort_order::SortOrder;
+    use config::meta_format::MetaFormat;
     use metadata::types::MetaVal;
 
     use test_util::create_temp_media_test_dir_staggered;

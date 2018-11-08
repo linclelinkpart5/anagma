@@ -2,14 +2,15 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use library::selection::Selection;
-use library::sort_order::SortOrder;
+use config::selection::Selection;
+use config::sort_order::SortOrder;
+use config::meta_format::MetaFormat;
 use metadata::types::MetaBlock;
 use metadata::location::MetaLocation;
 use metadata::location::Error as LocationError;
-use metadata::reader::MetaFormat;
 use metadata::reader::Error as ReaderError;
 use metadata::plexer::MetaPlexer;
+use metadata::reader::MetaReader;
 
 #[derive(Debug)]
 pub enum Error {
@@ -56,7 +57,7 @@ impl MetaProcessor {
     where
         P: AsRef<Path>,
     {
-        let meta_structure = meta_format.read_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
+        let meta_structure = meta_format.from_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
 
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, selection).map_err(Error::CannotFindItemPaths)?;
 
@@ -127,8 +128,8 @@ impl MetaProcessor {
 mod tests {
     use super::MetaProcessor;
 
-    use library::config::Config;
-    use metadata::reader::MetaFormat;
+    use config::Config;
+    use config::meta_format::MetaFormat;
     use metadata::location::MetaLocation;
     use metadata::types::MetaVal;
 

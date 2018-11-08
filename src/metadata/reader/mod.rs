@@ -6,6 +6,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
+use config::meta_format::MetaFormat;
 use metadata::location::MetaLocation;
 use metadata::types::MetaStructure;
 
@@ -45,46 +46,34 @@ impl std::error::Error for Error {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MetaFormat {
-    Yaml,
-}
+pub trait MetaReader {
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
 
-impl Default for MetaFormat {
-    fn default() -> Self {
-        MetaFormat::Yaml
-    }
-}
-
-impl MetaFormat {
-    pub fn read_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
-        match *self {
-            MetaFormat::Yaml => yaml::read_str(s, mt),
-        }
-    }
-
-    pub fn read_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-        self.read_str(buffer, mt)
+        self.from_str(buffer, mt)
     }
 }
 
-// pub trait MetaReader {
-//     fn from_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
+impl MetaReader for MetaFormat {
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
+        match *self {
+            MetaFormat::Yaml => yaml::read_str(s, mt),
+        }
+    }
 
-//     fn from_file<P: AsRef<Path>>(p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
-//         let p = p.as_ref();
-//         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
+    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+        let p = p.as_ref();
+        let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
-//         let mut buffer = String::new();
-//         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
+        let mut buffer = String::new();
+        f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-//         Self::from_str(buffer, mt)
-//     }
-// }
+        self.from_str(buffer, mt)
+    }
+}

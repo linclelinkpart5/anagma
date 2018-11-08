@@ -2,7 +2,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
 
-use library::selection::Selection;
+use config::selection::Selection;
 
 #[derive(Debug)]
 pub enum Error {

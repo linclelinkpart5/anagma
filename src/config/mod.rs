@@ -1,10 +1,14 @@
-//! Provides configuration options for a library, both programmatically and via YAML files.
+//! Provides configuration options for a library, both programmatically and via config files.
+
+pub mod meta_format;
+pub mod selection;
+pub mod sort_order;
 
 use std::collections::HashMap;
 
-use library::sort_order::SortOrder;
-use library::selection::Selection;
-use metadata::reader::MetaFormat;
+use config::selection::Selection;
+use config::sort_order::SortOrder;
+use config::meta_format::MetaFormat;
 use metadata::aggregator::AggMethod;
 
 #[derive(Deserialize)]
@@ -35,11 +39,9 @@ impl Default for Config {
 mod tests {
     use serde_yaml;
 
-    use library::selection::Selection;
-    use metadata::reader::MetaFormat;
-
-    use super::Config;
-    use super::SortOrder;
+    use config::Config;
+    use config::sort_order::SortOrder;
+    use config::meta_format::MetaFormat;
 
     #[test]
     fn test_deserialization() {

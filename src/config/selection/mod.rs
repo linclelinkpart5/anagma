@@ -4,9 +4,9 @@ use std::path::Path;
 use std::path::PathBuf;
 
 // Reexport.
-pub use library::selection::matcher::Matcher;
-use library::sort_order::SortOrder;
-use library::selection::matcher::Error as MatcherError;
+use config::selection::matcher::Matcher;
+use config::sort_order::SortOrder;
+use config::selection::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {

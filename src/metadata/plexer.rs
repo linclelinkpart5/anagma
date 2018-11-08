@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use itertools::Itertools;
 use itertools::EitherOrBoth;
 
-use library::sort_order::SortOrder;
+use config::sort_order::SortOrder;
 use metadata::types::MetaStructure;
 use metadata::types::MetaBlock;
 use util::GenConverter;
@@ -138,7 +138,7 @@ mod tests {
     use std::path::PathBuf;
     use std::collections::HashSet;
 
-    use library::sort_order::SortOrder;
+    use config::sort_order::SortOrder;
     use metadata::types::MetaStructure;
     use metadata::types::val::MetaVal;
 

@@ -4,13 +4,13 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::collections::BTreeMap;
 
-use library::config::Config;
-use library::selection::Selection;
-use library::sort_order::SortOrder;
+use config::Config;
+use config::selection::Selection;
+use config::sort_order::SortOrder;
 use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
-use metadata::reader::MetaFormat;
+use config::meta_format::MetaFormat;
 use metadata::aggregator::AggMethod;
 
 #[derive(Debug)]

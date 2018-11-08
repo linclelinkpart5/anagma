@@ -13,8 +13,8 @@ extern crate itertools;
 
 #[cfg(test)] extern crate tempdir;
 
-mod library;
 mod metadata;
 mod util;
+mod config;
 
 #[cfg(test)] mod test_util;
