@@ -1,15 +1,16 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
+pub mod agg_method;
 pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
 use std::collections::HashMap;
 
+use config::agg_method::AggMethod;
+use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
-use config::meta_format::MetaFormat;
-use metadata::aggregator::AggMethod;
 
 #[derive(Deserialize)]
 #[serde(default)]

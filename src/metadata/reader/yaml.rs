@@ -131,6 +131,7 @@ pub fn yaml_as_meta_block_map(y: &Yaml) -> Result<MetaBlockMap, Error> {
                 let key = yaml_as_string(&key_y)?;
 
                 // Ensure that the key is a valid item name.
+                // TODO: Move this to an outer scope, so item names can be checked for any other format.
                 if !util::is_valid_item_name(&key) {
                     Err(Error::InvalidItemName(key))?
                 }

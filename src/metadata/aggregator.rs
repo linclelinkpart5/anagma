@@ -28,20 +28,13 @@ impl std::error::Error for Error {
     }
 }
 
-/// Different ways to process child metadata into desired outputs.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AggMethod {
-    Collect,
-    First,
-}
-
 use std::path::Path;
 use std::collections::VecDeque;
 
 use config::selection::Selection;
 use config::sort_order::SortOrder;
 use config::meta_format::MetaFormat;
+use config::agg_method::AggMethod;
 use metadata::types::MetaVal;
 use util::GenConverter;
 
@@ -76,7 +69,7 @@ impl MetaAggregator {
         selection: &Selection,
         sort_order: SortOrder,
         agg_method: AggMethod,
-    ) -> Result<MetaVal, Error>
+    ) -> MetaVal
     where
         P: AsRef<Path>,
         S: AsRef<str>,
@@ -89,25 +82,11 @@ impl MetaAggregator {
                     warn!("{}", err);
                     None
                 },
-            });
+            })
+            .map(|(mv, _p)| mv)
+        ;
 
-        let ret_mv = match agg_method {
-            AggMethod::First => {
-                // Get the first item from the generator.
-                match gen.next() {
-                    Some((mv, _)) => mv,
-                    None => MetaVal::Nil,
-                }
-            },
-            AggMethod::Collect => {
-                // Collect all items from the generator.
-                let mvs = gen.map(|(mv, _)| mv).collect::<Vec<_>>();
-
-                MetaVal::Seq(mvs)
-            },
-        };
-
-        Ok(ret_mv)
+        agg_method.aggregate(gen)
     }
 
     pub fn resolve_field_children_helper<'a, P, S>(

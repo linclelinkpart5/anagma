@@ -11,7 +11,7 @@ use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
 use config::meta_format::MetaFormat;
-use metadata::aggregator::AggMethod;
+use config::agg_method::AggMethod;
 
 #[derive(Debug)]
 pub enum Error {
