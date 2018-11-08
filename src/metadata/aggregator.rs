@@ -230,14 +230,14 @@ mod tests {
             (
                 (path, "staggered_key"),
                 vec![
-                    (MetaVal::Str(String::from("TRACK_02")), path.join("ALBUM_01/DISC_01/TRACK_02.flac")),
-                    (MetaVal::Str(String::from("DISC_02")), path.join("ALBUM_01/DISC_02")),
-                    (MetaVal::Str(String::from("DISC_01")), path.join("ALBUM_02/DISC_01")),
-                    (MetaVal::Str(String::from("TRACK_02")), path.join("ALBUM_02/TRACK_02.flac")),
-                    (MetaVal::Str(String::from("ALBUM_03")), path.join("ALBUM_03")),
-                    (MetaVal::Str(String::from("DISC_01")), path.join("ALBUM_05/DISC_01")),
-                    (MetaVal::Str(String::from("SUBTRACK_01")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01")), path.join("ALBUM_05/TRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_02_staggered_val")), path.join("ALBUM_01/DISC_01/TRACK_02.flac")),
+                    (MetaVal::Str(String::from("DISC_02_staggered_val")), path.join("ALBUM_01/DISC_02")),
+                    (MetaVal::Str(String::from("DISC_01_staggered_val")), path.join("ALBUM_02/DISC_01")),
+                    (MetaVal::Str(String::from("TRACK_02_staggered_val")), path.join("ALBUM_02/TRACK_02.flac")),
+                    (MetaVal::Str(String::from("ALBUM_03_staggered_val")), path.join("ALBUM_03")),
+                    (MetaVal::Str(String::from("DISC_01_staggered_val")), path.join("ALBUM_05/DISC_01")),
+                    (MetaVal::Str(String::from("SUBTRACK_01_staggered_val")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+                    (MetaVal::Str(String::from("TRACK_01_staggered_val")), path.join("ALBUM_05/TRACK_01.flac")),
                 ],
             ),
         ];

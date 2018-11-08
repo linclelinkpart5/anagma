@@ -139,7 +139,7 @@ where P: AsRef<Path>,
 
         if staggered && subentry.include_spelunk_str() {
             // Add a unique meta key that is intended for child aggregating tests.
-            item_meta_contents.push_str(&format!("  staggered_key: {}\n", subentry.name()));
+            item_meta_contents.push_str(&format!("  staggered_key: {}_staggered_val\n", subentry.name()));
         }
     }
 
