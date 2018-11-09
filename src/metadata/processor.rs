@@ -72,9 +72,11 @@ impl MetaProcessor {
         Ok(meta_plexed)
     }
 
+    // Processes metadata for an item file.
+    // This performs the necessary merging of all metadata from different meta targets.
+    // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
     pub fn process_item_file<P>(
         item_path: P,
-        meta_location: MetaLocation,
         meta_format: MetaFormat,
         selection: &Selection,
         sort_order: SortOrder,
@@ -82,42 +84,30 @@ impl MetaProcessor {
     where
         P: AsRef<Path>,
     {
-        let meta_path = match meta_location.get_meta_path(&item_path) {
-            Err(e) => {
-                match e {
-                    LocationError::NonexistentMetaPath(..) |
-                        LocationError::InvalidItemDirPath(..) |
-                        LocationError::NoItemPathParent(..) => { return Ok(MetaBlock::new()); },
-                    _ => { return Err(e).map_err(Error::CannotFindMetaPath)?; }
-                }
-            },
-            Ok(p) => p,
-        };
-
-        let mut processed_meta_file = Self::process_meta_file(&meta_path, meta_location, meta_format, selection, sort_order)?;
-
-        // The remaining results can be thrown away.
-        if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
-            Ok(meta_block)
-        }
-        else {
-            Err(Error::MissingMetadata)?
-        }
-    }
-
-    // Processes multiple locations for a target item at once, merging the results.
-    // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
-    pub fn process_item_file_flattened<P: AsRef<Path>>(
-        item_path: P,
-        meta_format: MetaFormat,
-        selection: &Selection,
-        sort_order: SortOrder,
-    ) -> Result<MetaBlock, Error>
-    {
         let mut comp_mb = MetaBlock::new();
 
         for meta_location in META_LOCATION_ORDER.into_iter() {
-            comp_mb.extend(Self::process_item_file(&item_path, *meta_location, meta_format, selection, sort_order)?);
+            let meta_path = match meta_location.get_meta_path(&item_path) {
+                Err(e) => {
+                    match e {
+                        LocationError::NonexistentMetaPath(..) |
+                            LocationError::InvalidItemDirPath(..) |
+                            LocationError::NoItemPathParent(..) => { continue; },
+                        _ => { return Err(e).map_err(Error::CannotFindMetaPath)?; }
+                    }
+                },
+                Ok(p) => p,
+            };
+
+            let mut processed_meta_file = Self::process_meta_file(&meta_path, *meta_location, meta_format, selection, sort_order)?;
+
+            // The remaining results can be thrown away.
+            if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
+                comp_mb.extend(meta_block)
+            }
+            else {
+                Err(Error::MissingMetadata)?
+            }
         }
 
         Ok(comp_mb)
@@ -236,66 +226,66 @@ mod tests {
         }
     }
 
+    // #[test]
+    // fn test_process_item_file() {
+    //     let temp_dir = create_temp_media_test_dir("test_process_item_file");
+    //     let path = temp_dir.path();
+
+    //     let config = Config::default();
+    //     let selection = &config.selection;
+    //     let sort_order = config.sort_order;
+
+    //     // Success cases
+    //     let inputs_and_expected = vec![
+    //         (
+    //             (path.to_owned(), MetaLocation::Contains),
+    //             btreemap![
+    //                 "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+    //                 "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+    //                 "overridden".to_owned() => MetaVal::Str("ROOT_self".to_owned()),
+    //             ],
+    //         ),
+    //         (
+    //             (path.join("ALBUM_01"), MetaLocation::Siblings),
+    //             btreemap![
+    //                 "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+    //                 "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+    //                 "overridden".to_owned() => MetaVal::Str("ALBUM_01_item".to_owned()),
+    //             ],
+    //         ),
+    //         (
+    //             (path.join("ALBUM_01"), MetaLocation::Contains),
+    //             btreemap![
+    //                 "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+    //                 "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+    //                 "overridden".to_owned() => MetaVal::Str("ALBUM_01_self".to_owned()),
+    //             ],
+    //         ),
+    //         (
+    //             (path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"), MetaLocation::Siblings),
+    //             btreemap![
+    //                 "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
+    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+    //                 "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+    //                 "overridden".to_owned() => MetaVal::Str("TRACK_01_item".to_owned()),
+    //             ],
+    //         ),
+    //     ];
+
+    //     for (input, expected) in inputs_and_expected {
+    //         let (item_path, meta_location) = input;
+
+    //         let produced = MetaProcessor::process_item_file(item_path, meta_location, MetaFormat::Yaml, selection, sort_order).unwrap();
+    //         assert_eq!(expected, produced);
+    //     }
+    // }
+
     #[test]
     fn test_process_item_file() {
         let temp_dir = create_temp_media_test_dir("test_process_item_file");
-        let path = temp_dir.path();
-
-        let config = Config::default();
-        let selection = &config.selection;
-        let sort_order = config.sort_order;
-
-        // Success cases
-        let inputs_and_expected = vec![
-            (
-                (path.to_owned(), MetaLocation::Contains),
-                btreemap![
-                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("ROOT_self".to_owned()),
-                ],
-            ),
-            (
-                (path.join("ALBUM_01"), MetaLocation::Siblings),
-                btreemap![
-                    "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("ALBUM_01_item".to_owned()),
-                ],
-            ),
-            (
-                (path.join("ALBUM_01"), MetaLocation::Contains),
-                btreemap![
-                    "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("ALBUM_01_self".to_owned()),
-                ],
-            ),
-            (
-                (path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"), MetaLocation::Siblings),
-                btreemap![
-                    "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("TRACK_01_item".to_owned()),
-                ],
-            ),
-        ];
-
-        for (input, expected) in inputs_and_expected {
-            let (item_path, meta_location) = input;
-
-            let produced = MetaProcessor::process_item_file(item_path, meta_location, MetaFormat::Yaml, selection, sort_order).unwrap();
-            assert_eq!(expected, produced);
-        }
-    }
-
-    #[test]
-    fn test_process_item_file_flattened() {
-        let temp_dir = create_temp_media_test_dir("test_process_item_file_flattened");
         let path = temp_dir.path();
 
         let config = Config::default();
@@ -338,7 +328,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::process_item_file_flattened(item_path, MetaFormat::Yaml, selection, sort_order).unwrap();
+            let produced = MetaProcessor::process_item_file(item_path, MetaFormat::Yaml, selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
     }

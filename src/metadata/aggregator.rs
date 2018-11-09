@@ -52,7 +52,7 @@ impl MetaAggregator {
         P: AsRef<Path>,
         S: AsRef<str>,
     {
-        let mut mb = MetaProcessor::process_item_file_flattened(
+        let mut mb = MetaProcessor::process_item_file(
             item_path,
             meta_format,
             selection,

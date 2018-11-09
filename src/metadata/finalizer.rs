@@ -59,7 +59,7 @@ impl MetaFinalizer {
         agg_methods: &BTreeMap<String, AggMethod>,
     ) -> Result<MetaBlock, Error>
     {
-        let mb = MetaProcessor::process_item_file_flattened(
+        let mb = MetaProcessor::process_item_file(
             item_path,
             config.meta_format,
             &config.selection,
