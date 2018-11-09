@@ -73,7 +73,7 @@ impl MetaProcessor {
     }
 
     // Processes metadata for an item file.
-    // This performs the necessary merging of all metadata from different meta targets.
+    // This performs the necessary merging of all metadata from different targets for this one item file.
     // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
     pub fn process_item_file<P>(
         item_path: P,
@@ -111,6 +111,30 @@ impl MetaProcessor {
         }
 
         Ok(comp_mb)
+    }
+
+    // Processes metadata for an item file, and includes all inherited parent metadata.
+    pub fn process_item_file_flattened<P>(
+        item_path: P,
+        meta_format: MetaFormat,
+        selection: &Selection,
+        sort_order: SortOrder,
+    ) -> Result<MetaBlock, Error>
+    where
+        P: AsRef<Path>,
+    {
+        let item_path = item_path.as_ref();
+
+        let mut all_mb = MetaBlock::new();
+        let ancestors: Vec<_> = item_path.ancestors().collect();
+
+        for parent_dir in ancestors.into_iter().rev() {
+            let mut item_mb = Self::process_item_file(parent_dir, meta_format, &selection, sort_order)?;
+
+            all_mb.extend(item_mb);
+        }
+
+        Ok(all_mb)
     }
 }
 
@@ -225,63 +249,6 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
-
-    // #[test]
-    // fn test_process_item_file() {
-    //     let temp_dir = create_temp_media_test_dir("test_process_item_file");
-    //     let path = temp_dir.path();
-
-    //     let config = Config::default();
-    //     let selection = &config.selection;
-    //     let sort_order = config.sort_order;
-
-    //     // Success cases
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (path.to_owned(), MetaLocation::Contains),
-    //             btreemap![
-    //                 "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
-    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-    //                 "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
-    //                 "overridden".to_owned() => MetaVal::Str("ROOT_self".to_owned()),
-    //             ],
-    //         ),
-    //         (
-    //             (path.join("ALBUM_01"), MetaLocation::Siblings),
-    //             btreemap![
-    //                 "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
-    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-    //                 "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-    //                 "overridden".to_owned() => MetaVal::Str("ALBUM_01_item".to_owned()),
-    //             ],
-    //         ),
-    //         (
-    //             (path.join("ALBUM_01"), MetaLocation::Contains),
-    //             btreemap![
-    //                 "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
-    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-    //                 "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
-    //                 "overridden".to_owned() => MetaVal::Str("ALBUM_01_self".to_owned()),
-    //             ],
-    //         ),
-    //         (
-    //             (path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"), MetaLocation::Siblings),
-    //             btreemap![
-    //                 "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
-    //                 "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-    //                 "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-    //                 "overridden".to_owned() => MetaVal::Str("TRACK_01_item".to_owned()),
-    //             ],
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let (item_path, meta_location) = input;
-
-    //         let produced = MetaProcessor::process_item_file(item_path, meta_location, MetaFormat::Yaml, selection, sort_order).unwrap();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
 
     #[test]
     fn test_process_item_file() {
