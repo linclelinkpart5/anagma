@@ -5,17 +5,14 @@ pub mod types;
 pub mod reader;
 pub mod plexer;
 pub mod processor;
-pub mod finalizer;
 pub mod aggregator;
 
 use std::path::Path;
-use std::collections::BTreeMap;
 
 use config::Config;
 use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
-use config::agg_method::AggMethod;
 
 #[derive(Debug)]
 pub enum Error {
@@ -38,20 +35,24 @@ impl std::error::Error for Error {
     }
 }
 
-pub fn get_metadata<P: AsRef<Path>>(item_path: P) -> Result<MetaBlock, Error> {
-    // Use a default configuration and no aggregations.
-    let config = Config::default();
+pub struct Metadata;
 
-    get_metadata_with_config(item_path, &config)
-}
+impl Metadata {
+    pub fn get_metadata<P: AsRef<Path>>(item_path: P) -> Result<MetaBlock, Error> {
+        // Use a default configuration and no aggregations.
+        let config = Config::default();
 
-pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<MetaBlock, Error> {
-    let mb = MetaProcessor::process_item_file(
-        item_path,
-        config.meta_format,
-        &config.selection,
-        config.sort_order,
-    ).map_err(Error::CannotProcessMetadata)?;
+        Self::get_metadata_with_config(item_path, &config)
+    }
 
-    Ok(mb)
+    pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<MetaBlock, Error> {
+        let mb = MetaProcessor::process_item_file(
+            item_path,
+            config.meta_format,
+            &config.selection,
+            config.sort_order,
+        ).map_err(Error::CannotProcessMetadata)?;
+
+        Ok(mb)
+    }
 }
