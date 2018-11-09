@@ -75,7 +75,7 @@ impl MetaAggregator {
         S: AsRef<str>,
     {
         // This iterates over and unwraps `Ok` values, while also logging `Err` values.
-        let mut gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order)
+        let gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order)
             .filter_map(|res| match res {
                 Ok(mv) => Some(mv),
                 Err(err) => {

@@ -11,3 +11,17 @@ impl Default for MetaFormat {
         MetaFormat::Yaml
     }
 }
+
+impl MetaFormat {
+    pub fn default_file_extension(&self) -> &'static str {
+        match *self {
+            MetaFormat::Yaml => "yml",
+        }
+    }
+
+    pub fn extra_file_extensions(&self) -> &'static[&'static str] {
+        match *self {
+            MetaFormat::Yaml => &["yaml"],
+        }
+    }
+}
