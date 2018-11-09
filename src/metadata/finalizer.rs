@@ -1,16 +1,12 @@
 //! This is intended to be the main public API of the library.
 
 use std::path::Path;
-use std::path::PathBuf;
 use std::collections::BTreeMap;
 
 use config::Config;
-use config::selection::Selection;
-use config::sort_order::SortOrder;
 use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
 use metadata::processor::Error as ProcessorError;
-use config::meta_format::MetaFormat;
 use config::agg_method::AggMethod;
 
 #[derive(Debug)]

@@ -19,7 +19,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.to_string_lossy()),
+            Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
             Error::UnusedMetaBlock(_, ref opt_tag) => {
                 let tag_desc = match opt_tag {
                     Some(tag) => format!(", with tag: {}", tag),
@@ -28,7 +28,7 @@ impl std::fmt::Display for Error {
 
                 write!(f, "meta block was unused in plexing{}", tag_desc)
             },
-            Error::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.to_string_lossy()),
+            Error::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.display()),
         }
     }
 }

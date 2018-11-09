@@ -24,17 +24,17 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.to_string_lossy()),
-            // Error::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.to_string_lossy()),
-            Error::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.to_string_lossy()),
-            Error::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.to_string_lossy()),
+            Error::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.display()),
+            // Error::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.display()),
+            Error::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.display()),
+            Error::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.display()),
             Error::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
             Error::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
 
-            // Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.to_string_lossy()),
-            Error::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.to_string_lossy()),
-            Error::NonexistentMetaPath(ref p) => write!(f, "meta path does not exist: {}", p.to_string_lossy()),
-            Error::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.to_string_lossy()),
+            // Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.display()),
+            Error::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.display()),
+            Error::NonexistentMetaPath(ref p) => write!(f, "meta path does not exist: {}", p.display()),
+            Error::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.display()),
             // Error::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
             // Error::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
         }
