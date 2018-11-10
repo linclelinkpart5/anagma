@@ -299,4 +299,61 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_process_item_file_flattened() {
+        let temp_dir = create_temp_media_test_dir("test_process_item_file_flattened");
+        let path = temp_dir.path();
+
+        let config = Config::default();
+        let selection = &config.selection;
+        let sort_order = config.sort_order;
+
+        // Success cases
+        let inputs_and_expected = vec![
+            (
+                path.to_owned(),
+                btreemap![
+                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                    "overridden".to_owned() => MetaVal::Str("ROOT_self".to_owned()),
+                ],
+            ),
+            (
+                path.join("ALBUM_01"),
+                btreemap![
+                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+                    "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                    "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                    "overridden".to_owned() => MetaVal::Str("ALBUM_01_self".to_owned()),
+                ],
+            ),
+            (
+                path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"),
+                btreemap![
+                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
+                    "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                    "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+                    "DISC_01_item_key".to_owned() => MetaVal::Str("DISC_01_item_val".to_owned()),
+                    "DISC_01_self_key".to_owned() => MetaVal::Str("DISC_01_self_val".to_owned()),
+                    "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
+                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
+                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
+                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
+                    "overridden".to_owned() => MetaVal::Str("TRACK_01_item".to_owned()),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let item_path = input;
+
+            let produced = MetaProcessor::process_item_file_flattened(item_path, MetaFormat::Yaml, selection, sort_order).unwrap();
+            assert_eq!(expected, produced);
+        }
+    }
 }
