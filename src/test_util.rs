@@ -6,7 +6,8 @@ use std::io::Write;
 use std::thread::sleep;
 use std::time::Duration;
 
-use tempdir::TempDir;
+use tempfile::Builder;
+use tempfile::TempDir;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -149,7 +150,7 @@ where P: AsRef<Path>,
 }
 
 fn create_temp_media_test_dir_helper(name: &str, staggered: bool) -> TempDir {
-    let root_dir = TempDir::new(name).expect("unable to create temp directory");
+    let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
     let db = DirBuilder::new();
 
     create_test_dir_entries("ROOT", root_dir.path(), TEST_DIR_ENTRIES, &db, staggered);

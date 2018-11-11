@@ -11,7 +11,7 @@ extern crate globset;
 extern crate itertools;
 #[macro_use] extern crate log;
 
-#[cfg(test)] extern crate tempdir;
+#[cfg(test)] extern crate tempfile;
 
 pub mod metadata;
 pub mod config;

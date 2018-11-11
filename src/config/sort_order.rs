@@ -36,14 +36,14 @@ mod tests {
     use std::fs::File;
     use std::time::SystemTime;
 
-    use tempdir::TempDir;
+    use tempfile::Builder;
 
     use super::SortOrder;
 
     #[test]
     fn test_path_sort_cmp() {
         // Create temp directory.
-        let temp = TempDir::new("").unwrap();
+        let temp = Builder::new().suffix("test_path_sort_cmp").tempdir().expect("unable to create temp directory");;
         let tp = temp.path();
 
         let fps = vec![
@@ -83,7 +83,7 @@ mod tests {
     // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
     fn test_get_mtime() {
         // Create temp directory.
-        let temp = TempDir::new("test_get_mtime").unwrap();
+        let temp = Builder::new().suffix("test_get_mtime").tempdir().expect("unable to create temp directory");;
         let tp = temp.path();
 
         let time_a = SystemTime::now();
