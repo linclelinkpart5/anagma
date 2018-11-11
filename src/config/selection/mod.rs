@@ -355,18 +355,6 @@ mod tests {
         let temp_dir = create_test_dir("test_select_in_dir_sorted");
         let path = temp_dir.path();
 
-            // File::create(path.join("music.flac")).expect("unable to create temp file");
-            // File::create(path.join("music.wav")).expect("unable to create temp file");
-            // File::create(path.join("music.aac")).expect("unable to create temp file");
-            // File::create(path.join("music.mp3")).expect("unable to create temp file");
-            // File::create(path.join("music.ogg")).expect("unable to create temp file");
-            // File::create(path.join("item")).expect("unable to create temp file");
-            // File::create(path.join("self")).expect("unable to create temp file");
-            // File::create(path.join("item.yml")).expect("unable to create temp file");
-            // File::create(path.join("self.yml")).expect("unable to create temp file");
-            // File::create(path.join("item.flac")).expect("unable to create temp file");
-            // File::create(path.join("self.flac")).expect("unable to create temp file");
-
         let inputs_and_expected = vec![
             (
                 (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], SortOrder::Name),

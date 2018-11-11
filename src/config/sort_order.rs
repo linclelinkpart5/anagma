@@ -56,7 +56,7 @@ mod tests {
 
         for fp in &fps {
             // LEARN: Because we're iterating over a ref to a vector, the iter vars are also refs.
-            File::create(fp).expect(&format!(r#"Unable to create file "{:?}""#, fp));
+            File::create(fp).expect(&format!(r#"unable to create file "{:?}""#, fp));
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
 
