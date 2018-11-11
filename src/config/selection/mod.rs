@@ -230,4 +230,41 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_is_pattern_match() {
+        let selection = Selection::from_patterns(&["*.flac"], &["*.mp3"]).unwrap();
+
+        assert!(selection.is_pattern_match("path/to/music.flac"));
+        assert!(!selection.is_pattern_match("path/to/music.mp3"));
+        assert!(!selection.is_pattern_match("path/to/music.wav"));
+
+        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["*.mp3", "*.ogg"]).unwrap();
+
+        assert!(selection.is_pattern_match("path/to/music.flac"));
+        assert!(selection.is_pattern_match("path/to/music.wav"));
+        assert!(!selection.is_pattern_match("path/to/music.mp3"));
+        assert!(!selection.is_pattern_match("path/to/music.ogg"));
+        assert!(!selection.is_pattern_match("path/to/music.aac"));
+
+        let selection = Selection::from_patterns(&["*"], &["*.mp3", "*.ogg"]).unwrap();
+
+        assert!(selection.is_pattern_match("path/to/music.flac"));
+        assert!(selection.is_pattern_match("path/to/music.wav"));
+        assert!(selection.is_pattern_match("path/to/music.aac"));
+        assert!(selection.is_pattern_match("path/to/music.mpc"));
+        assert!(!selection.is_pattern_match("path/to/music.mp3"));
+        assert!(!selection.is_pattern_match("path/to/music.ogg"));
+
+        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["item*", "self*"]).unwrap();
+
+        assert!(selection.is_pattern_match("path/to/music.flac"));
+        assert!(selection.is_pattern_match("path/to/music.wav"));
+        assert!(!selection.is_pattern_match("path/to/item.flac"));
+        assert!(!selection.is_pattern_match("path/to/self.flac"));
+        assert!(!selection.is_pattern_match("path/to/music.aac"));
+        assert!(!selection.is_pattern_match("path/to/music.mpc"));
+        assert!(!selection.is_pattern_match("path/to/music.mp3"));
+        assert!(!selection.is_pattern_match("path/to/music.ogg"));
+    }
 }
