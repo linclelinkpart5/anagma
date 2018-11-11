@@ -126,9 +126,42 @@ mod tests {
     use super::Selection;
     use super::Error;
 
-    use std::path::Path;
+    use std::fs::File;
 
     use serde_yaml;
+    use tempfile::Builder;
+    use tempfile::TempDir;
+
+    use config::sort_order::SortOrder;
+
+    fn create_test_dir(name: &str) -> TempDir {
+        let temp = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+
+        {
+            let path = temp.path();
+
+            let file_names = vec![
+                "music.flac",
+                "music.wav",
+                "music.aac",
+                "music.mp3",
+                "music.ogg",
+                "item",
+                "self",
+                "item.yml",
+                "self.yml",
+                "item.flac",
+                "self.flac",
+            ];
+
+            for file_name in file_names {
+                File::create(path.join(file_name)).expect("unable to create temp file");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+        }
+
+        temp
+    }
 
     #[test]
     fn test_deserialization() {
@@ -266,5 +299,115 @@ mod tests {
         assert!(!selection.is_pattern_match("path/to/music.mpc"));
         assert!(!selection.is_pattern_match("path/to/music.mp3"));
         assert!(!selection.is_pattern_match("path/to/music.ogg"));
+    }
+
+    #[test]
+    fn test_select_in_dir() {
+        let temp_dir = create_test_dir("test_select_in_dir");
+        let path = temp_dir.path();
+
+        let inputs_and_expected = vec![
+            (
+                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"]),
+                hashset![
+                    path.join("music.flac"),
+                    path.join("music.wav"),
+                ],
+            ),
+            (
+                (vec!["*.flac"], vec![]),
+                hashset![
+                    path.join("music.flac"),
+                    path.join("item.flac"),
+                    path.join("self.flac"),
+                ],
+            ),
+            (
+                (vec!["music*"], vec![]),
+                hashset![
+                    path.join("music.flac"),
+                    path.join("music.wav"),
+                    path.join("music.aac"),
+                    path.join("music.mp3"),
+                    path.join("music.ogg"),
+                ],
+            ),
+            (
+                (vec!["item.*", "self.*"], vec!["*.flac"]),
+                hashset![
+                    path.join("item.yml"),
+                    path.join("self.yml"),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (include_patterns, exclude_patterns) = input;
+
+            let selection = Selection::from_patterns(include_patterns, exclude_patterns).expect("unable to create selection");
+            let produced = selection.select_in_dir(&path).expect("unable to select in dir").collect();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_select_in_dir_sorted() {
+        let temp_dir = create_test_dir("test_select_in_dir_sorted");
+        let path = temp_dir.path();
+
+            // File::create(path.join("music.flac")).expect("unable to create temp file");
+            // File::create(path.join("music.wav")).expect("unable to create temp file");
+            // File::create(path.join("music.aac")).expect("unable to create temp file");
+            // File::create(path.join("music.mp3")).expect("unable to create temp file");
+            // File::create(path.join("music.ogg")).expect("unable to create temp file");
+            // File::create(path.join("item")).expect("unable to create temp file");
+            // File::create(path.join("self")).expect("unable to create temp file");
+            // File::create(path.join("item.yml")).expect("unable to create temp file");
+            // File::create(path.join("self.yml")).expect("unable to create temp file");
+            // File::create(path.join("item.flac")).expect("unable to create temp file");
+            // File::create(path.join("self.flac")).expect("unable to create temp file");
+
+        let inputs_and_expected = vec![
+            (
+                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], SortOrder::Name),
+                vec![
+                    path.join("music.flac"),
+                    path.join("music.wav"),
+                ],
+            ),
+            (
+                (vec!["*.flac"], vec![], SortOrder::Name),
+                vec![
+                    path.join("item.flac"),
+                    path.join("music.flac"),
+                    path.join("self.flac"),
+                ],
+            ),
+            (
+                (vec!["music*"], vec![], SortOrder::Name),
+                vec![
+                    path.join("music.aac"),
+                    path.join("music.flac"),
+                    path.join("music.mp3"),
+                    path.join("music.ogg"),
+                    path.join("music.wav"),
+                ],
+            ),
+            (
+                (vec!["item.*", "self.*"], vec!["*.flac"], SortOrder::Name),
+                vec![
+                    path.join("item.yml"),
+                    path.join("self.yml"),
+                ],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (include_patterns, exclude_patterns, sort_order) = input;
+
+            let selection = Selection::from_patterns(include_patterns, exclude_patterns).expect("unable to create selection");
+            let produced = selection.select_in_dir_sorted(&path, sort_order).expect("unable to select in dir");
+            assert_eq!(expected, produced);
+        }
     }
 }

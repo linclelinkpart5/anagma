@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn test_path_sort_cmp() {
         // Create temp directory.
-        let temp = Builder::new().suffix("test_path_sort_cmp").tempdir().expect("unable to create temp directory");;
+        let temp = Builder::new().suffix("test_path_sort_cmp").tempdir().expect("unable to create temp directory");
         let tp = temp.path();
 
         let fps = vec![
