@@ -36,9 +36,63 @@ mod tests {
     fn test_aggregate() {
         let inputs_and_expected = vec![
             (
-                (AggMethod::First, vec![MetaVal::Str(String::from("A"))]),
+                (
+                    AggMethod::First,
+                    vec![
+                        MetaVal::Str(String::from("A")),
+                    ],
+                ),
                 MetaVal::Str(String::from("A")),
             ),
+            (
+                (
+                    AggMethod::First,
+                    vec![
+                        MetaVal::Str(String::from("A")),
+                        MetaVal::Str(String::from("B")),
+                        MetaVal::Str(String::from("C")),
+                    ],
+                ),
+                MetaVal::Str(String::from("A")),
+            ),
+            (
+                (
+                    AggMethod::First,
+                    vec![],
+                ),
+                MetaVal::Nil,
+            ),
+            (
+                (
+                    AggMethod::Collect,
+                    vec![
+                        MetaVal::Str(String::from("A")),
+                        MetaVal::Str(String::from("B")),
+                        MetaVal::Str(String::from("C")),
+                    ],
+                ),
+                MetaVal::Seq(
+                    vec![
+                        MetaVal::Str(String::from("A")),
+                        MetaVal::Str(String::from("B")),
+                        MetaVal::Str(String::from("C")),
+                    ]
+                ),
+            ),
+            (
+                (
+                    AggMethod::Collect,
+                    vec![],
+                ),
+                MetaVal::Seq(vec![]),
+            ),
         ];
+
+        for (input, expected) in inputs_and_expected {
+            let (agg_method, mvs) = input;
+
+            let produced = agg_method.aggregate(mvs);
+            assert_eq!(expected, produced);
+        }
     }
 }
