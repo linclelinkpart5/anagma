@@ -25,3 +25,20 @@ impl AggMethod {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use metadata::types::MetaVal;
+
+    use super::AggMethod;
+
+    #[test]
+    fn test_aggregate() {
+        let inputs_and_expected = vec![
+            (
+                (AggMethod::First, vec![MetaVal::Str(String::from("A"))]),
+                MetaVal::Str(String::from("A")),
+            ),
+        ];
+    }
+}
