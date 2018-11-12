@@ -60,11 +60,11 @@ mod tests {
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_pattern_match("music.flac"));
-        assert!(!config.selection.is_pattern_match("music.mp3"));
-        assert!(!config.selection.is_pattern_match("photo.png"));
-        assert!(!config.selection.is_pattern_match("self.yml"));
-        assert!(!config.selection.is_pattern_match("item.yml"));
+        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3"), false);
+        assert_eq!(config.selection.is_pattern_match("photo.png"), false);
+        assert_eq!(config.selection.is_pattern_match("self.yml"), false);
+        assert_eq!(config.selection.is_pattern_match("item.yml"), false);
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
@@ -74,9 +74,9 @@ mod tests {
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_pattern_match("music.flac"));
-        assert!(config.selection.is_pattern_match("music.mp3"));
-        assert!(!config.selection.is_pattern_match("photo.png"));
+        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3"), true);
+        assert_eq!(config.selection.is_pattern_match("photo.png"), false);
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
@@ -86,9 +86,9 @@ mod tests {
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_pattern_match("music.flac"));
-        assert!(config.selection.is_pattern_match("music.mp3"));
-        assert!(config.selection.is_pattern_match("photo.png"));
+        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3"), true);
+        assert_eq!(config.selection.is_pattern_match("photo.png"), true);
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
@@ -104,9 +104,9 @@ meta_format: yaml
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert!(config.selection.is_pattern_match("music.flac"));
-        assert!(!config.selection.is_pattern_match("music.mp3"));
-        assert!(config.selection.is_pattern_match("photo.png"));
+        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3"), false);
+        assert_eq!(config.selection.is_pattern_match("photo.png"), true);
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item_meta.yml");
         assert_eq!(config.self_fn, "self.yml");

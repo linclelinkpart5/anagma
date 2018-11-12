@@ -100,8 +100,8 @@ mod tests {
 
         let file_time = SortOrder::get_mtime(&path).unwrap();
 
-        assert!(time_a < file_time);
-        assert!(file_time < time_b);
+        assert_eq!(time_a < file_time, true);
+        assert_eq!(file_time < time_b, true);
 
         // Test getting time of nonexistent file.
         assert_eq!(None, SortOrder::get_mtime(tp.join("DOES_NOT_EXIST")));

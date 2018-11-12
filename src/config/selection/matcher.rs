@@ -138,16 +138,16 @@ mod tests {
         let text = "'*.flac'";
         let matcher: Matcher = serde_yaml::from_str(&text).unwrap();
 
-        assert!(matcher.is_match("music.flac"));
-        assert!(!matcher.is_match("music.mp3"));
-        assert!(!matcher.is_match("photo.png"));
+        assert_eq!(matcher.is_match("music.flac"), true);
+        assert_eq!(matcher.is_match("music.mp3"), false);
+        assert_eq!(matcher.is_match("photo.png"), false);
 
         let text = "- '*.flac'\n- '*.mp3'";
         let matcher: Matcher = serde_yaml::from_str(&text).unwrap();
 
-        assert!(matcher.is_match("music.flac"));
-        assert!(matcher.is_match("music.mp3"));
-        assert!(!matcher.is_match("photo.png"));
+        assert_eq!(matcher.is_match("music.flac"), true);
+        assert_eq!(matcher.is_match("music.mp3"), true);
+        assert_eq!(matcher.is_match("photo.png"), false);
     }
 
     #[test]
