@@ -25,13 +25,23 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        use metadata::location::MetaLocation;
+
+        // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
+        let selection = Selection::default();
+        let sort_order = SortOrder::default();
+        let meta_format = MetaFormat::default();
+        let agg_methods = HashMap::default();
+        let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
+        let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
+
         Config {
-            selection: Selection::default(),
-            sort_order: SortOrder::default(),
-            item_fn: String::from("item.yml"),
-            self_fn: String::from("self.yml"),
-            meta_format: MetaFormat::default(),
-            agg_methods: HashMap::default(),
+            selection,
+            sort_order,
+            item_fn,
+            self_fn,
+            meta_format,
+            agg_methods,
         }
     }
 }

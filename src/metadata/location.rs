@@ -144,4 +144,11 @@ impl MetaLocation {
         // Use the config object to select the item paths.
         Ok(selection.select(item_paths).collect())
     }
+
+    pub fn default_file_name(&self) -> &'static str {
+        match *self {
+            MetaLocation::Contains => "self",
+            MetaLocation::Siblings => "item",
+        }
+    }
 }
