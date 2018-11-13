@@ -1,6 +1,7 @@
 //! Types for modeling and representing item metadata.
 
 use std::collections::BTreeMap;
+use std::collections::HashSet;
 
 use util::GenConverter;
 use metadata::types::key::MetaKey;
@@ -14,6 +15,45 @@ pub enum MetaVal {
 }
 
 impl MetaVal {
+    /// Combines two meta values together following merging rules.
+    pub fn merge(self, opt_new: Option<MetaVal>) -> MetaVal {
+        let old = self;
+
+        if let Some(new) = opt_new {
+            match (old, new) {
+                (MetaVal::Map(m_old), MetaVal::Map(m_new)) => {
+                    let merged = BTreeMap::new();
+
+                    // let keys_old: HashSet<_> = m_old.keys().cloned().collect();
+                    // let keys_new: HashSet<_> = m_new.keys().cloned().collect();
+                    // let keys_only_old: HashSet<_> = keys_old.difference(&keys_new).collect();
+                    // let keys_only_new: HashSet<_> = keys_new.difference(&keys_old).collect();
+                    // let keys_both: HashSet<_> = keys_new.intersection(&keys_old).collect();
+
+                    // for (k_old, v_old) in m_old.into_iter() {
+
+                    // }
+
+                    MetaVal::Map(merged)
+                },
+                (MetaVal::Map(mut m_old), n) => {
+                    m_old.insert(MetaKey::Nil, n);
+                    MetaVal::Map(m_old)
+                },
+                (o, MetaVal::Map(mut m_new)) => {
+                    m_new.insert(MetaKey::Nil, o);
+                    MetaVal::Map(m_new)
+                },
+                (_o, n) => {
+                    n
+                },
+            }
+        }
+        else {
+            old
+        }
+    }
+
     pub fn iter_over<'a>(&'a self, mis: MappingIterScheme) -> impl Iterator<Item = &'a String> {
         // LEARN: The `Box::new()` calls are to allow the generator to be recursive.
         let closure = move || {
