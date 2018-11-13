@@ -21,8 +21,8 @@ impl MetaVal {
 
         if let Some(new) = opt_new {
             match (old, new) {
-                (MetaVal::Map(m_old), MetaVal::Map(m_new)) => {
-                    let merged = BTreeMap::new();
+                (MetaVal::Map(mut m_old), MetaVal::Map(mut m_new)) => {
+                    let mut merged = BTreeMap::new();
 
                     // let keys_old: HashSet<_> = m_old.keys().cloned().collect();
                     // let keys_new: HashSet<_> = m_new.keys().cloned().collect();
@@ -30,9 +30,23 @@ impl MetaVal {
                     // let keys_only_new: HashSet<_> = keys_new.difference(&keys_old).collect();
                     // let keys_both: HashSet<_> = keys_new.intersection(&keys_old).collect();
 
-                    // for (k_old, v_old) in m_old.into_iter() {
+                    for (k_old, v_old) in m_old.into_iter() {
+                        // Check if the key is contained in the new map.
+                        if let Some(v_new) = m_new.remove(&k_old) {
+                            // Merge these two values together to get a result.
+                            let merged_mv = v_old.merge(Some(v_new));
+                            merged.insert(k_old, merged_mv);
+                        }
+                        else {
+                            // Just insert the old mapping value into the merged map.
+                            merged.insert(k_old, v_old);
+                        }
+                    }
 
-                    // }
+                    // Drain all remaining entries from the new map and add them to the merged mapping.
+                    for (k_new, v_new) in m_new {
+                        merged.insert(k_new, v_new);
+                    }
 
                     MetaVal::Map(merged)
                 },
