@@ -1,7 +1,6 @@
 //! Types for modeling and representing item metadata.
 
 use std::collections::BTreeMap;
-use std::collections::HashSet;
 
 use util::GenConverter;
 use metadata::types::key::MetaKey;
@@ -23,12 +22,6 @@ impl MetaVal {
             match (old, new) {
                 (MetaVal::Map(mut m_old), MetaVal::Map(mut m_new)) => {
                     let mut merged = BTreeMap::new();
-
-                    // let keys_old: HashSet<_> = m_old.keys().cloned().collect();
-                    // let keys_new: HashSet<_> = m_new.keys().cloned().collect();
-                    // let keys_only_old: HashSet<_> = keys_old.difference(&keys_new).collect();
-                    // let keys_only_new: HashSet<_> = keys_new.difference(&keys_old).collect();
-                    // let keys_both: HashSet<_> = keys_new.intersection(&keys_old).collect();
 
                     for (k_old, v_old) in m_old.into_iter() {
                         // Check if the key is contained in the new map.
