@@ -14,18 +14,23 @@ pub enum MetaVal {
 }
 
 impl MetaVal {
-    /// Combines two meta values together following merging rules.
-    pub fn merge(self, opt_new: Option<MetaVal>) -> MetaVal {
-        let old = self;
+    /// Combines two meta values together following inheriting rules.
+    pub fn inherit(self, opt_new_mv: Option<MetaVal>) -> MetaVal {
+        opt_new_mv.unwrap_or(self)
+    }
 
-        if let Some(new) = opt_new {
-            match (old, new) {
-                (MetaVal::Map(mut m_old), MetaVal::Map(mut m_new)) => {
+    /// Combines two meta values together following merging rules.
+    pub fn merge(self, opt_new_mv: Option<MetaVal>) -> MetaVal {
+        let old_mv = self;
+
+        if let Some(new_mv) = opt_new_mv {
+            match (old_mv, new_mv) {
+                (MetaVal::Map(mut mv_old_map), MetaVal::Map(mut mv_new_map)) => {
                     let mut merged = BTreeMap::new();
 
-                    for (k_old, v_old) in m_old.into_iter() {
+                    for (k_old, v_old) in mv_old_map.into_iter() {
                         // Check if the key is contained in the new map.
-                        if let Some(v_new) = m_new.remove(&k_old) {
+                        if let Some(v_new) = mv_new_map.remove(&k_old) {
                             // Merge these two values together to get a result.
                             let merged_mv = v_old.merge(Some(v_new));
                             merged.insert(k_old, merged_mv);
@@ -37,19 +42,35 @@ impl MetaVal {
                     }
 
                     // Drain all remaining entries from the new map and add them to the merged mapping.
-                    for (k_new, v_new) in m_new {
+                    for (k_new, v_new) in mv_new_map {
                         merged.insert(k_new, v_new);
                     }
 
                     MetaVal::Map(merged)
                 },
-                (MetaVal::Map(mut m_old), n) => {
-                    m_old.insert(MetaKey::Nil, n);
-                    MetaVal::Map(m_old)
+                (MetaVal::Map(mut mv_old_map), root_val_new) => {
+                    let merged_root_val = if let Some(root_val_old) = mv_old_map.remove(&MetaKey::Nil) {
+                        root_val_old.merge(Some(root_val_new))
+                    }
+                    else {
+                        root_val_new
+                    };
+
+                    mv_old_map.insert(MetaKey::Nil, merged_root_val);
+
+                    MetaVal::Map(mv_old_map)
                 },
-                (o, MetaVal::Map(mut m_new)) => {
-                    m_new.insert(MetaKey::Nil, o);
-                    MetaVal::Map(m_new)
+                (root_val_old, MetaVal::Map(mut mv_new_map)) => {
+                    let merged_root_val = if let Some(root_val_new) = mv_new_map.remove(&MetaKey::Nil) {
+                        root_val_old.merge(Some(root_val_new))
+                    }
+                    else {
+                        root_val_old
+                    };
+
+                    mv_new_map.insert(MetaKey::Nil, merged_root_val);
+
+                    MetaVal::Map(mv_new_map)
                 },
                 (_o, n) => {
                     n
@@ -57,7 +78,7 @@ impl MetaVal {
             }
         }
         else {
-            old
+            old_mv
         }
     }
 
