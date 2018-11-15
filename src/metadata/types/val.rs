@@ -139,6 +139,158 @@ mod tests {
     use metadata::types::key::MetaKey;
 
     #[test]
+    fn test_inherit() {
+        let inputs_and_expected = vec![
+            (
+                (
+                    MetaVal::Nil,
+                    Some(MetaVal::Str(String::from("A"))),
+                ),
+                MetaVal::Str(String::from("A")),
+            ),
+            (
+                (
+                    MetaVal::Nil,
+                    None,
+                ),
+                MetaVal::Nil,
+            ),
+            (
+                (
+                    MetaVal::Str(String::from("A")),
+                    Some(MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                    ])),
+                ),
+                MetaVal::Map(btreemap![
+                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                ]),
+            ),
+            (
+                (
+                    MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
+                    ]),
+                    Some(MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                    ])),
+                ),
+                MetaVal::Map(btreemap![
+                    // MetaKey::Nil => MetaVal::Str(String::from("A")),
+                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                ]),
+            ),
+            (
+                (
+                    MetaVal::Map(btreemap![
+                        MetaKey::Nil => MetaVal::Map(btreemap![
+                            MetaKey::Nil => MetaVal::Str(String::from("X")),
+                            MetaKey::Str(String::from("y")) => MetaVal::Str(String::from("Y")),
+                        ]),
+                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
+                    ]),
+                    Some(MetaVal::Map(btreemap![
+                        MetaKey::Nil => MetaVal::Map(btreemap![
+                            MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
+                        ]),
+                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                    ])),
+                ),
+                MetaVal::Map(btreemap![
+                    MetaKey::Nil => MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
+                    ]),
+                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                ]),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (old_mv, new_mv) = input;
+            let produced = old_mv.inherit(new_mv);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_merge() {
+        let inputs_and_expected = vec![
+            (
+                (
+                    MetaVal::Nil,
+                    Some(MetaVal::Str(String::from("A"))),
+                ),
+                MetaVal::Str(String::from("A")),
+            ),
+            (
+                (
+                    MetaVal::Nil,
+                    None,
+                ),
+                MetaVal::Nil,
+            ),
+            (
+                (
+                    MetaVal::Str(String::from("A")),
+                    Some(MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                    ])),
+                ),
+                MetaVal::Map(btreemap![
+                    MetaKey::Nil => MetaVal::Str(String::from("A")),
+                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                ]),
+            ),
+            (
+                (
+                    MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
+                    ]),
+                    Some(MetaVal::Map(btreemap![
+                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                    ])),
+                ),
+                MetaVal::Map(btreemap![
+                    MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
+                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                ]),
+            ),
+            (
+                (
+                    MetaVal::Map(btreemap![
+                        MetaKey::Nil => MetaVal::Map(btreemap![
+                            MetaKey::Nil => MetaVal::Str(String::from("X")),
+                            MetaKey::Str(String::from("y")) => MetaVal::Str(String::from("Y")),
+                        ]),
+                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
+                    ]),
+                    Some(MetaVal::Map(btreemap![
+                        MetaKey::Nil => MetaVal::Map(btreemap![
+                            MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
+                        ]),
+                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                    ])),
+                ),
+                MetaVal::Map(btreemap![
+                    MetaKey::Nil => MetaVal::Map(btreemap![
+                        MetaKey::Nil => MetaVal::Str(String::from("X")),
+                        MetaKey::Str(String::from("y")) => MetaVal::Str(String::from("Y")),
+                        MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
+                    ]),
+                    MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
+                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
+                ]),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let (old_mv, new_mv) = input;
+            let produced = old_mv.merge(new_mv);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
     fn test_iter_over() {
         let inputs_and_expected = vec![
             (
