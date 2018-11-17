@@ -140,7 +140,7 @@ mod tests {
 
     use config::sort_order::SortOrder;
     use metadata::types::MetaStructure;
-    use metadata::types::MetaVal;
+    use metadata::types::val::MetaVal;
 
     #[test]
     fn test_plex() {

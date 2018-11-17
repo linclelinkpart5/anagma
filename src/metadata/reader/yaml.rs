@@ -7,7 +7,8 @@ use util;
 use metadata::reader::Error;
 use metadata::location::MetaLocation;
 use metadata::types::MetaStructure;
-use metadata::types::MetaVal;
+use metadata::types::key::MetaKey;
+use metadata::types::val::MetaVal;
 use metadata::types::MetaBlock;
 use metadata::types::MetaBlockSeq;
 use metadata::types::MetaBlockMap;
@@ -44,6 +45,13 @@ fn yaml_as_string(y: &Yaml) -> Result<String, Error> {
     }
 }
 
+fn yaml_as_meta_key(y: &Yaml) -> Result<MetaKey, Error> {
+    match *y {
+        Yaml::Null => Ok(MetaKey::Nil),
+        _ => Ok(yaml_as_string(y).map(|s| MetaKey::Str(s)).map_err(|_| Error::CannotConvert("YAML", "meta key"))?),
+    }
+}
+
 fn yaml_as_meta_value(y: &Yaml) -> Result<MetaVal, Error> {
     match *y {
         Yaml::Null => Ok(MetaVal::Nil),
@@ -58,11 +66,11 @@ fn yaml_as_meta_value(y: &Yaml) -> Result<MetaVal, Error> {
             Ok(MetaVal::Seq(seq))
         },
         Yaml::Hash(ref hsh) => {
-            let mut map: BTreeMap<String, MetaVal> = btreemap![];
+            let mut map: BTreeMap<MetaKey, MetaVal> = btreemap![];
 
             // Recursively convert each found YAML item into a meta value.
             for (key_y, val_y) in hsh {
-                let key = yaml_as_string(&key_y)?;
+                let key = yaml_as_meta_key(&key_y)?;
                 let val = yaml_as_meta_value(&val_y)?;
 
                 map.insert(key, val);
@@ -154,14 +162,14 @@ pub fn yaml_as_metadata(y: &Yaml, meta_target: MetaLocation) -> Result<MetaStruc
 
 #[cfg(test)]
 mod tests {
-    use metadata::types::MetaVal;
+    use metadata::types::key::MetaKey;
+    use metadata::types::val::MetaVal;
     use metadata::types::MetaBlock;
     use yaml_rust::YamlLoader;
 
-    use super::Error;
-
     use super::{
         yaml_as_string,
+        yaml_as_meta_key,
         yaml_as_meta_value,
         yaml_as_meta_block,
     };
@@ -216,6 +224,60 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let yaml = &YamlLoader::load_from_str(input).unwrap()[0];
             let produced = yaml_as_string(yaml).ok();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_yaml_as_meta_key() {
+        let inputs_and_expected = vec![
+            // Strings
+            ("foo", Some(MetaKey::Str("foo".to_string()))),
+            (r#""foo""#, Some(MetaKey::Str("foo".to_string()))),
+            (r#"'foo'"#, Some(MetaKey::Str("foo".to_string()))),
+            (r#""\"foo\"""#, Some(MetaKey::Str(r#""foo""#.to_string()))),
+            (r#""[foo, bar]""#, Some(MetaKey::Str("[foo, bar]".to_string()))),
+            (r#""foo: bar""#, Some(MetaKey::Str("foo: bar".to_string()))),
+            (r#""foo:    bar""#, Some(MetaKey::Str("foo:    bar".to_string()))),
+
+            // Integers
+            ("27", Some(MetaKey::Str("27".to_string()))),
+            ("-27", Some(MetaKey::Str("-27".to_string()))),
+            // NOTE: This does not work, due to it getting parsed as an int and losing the plus.
+            // ("+27", Some(MetaKey::Str("+27".to_string()))),
+
+            // Floats
+            ("3.14", Some(MetaKey::Str("3.14".to_string()))),
+            ("3.141592653589793238462643383279502884197", Some(MetaKey::Str("3.141592653589793238462643383279502884197".to_string()))),
+
+            // Nulls
+            ("~", Some(MetaKey::Nil)),
+            ("null", Some(MetaKey::Nil)),
+
+            // Booleans
+            ("True", Some(MetaKey::Str("True".to_string()))),
+            ("true", Some(MetaKey::Str("true".to_string()))),
+            ("False", Some(MetaKey::Str("False".to_string()))),
+            ("false", Some(MetaKey::Str("false".to_string()))),
+
+            // Sequences
+            ("- item_a\n- item_b", None),
+            ("- item_a", None),
+            ("[item_a, item_b]", None),
+            ("[item_a]", None),
+
+            // Mappings
+            ("key_a: val_a\nkey_b: val_b", None),
+            ("key_a: val_a", None),
+            ("{key_a: val_a, key_b: val_b}", None),
+            ("{key_a: val_a}", None),
+
+            // Aliases
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let yaml = &YamlLoader::load_from_str(input).unwrap()[0];
+            let produced = yaml_as_meta_key(yaml).ok();
             assert_eq!(expected, produced);
         }
     }
@@ -277,22 +339,19 @@ mod tests {
             ]))),
 
             // Mappings
-            (
-                "key_a: val_a\nkey_b: val_b",
-                Some(MetaVal::Map(btreemap![
-                    "key_a".to_string() => MetaVal::Str("val_a".to_string()),
-                    "key_b".to_string() => MetaVal::Str("val_b".to_string()),
-                ])),
-            ),
+            ("key_a: val_a\nkey_b: val_b", Some(MetaVal::Map(btreemap![
+                MetaKey::Str("key_a".to_string()) => MetaVal::Str("val_a".to_string()),
+                MetaKey::Str("key_b".to_string()) => MetaVal::Str("val_b".to_string()),
+            ]))),
             ("key_a: val_a", Some(MetaVal::Map(btreemap![
-                "key_a".to_string() => MetaVal::Str("val_a".to_string()),
+                MetaKey::Str("key_a".to_string()) => MetaVal::Str("val_a".to_string()),
             ]))),
             ("{key_a: val_a, key_b: val_b}", Some(MetaVal::Map(btreemap![
-                "key_a".to_string() => MetaVal::Str("val_a".to_string()),
-                "key_b".to_string() => MetaVal::Str("val_b".to_string()),
+                MetaKey::Str("key_a".to_string()) => MetaVal::Str("val_a".to_string()),
+                MetaKey::Str("key_b".to_string()) => MetaVal::Str("val_b".to_string()),
             ]))),
             ("{key_a: val_a}", Some(MetaVal::Map(btreemap![
-                "key_a".to_string() => MetaVal::Str("val_a".to_string()),
+                MetaKey::Str("key_a".to_string()) => MetaVal::Str("val_a".to_string()),
             ]))),
 
             // Aliases
@@ -352,9 +411,9 @@ mod tests {
                 mb.insert(
                     "key_a".to_string(),
                     MetaVal::Map(btreemap![
-                        "sub_key_a".to_string() => MetaVal::Str("sub_val_a".to_string()),
-                        "sub_key_b".to_string() => MetaVal::Str("sub_val_b".to_string()),
-                        "~".to_string() => MetaVal::Str("sub_val_c".to_string()),
+                        MetaKey::Str("sub_key_a".to_string()) => MetaVal::Str("sub_val_a".to_string()),
+                        MetaKey::Str("sub_key_b".to_string()) => MetaVal::Str("sub_val_b".to_string()),
+                        MetaKey::Nil => MetaVal::Str("sub_val_c".to_string()),
                     ])
                 );
                 mb.insert("key_b".to_string(), MetaVal::Seq(vec![]));
@@ -385,17 +444,8 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let yaml = &YamlLoader::load_from_str(input).unwrap()[0];
-            let produced = yaml_as_meta_block(yaml);
-
-            if produced.is_ok() {
-                assert_eq!(expected, produced.ok());
-            }
-            else {
-                match produced {
-                    Err(Error::CannotConvert(..)) => {},
-                    _ => panic!(),
-                }
-            }
+            let produced = yaml_as_meta_block(yaml).ok();
+            assert_eq!(expected, produced);
         }
     }
 }
