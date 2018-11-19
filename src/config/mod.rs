@@ -1,6 +1,7 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
 pub mod agg_method;
+pub mod inherit_method;
 pub mod meta_format;
 pub mod selection;
 pub mod sort_order;

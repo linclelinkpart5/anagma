@@ -14,74 +14,6 @@ pub enum MetaVal {
 }
 
 impl MetaVal {
-    /// Combines two meta values together following inheriting rules.
-    pub fn inherit(self, opt_new_mv: Option<MetaVal>) -> MetaVal {
-        opt_new_mv.unwrap_or(self)
-    }
-
-    /// Combines two meta values together following merging rules.
-    pub fn merge(self, opt_new_mv: Option<MetaVal>) -> MetaVal {
-        let old_mv = self;
-
-        if let Some(new_mv) = opt_new_mv {
-            match (old_mv, new_mv) {
-                (MetaVal::Map(mut mv_old_map), MetaVal::Map(mut mv_new_map)) => {
-                    let mut merged = BTreeMap::new();
-
-                    for (k_old, v_old) in mv_old_map.into_iter() {
-                        // Check if the key is contained in the new map.
-                        if let Some(v_new) = mv_new_map.remove(&k_old) {
-                            // Merge these two values together to get a result.
-                            let merged_mv = v_old.merge(Some(v_new));
-                            merged.insert(k_old, merged_mv);
-                        }
-                        else {
-                            // Just insert the old mapping value into the merged map.
-                            merged.insert(k_old, v_old);
-                        }
-                    }
-
-                    // Drain all remaining entries from the new map and add them to the merged mapping.
-                    for (k_new, v_new) in mv_new_map {
-                        merged.insert(k_new, v_new);
-                    }
-
-                    MetaVal::Map(merged)
-                },
-                (MetaVal::Map(mut mv_old_map), root_val_new) => {
-                    let merged_root_val = if let Some(root_val_old) = mv_old_map.remove(&MetaKey::Nil) {
-                        root_val_old.merge(Some(root_val_new))
-                    }
-                    else {
-                        root_val_new
-                    };
-
-                    mv_old_map.insert(MetaKey::Nil, merged_root_val);
-
-                    MetaVal::Map(mv_old_map)
-                },
-                (root_val_old, MetaVal::Map(mut mv_new_map)) => {
-                    let merged_root_val = if let Some(root_val_new) = mv_new_map.remove(&MetaKey::Nil) {
-                        root_val_old.merge(Some(root_val_new))
-                    }
-                    else {
-                        root_val_old
-                    };
-
-                    mv_new_map.insert(MetaKey::Nil, merged_root_val);
-
-                    MetaVal::Map(mv_new_map)
-                },
-                (_o, n) => {
-                    n
-                },
-            }
-        }
-        else {
-            old_mv
-        }
-    }
-
     pub fn iter_over<'a>(&'a self, mis: MappingIterScheme) -> impl Iterator<Item = &'a String> {
         // LEARN: The `Box::new()` calls are to allow the generator to be recursive.
         let closure = move || {
@@ -124,6 +56,18 @@ impl MetaVal {
     }
 }
 
+impl<S> From<Option<S>> for MetaKey
+where
+    S: Into<String>
+{
+    fn from(opt_str: Option<S>) -> Self {
+        match opt_str {
+            Some(s) => MetaKey::Str(s.into()),
+            None => MetaKey::Nil,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum MappingIterScheme {
     Keys,
@@ -137,158 +81,6 @@ mod tests {
     use super::MappingIterScheme;
 
     use metadata::types::key::MetaKey;
-
-    #[test]
-    fn test_inherit() {
-        let inputs_and_expected = vec![
-            (
-                (
-                    MetaVal::Nil,
-                    Some(MetaVal::Str(String::from("A"))),
-                ),
-                MetaVal::Str(String::from("A")),
-            ),
-            (
-                (
-                    MetaVal::Nil,
-                    None,
-                ),
-                MetaVal::Nil,
-            ),
-            (
-                (
-                    MetaVal::Str(String::from("A")),
-                    Some(MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                    ])),
-                ),
-                MetaVal::Map(btreemap![
-                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                ]),
-            ),
-            (
-                (
-                    MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
-                    ]),
-                    Some(MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                    ])),
-                ),
-                MetaVal::Map(btreemap![
-                    // MetaKey::Nil => MetaVal::Str(String::from("A")),
-                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                ]),
-            ),
-            (
-                (
-                    MetaVal::Map(btreemap![
-                        MetaKey::Nil => MetaVal::Map(btreemap![
-                            MetaKey::Nil => MetaVal::Str(String::from("X")),
-                            MetaKey::Str(String::from("y")) => MetaVal::Str(String::from("Y")),
-                        ]),
-                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
-                    ]),
-                    Some(MetaVal::Map(btreemap![
-                        MetaKey::Nil => MetaVal::Map(btreemap![
-                            MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
-                        ]),
-                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                    ])),
-                ),
-                MetaVal::Map(btreemap![
-                    MetaKey::Nil => MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
-                    ]),
-                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                ]),
-            ),
-        ];
-
-        for (input, expected) in inputs_and_expected {
-            let (old_mv, new_mv) = input;
-            let produced = old_mv.inherit(new_mv);
-            assert_eq!(expected, produced);
-        }
-    }
-
-    #[test]
-    fn test_merge() {
-        let inputs_and_expected = vec![
-            (
-                (
-                    MetaVal::Nil,
-                    Some(MetaVal::Str(String::from("A"))),
-                ),
-                MetaVal::Str(String::from("A")),
-            ),
-            (
-                (
-                    MetaVal::Nil,
-                    None,
-                ),
-                MetaVal::Nil,
-            ),
-            (
-                (
-                    MetaVal::Str(String::from("A")),
-                    Some(MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                    ])),
-                ),
-                MetaVal::Map(btreemap![
-                    MetaKey::Nil => MetaVal::Str(String::from("A")),
-                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                ]),
-            ),
-            (
-                (
-                    MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
-                    ]),
-                    Some(MetaVal::Map(btreemap![
-                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                    ])),
-                ),
-                MetaVal::Map(btreemap![
-                    MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
-                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                ]),
-            ),
-            (
-                (
-                    MetaVal::Map(btreemap![
-                        MetaKey::Nil => MetaVal::Map(btreemap![
-                            MetaKey::Nil => MetaVal::Str(String::from("X")),
-                            MetaKey::Str(String::from("y")) => MetaVal::Str(String::from("Y")),
-                        ]),
-                        MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
-                    ]),
-                    Some(MetaVal::Map(btreemap![
-                        MetaKey::Nil => MetaVal::Map(btreemap![
-                            MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
-                        ]),
-                        MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                    ])),
-                ),
-                MetaVal::Map(btreemap![
-                    MetaKey::Nil => MetaVal::Map(btreemap![
-                        MetaKey::Nil => MetaVal::Str(String::from("X")),
-                        MetaKey::Str(String::from("y")) => MetaVal::Str(String::from("Y")),
-                        MetaKey::Str(String::from("z")) => MetaVal::Str(String::from("Z")),
-                    ]),
-                    MetaKey::Str(String::from("a")) => MetaVal::Str(String::from("A")),
-                    MetaKey::Str(String::from("b")) => MetaVal::Str(String::from("B")),
-                ]),
-            ),
-        ];
-
-        for (input, expected) in inputs_and_expected {
-            let (old_mv, new_mv) = input;
-            let produced = old_mv.merge(new_mv);
-            assert_eq!(expected, produced);
-        }
-    }
 
     #[test]
     fn test_iter_over() {
