@@ -3,23 +3,23 @@ use metadata::types::MetaVal;
 /// Different ways to process child metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum AggMethod {
-    Collect,
+pub enum CollectMethod {
+    Iterate,
     First,
 }
 
-impl AggMethod {
-    pub fn aggregate<II>(&self, mvs: II) -> MetaVal
+impl CollectMethod {
+    pub fn process<II>(self, mvs: II) -> MetaVal
     where
         II: IntoIterator<Item = MetaVal>,
     {
         let mut mvs = mvs.into_iter();
 
-        match *self {
-            AggMethod::First => {
+        match self {
+            CollectMethod::First => {
                 mvs.next().unwrap_or(MetaVal::Nil)
             },
-            AggMethod::Collect => {
+            CollectMethod::Iterate => {
                 MetaVal::Seq(mvs.collect())
             },
         }
@@ -30,14 +30,14 @@ impl AggMethod {
 mod tests {
     use metadata::types::MetaVal;
 
-    use super::AggMethod;
+    use super::CollectMethod;
 
     #[test]
     fn test_aggregate() {
         let inputs_and_expected = vec![
             (
                 (
-                    AggMethod::First,
+                    CollectMethod::First,
                     vec![
                         MetaVal::Str(String::from("A")),
                     ],
@@ -46,7 +46,7 @@ mod tests {
             ),
             (
                 (
-                    AggMethod::First,
+                    CollectMethod::First,
                     vec![
                         MetaVal::Str(String::from("A")),
                         MetaVal::Str(String::from("B")),
@@ -57,14 +57,14 @@ mod tests {
             ),
             (
                 (
-                    AggMethod::First,
+                    CollectMethod::First,
                     vec![],
                 ),
                 MetaVal::Nil,
             ),
             (
                 (
-                    AggMethod::Collect,
+                    CollectMethod::Iterate,
                     vec![
                         MetaVal::Str(String::from("A")),
                         MetaVal::Str(String::from("B")),
@@ -81,7 +81,7 @@ mod tests {
             ),
             (
                 (
-                    AggMethod::Collect,
+                    CollectMethod::Iterate,
                     vec![],
                 ),
                 MetaVal::Seq(vec![]),
@@ -91,7 +91,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (agg_method, mvs) = input;
 
-            let produced = agg_method.aggregate(mvs);
+            let produced = agg_method.process(mvs);
             assert_eq!(expected, produced);
         }
     }

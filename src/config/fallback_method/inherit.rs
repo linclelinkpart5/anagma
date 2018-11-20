@@ -12,11 +12,17 @@ pub enum InheritMethod {
 }
 
 impl InheritMethod {
-    pub fn inherit(self, prev_mv: MetaVal, next_mv: MetaVal) -> MetaVal {
-        match self {
-            InheritMethod::Overwrite => overwrite(prev_mv, next_mv),
-            InheritMethod::Merge => merge(prev_mv, next_mv),
-        }
+    pub fn process<II>(self, mvs: II) -> MetaVal
+    where
+        II: IntoIterator<Item = MetaVal>,
+    {
+        // NOTE: Assume that the iterable is ordered from oldest to newest parent.
+        mvs.into_iter().fold(MetaVal::Nil, |prev_mv, next_mv| {
+            match self {
+                InheritMethod::Overwrite => overwrite(prev_mv, next_mv),
+                InheritMethod::Merge => merge(prev_mv, next_mv),
+            }
+        })
     }
 }
 
@@ -87,7 +93,7 @@ mod tests {
     use metadata::types::MetaKey;
 
     #[test]
-    fn test_inherit() {
+    fn test_override() {
         let inputs_and_expected = vec![
             (
                 (

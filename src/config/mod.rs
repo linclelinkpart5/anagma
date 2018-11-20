@@ -1,14 +1,12 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
-pub mod agg_method;
-pub mod inherit_method;
+pub mod fallback_method;
 pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
 use std::collections::HashMap;
 
-use config::agg_method::AggMethod;
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
@@ -21,7 +19,6 @@ pub struct Config {
     pub item_fn: String,
     pub self_fn: String,
     pub meta_format: MetaFormat,
-    pub agg_methods: HashMap<String, AggMethod>,
 }
 
 impl Default for Config {
@@ -32,7 +29,6 @@ impl Default for Config {
         let selection = Selection::default();
         let sort_order = SortOrder::default();
         let meta_format = MetaFormat::default();
-        let agg_methods = HashMap::default();
         let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
         let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
 
@@ -42,7 +38,6 @@ impl Default for Config {
             item_fn,
             self_fn,
             meta_format,
-            agg_methods,
         }
     }
 }

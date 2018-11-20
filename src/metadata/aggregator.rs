@@ -1,238 +1,238 @@
-use std::path::PathBuf;
+// use std::path::PathBuf;
 
-use config::selection::Error as SelectionError;
-use metadata::processor::MetaProcessor;
-use metadata::processor::Error as ProcessorError;
+// use config::selection::Error as SelectionError;
+// use metadata::processor::MetaProcessor;
+// use metadata::processor::Error as ProcessorError;
 
-#[derive(Debug)]
-pub enum Error {
-    CannotProcessMetadata(ProcessorError),
-    CannotSelectPaths(SelectionError),
-}
+// #[derive(Debug)]
+// pub enum Error {
+//     CannotProcessMetadata(ProcessorError),
+//     CannotSelectPaths(SelectionError),
+// }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Error::CannotProcessMetadata(ref err) => write!(f, "cannot process metadata: {}", err),
-            Error::CannotSelectPaths(ref err) => write!(f, "cannot select item paths: {}", err),
-        }
-    }
-}
+// impl std::fmt::Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         match *self {
+//             Error::CannotProcessMetadata(ref err) => write!(f, "cannot process metadata: {}", err),
+//             Error::CannotSelectPaths(ref err) => write!(f, "cannot select item paths: {}", err),
+//         }
+//     }
+// }
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Error::CannotProcessMetadata(ref err) => Some(err),
-            Error::CannotSelectPaths(ref err) => Some(err),
-        }
-    }
-}
+// impl std::error::Error for Error {
+//     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+//         match *self {
+//             Error::CannotProcessMetadata(ref err) => Some(err),
+//             Error::CannotSelectPaths(ref err) => Some(err),
+//         }
+//     }
+// }
 
-use std::path::Path;
-use std::collections::VecDeque;
+// use std::path::Path;
+// use std::collections::VecDeque;
 
-use config::selection::Selection;
-use config::sort_order::SortOrder;
-use config::meta_format::MetaFormat;
-use config::agg_method::AggMethod;
-use metadata::types::MetaVal;
-use util::GenConverter;
+// use config::selection::Selection;
+// use config::sort_order::SortOrder;
+// use config::meta_format::MetaFormat;
+// use config::agg_method::AggMethod;
+// use metadata::types::MetaVal;
+// use util::GenConverter;
 
-pub struct MetaAggregator;
+// pub struct MetaAggregator;
 
-impl MetaAggregator {
-    pub fn resolve_field<P, S>(
-        item_path: P,
-        field: S,
-        meta_format: MetaFormat,
-        selection: &Selection,
-        sort_order: SortOrder,
-    ) -> Result<Option<MetaVal>, Error>
-    where
-        P: AsRef<Path>,
-        S: AsRef<str>,
-    {
-        let mut mb = MetaProcessor::process_item_file(
-            item_path,
-            meta_format,
-            selection,
-            sort_order,
-        ).map_err(Error::CannotProcessMetadata)?;
+// impl MetaAggregator {
+//     pub fn resolve_field<P, S>(
+//         item_path: P,
+//         field: S,
+//         meta_format: MetaFormat,
+//         selection: &Selection,
+//         sort_order: SortOrder,
+//     ) -> Result<Option<MetaVal>, Error>
+//     where
+//         P: AsRef<Path>,
+//         S: AsRef<str>,
+//     {
+//         let mut mb = MetaProcessor::process_item_file(
+//             item_path,
+//             meta_format,
+//             selection,
+//             sort_order,
+//         ).map_err(Error::CannotProcessMetadata)?;
 
-        Ok(mb.remove(field.as_ref()))
-    }
+//         Ok(mb.remove(field.as_ref()))
+//     }
 
-    pub fn resolve_field_children<P, S>(
-        item_path: P,
-        field: S,
-        meta_format: MetaFormat,
-        selection: &Selection,
-        sort_order: SortOrder,
-        agg_method: AggMethod,
-    ) -> MetaVal
-    where
-        P: AsRef<Path>,
-        S: AsRef<str>,
-    {
-        // This iterates over and unwraps `Ok` values, while also logging `Err` values.
-        let gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order)
-            .filter_map(|res| match res {
-                Ok(mv) => Some(mv),
-                Err(err) => {
-                    warn!("{}", err);
-                    None
-                },
-            })
-            .map(|(mv, _p)| mv)
-        ;
+//     pub fn resolve_field_children<P, S>(
+//         item_path: P,
+//         field: S,
+//         meta_format: MetaFormat,
+//         selection: &Selection,
+//         sort_order: SortOrder,
+//         agg_method: AggMethod,
+//     ) -> MetaVal
+//     where
+//         P: AsRef<Path>,
+//         S: AsRef<str>,
+//     {
+//         // This iterates over and unwraps `Ok` values, while also logging `Err` values.
+//         let gen = Self::resolve_field_children_helper(item_path, field, meta_format, selection, sort_order)
+//             .filter_map(|res| match res {
+//                 Ok(mv) => Some(mv),
+//                 Err(err) => {
+//                     warn!("{}", err);
+//                     None
+//                 },
+//             })
+//             .map(|(mv, _p)| mv)
+//         ;
 
-        agg_method.aggregate(gen)
-    }
+//         agg_method.aggregate(gen)
+//     }
 
-    pub fn resolve_field_children_helper<'a, P, S>(
-        item_path: P,
-        field: S,
-        meta_format: MetaFormat,
-        selection: &'a Selection,
-        sort_order: SortOrder,
-    ) -> impl Iterator<Item = Result<(MetaVal, PathBuf), Error>> + 'a
-    where
-        P: AsRef<Path>,
-        S: AsRef<str> + 'a,
-    {
-        let item_path = item_path.as_ref();
-        let mut frontier = VecDeque::new();
-        if item_path.is_dir() {
-            frontier.push_back(item_path.to_owned());
-        }
+//     pub fn resolve_field_children_helper<'a, P, S>(
+//         item_path: P,
+//         field: S,
+//         meta_format: MetaFormat,
+//         selection: &'a Selection,
+//         sort_order: SortOrder,
+//     ) -> impl Iterator<Item = Result<(MetaVal, PathBuf), Error>> + 'a
+//     where
+//         P: AsRef<Path>,
+//         S: AsRef<str> + 'a,
+//     {
+//         let item_path = item_path.as_ref();
+//         let mut frontier = VecDeque::new();
+//         if item_path.is_dir() {
+//             frontier.push_back(item_path.to_owned());
+//         }
 
-        let closure = move || {
-            // Process the initial potential item in the frontier.
-            // LEARN: This awkward step is needed due to lifetime/generator issues and wanting to have errors in the generator.
-            // TODO: Maybe OK to have an error outside of the generator?
-            if let Some(start_item_path) = frontier.pop_front() {
-                match selection.select_in_dir_sorted(start_item_path, sort_order).map_err(Error::CannotSelectPaths) {
-                    Err(err) => {
-                        yield Err(err);
-                    },
-                    Ok(mut sub_item_paths) => {
-                        for p in sub_item_paths.drain(..) {
-                            frontier.push_back(p);
-                        }
-                    },
-                }
-            }
+//         let closure = move || {
+//             // Process the initial potential item in the frontier.
+//             // LEARN: This awkward step is needed due to lifetime/generator issues and wanting to have errors in the generator.
+//             // TODO: Maybe OK to have an error outside of the generator?
+//             if let Some(start_item_path) = frontier.pop_front() {
+//                 match selection.select_in_dir_sorted(start_item_path, sort_order).map_err(Error::CannotSelectPaths) {
+//                     Err(err) => {
+//                         yield Err(err);
+//                     },
+//                     Ok(mut sub_item_paths) => {
+//                         for p in sub_item_paths.drain(..) {
+//                             frontier.push_back(p);
+//                         }
+//                     },
+//                 }
+//             }
 
-            // For each path in the frontier, look at the items contained within it.
-            while let Some(frontier_item_path) = frontier.pop_front() {
-                match Self::resolve_field(&frontier_item_path, &field, meta_format, &selection, sort_order) {
-                    Err(err) => {
-                        yield Err(err);
-                    },
-                    Ok(Some(sub_meta_val)) => {
-                        yield Ok((sub_meta_val, frontier_item_path));
-                    },
-                    Ok(None) => {
-                        // If the sub item is a directory, add its children to the frontier.
-                        if frontier_item_path.is_dir() {
-                            match selection.select_in_dir_sorted(frontier_item_path, sort_order).map_err(Error::CannotSelectPaths) {
-                                Err(err) => {
-                                    yield Err(err);
-                                },
-                                Ok(mut sub_item_paths) => {
-                                    for p in sub_item_paths.drain(..).rev() {
-                                        frontier.push_front(p);
-                                    }
-                                },
-                            }
-                        }
-                    }
-                }
-            }
-        };
+//             // For each path in the frontier, look at the items contained within it.
+//             while let Some(frontier_item_path) = frontier.pop_front() {
+//                 match Self::resolve_field(&frontier_item_path, &field, meta_format, &selection, sort_order) {
+//                     Err(err) => {
+//                         yield Err(err);
+//                     },
+//                     Ok(Some(sub_meta_val)) => {
+//                         yield Ok((sub_meta_val, frontier_item_path));
+//                     },
+//                     Ok(None) => {
+//                         // If the sub item is a directory, add its children to the frontier.
+//                         if frontier_item_path.is_dir() {
+//                             match selection.select_in_dir_sorted(frontier_item_path, sort_order).map_err(Error::CannotSelectPaths) {
+//                                 Err(err) => {
+//                                     yield Err(err);
+//                                 },
+//                                 Ok(mut sub_item_paths) => {
+//                                     for p in sub_item_paths.drain(..).rev() {
+//                                         frontier.push_front(p);
+//                                     }
+//                                 },
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         };
 
 
-        GenConverter::gen_to_iter(closure)
-    }
-}
+//         GenConverter::gen_to_iter(closure)
+//     }
+// }
 
-#[cfg(test)]
-mod tests {
-    use super::MetaAggregator;
+// #[cfg(test)]
+// mod tests {
+//     use super::MetaAggregator;
 
-    use config::Config;
-    use config::sort_order::SortOrder;
-    use config::meta_format::MetaFormat;
-    use metadata::types::MetaVal;
+//     use config::Config;
+//     use config::sort_order::SortOrder;
+//     use config::meta_format::MetaFormat;
+//     use metadata::types::MetaVal;
 
-    use test_util::create_temp_media_test_dir_staggered;
+//     use test_util::create_temp_media_test_dir_staggered;
 
-    #[test]
-    fn test_resolve_field_children_helper() {
-        let temp_dir = create_temp_media_test_dir_staggered("test_resolve_field_children_helper");
-        let path = temp_dir.path();
+//     #[test]
+//     fn test_resolve_field_children_helper() {
+//         let temp_dir = create_temp_media_test_dir_staggered("test_resolve_field_children_helper");
+//         let path = temp_dir.path();
 
-        let config = Config::default();
-        let selection = &config.selection;
+//         let config = Config::default();
+//         let selection = &config.selection;
 
-        let inputs_and_expected = vec![
-            (
-                (path, "TRACK_01_self_key"),
-                vec![
-                    (MetaVal::Str(String::from("TRACK_01_self_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
-                    (MetaVal::Str(String::from("TRACK_01_self_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
-                ],
-            ),
-            (
-                (path, "TRACK_01_item_key"),
-                vec![
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_01/TRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_02/TRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/DISC_01/TRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/TRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_01/TRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
-                    (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/TRACK_01.flac")),
-                ],
-            ),
-            (
-                (path, "SUBTRACK_01_item_key"),
-                vec![
-                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01/SUBTRACK_01.flac")),
-                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_02/SUBTRACK_01.flac")),
-                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_05/DISC_01/SUBTRACK_01.flac")),
-                    (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
-                ],
-            ),
-            (
-                (path, "staggered_key"),
-                vec![
-                    (MetaVal::Str(String::from("TRACK_02_staggered_val")), path.join("ALBUM_01/DISC_01/TRACK_02.flac")),
-                    (MetaVal::Str(String::from("DISC_02_staggered_val")), path.join("ALBUM_01/DISC_02")),
-                    (MetaVal::Str(String::from("DISC_01_staggered_val")), path.join("ALBUM_02/DISC_01")),
-                    (MetaVal::Str(String::from("TRACK_02_staggered_val")), path.join("ALBUM_02/TRACK_02.flac")),
-                    (MetaVal::Str(String::from("ALBUM_03_staggered_val")), path.join("ALBUM_03")),
-                    (MetaVal::Str(String::from("DISC_01_staggered_val")), path.join("ALBUM_05/DISC_01")),
-                    (MetaVal::Str(String::from("SUBTRACK_01_staggered_val")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
-                    (MetaVal::Str(String::from("TRACK_01_staggered_val")), path.join("ALBUM_05/TRACK_01.flac")),
-                ],
-            ),
-        ];
+//         let inputs_and_expected = vec![
+//             (
+//                 (path, "TRACK_01_self_key"),
+//                 vec![
+//                     (MetaVal::Str(String::from("TRACK_01_self_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
+//                     (MetaVal::Str(String::from("TRACK_01_self_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
+//                 ],
+//             ),
+//             (
+//                 (path, "TRACK_01_item_key"),
+//                 vec![
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_01/TRACK_01.flac")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_01/DISC_02/TRACK_01.flac")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/DISC_01/TRACK_01.flac")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_02/TRACK_01.flac")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_01/TRACK_01.flac")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01")),
+//                     (MetaVal::Str(String::from("TRACK_01_item_val")), path.join("ALBUM_05/TRACK_01.flac")),
+//                 ],
+//             ),
+//             (
+//                 (path, "SUBTRACK_01_item_key"),
+//                 vec![
+//                     (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+//                     (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_03/DISC_02/TRACK_02/SUBTRACK_01.flac")),
+//                     (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_05/DISC_01/SUBTRACK_01.flac")),
+//                     (MetaVal::Str(String::from("SUBTRACK_01_item_val")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+//                 ],
+//             ),
+//             (
+//                 (path, "staggered_key"),
+//                 vec![
+//                     (MetaVal::Str(String::from("TRACK_02_staggered_val")), path.join("ALBUM_01/DISC_01/TRACK_02.flac")),
+//                     (MetaVal::Str(String::from("DISC_02_staggered_val")), path.join("ALBUM_01/DISC_02")),
+//                     (MetaVal::Str(String::from("DISC_01_staggered_val")), path.join("ALBUM_02/DISC_01")),
+//                     (MetaVal::Str(String::from("TRACK_02_staggered_val")), path.join("ALBUM_02/TRACK_02.flac")),
+//                     (MetaVal::Str(String::from("ALBUM_03_staggered_val")), path.join("ALBUM_03")),
+//                     (MetaVal::Str(String::from("DISC_01_staggered_val")), path.join("ALBUM_05/DISC_01")),
+//                     (MetaVal::Str(String::from("SUBTRACK_01_staggered_val")), path.join("ALBUM_05/DISC_02/TRACK_01/SUBTRACK_01.flac")),
+//                     (MetaVal::Str(String::from("TRACK_01_staggered_val")), path.join("ALBUM_05/TRACK_01.flac")),
+//                 ],
+//             ),
+//         ];
 
-        for (input, expected) in inputs_and_expected {
-            let (path, field) = input;
-            let produced: Vec<_> = MetaAggregator::resolve_field_children_helper(
-                path,
-                field,
-                MetaFormat::Yaml,
-                selection,
-                SortOrder::Name,
-            )
-            .filter_map(|res| res.ok())
-            .collect();
+//         for (input, expected) in inputs_and_expected {
+//             let (path, field) = input;
+//             let produced: Vec<_> = MetaAggregator::resolve_field_children_helper(
+//                 path,
+//                 field,
+//                 MetaFormat::Yaml,
+//                 selection,
+//                 SortOrder::Name,
+//             )
+//             .filter_map(|res| res.ok())
+//             .collect();
 
-            assert_eq!(expected, produced);
-        }
-    }
-}
+//             assert_eq!(expected, produced);
+//         }
+//     }
+// }
