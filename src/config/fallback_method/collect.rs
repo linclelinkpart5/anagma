@@ -33,7 +33,7 @@ mod tests {
     use super::CollectMethod;
 
     #[test]
-    fn test_aggregate() {
+    fn test_process() {
         let inputs_and_expected = vec![
             (
                 (
@@ -89,9 +89,9 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (agg_method, mvs) = input;
+            let (collect_method, mvs) = input;
 
-            let produced = agg_method.process(mvs);
+            let produced = collect_method.process(mvs);
             assert_eq!(expected, produced);
         }
     }
