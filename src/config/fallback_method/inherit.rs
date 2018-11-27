@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 use std::collections::HashMap;
-use std::path::Ancestors;
 use std::path::Path;
-use std::path::PathBuf;
 
 use metadata::types::MetaVal;
 use metadata::types::MetaKey;
@@ -32,7 +30,7 @@ impl InheritMethod {
         meta_format: MetaFormat,
         selection: &Selection,
         sort_order: SortOrder,
-        method_map: &HashMap<String, InheritMethod>,
+        method_map: &HashMap<String, Self>,
     ) -> MetaBlock
     {
         start_item_path
