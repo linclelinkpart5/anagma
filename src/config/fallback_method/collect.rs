@@ -8,6 +8,52 @@ use config::selection::Selection;
 use config::sort_order::SortOrder;
 use metadata::processor::MetaProcessor;
 
+use std::path::PathBuf;
+use std::collections::VecDeque;
+
+pub fn yield_found_keys(
+    method_map: HashMap<String, CollectMethod>,
+    meta_format: MetaFormat,
+    selection: &Selection,
+    sort_order: SortOrder,
+    ) -> impl Iterator<Item = (String, MetaVal)> {
+
+    let frontier: VecDeque<PathBuf> = VecDeque::new();
+
+    std::iter::empty()
+}
+
+struct CollectIterator<'s> {
+    frontier: VecDeque<PathBuf>,
+    remaining_curr_mb: MetaBlock,
+    remaining_method_map: HashMap<String, CollectMethod>,
+    meta_format: MetaFormat,
+    selection: &'s Selection,
+    sort_order: SortOrder,
+}
+
+impl<'s> CollectIterator<'s> {
+    fn new(
+        meta_format: MetaFormat,
+        selection: &'s Selection,
+        sort_order: SortOrder,
+        method_map: HashMap<String, CollectMethod>,
+    ) -> Self {
+        let frontier = VecDeque::new();
+        let remaining_curr_mb = MetaBlock::new();
+        let remaining_method_map = method_map;
+
+        CollectIterator {
+            frontier,
+            remaining_curr_mb,
+            remaining_method_map,
+            meta_format,
+            selection,
+            sort_order,
+        }
+    }
+}
+
 /// Different ways to process child metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
