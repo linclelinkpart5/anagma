@@ -4,15 +4,25 @@ mod collect;
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::VecDeque;
+use std::collections::HashMap;
 
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
 use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
+use metadata::types::MetaKey;
 
 use self::inherit::InheritMethod;
 use self::collect::CollectMethod;
+
+pub type FallbackSpec = HashMap<String, FallbackSpecNode>;
+
+/// Node type for the tree representation of fallback methods.
+pub enum FallbackSpecNode {
+    Children(HashMap<MetaKey, FallbackSpecNode>),
+    Method(FallbackMethod),
+}
 
 /// Different ways to process parent metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
