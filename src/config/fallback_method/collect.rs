@@ -73,105 +73,8 @@ use std::collections::VecDeque;
 //                 }
 //             }
 //         };
-
-
 //         GenConverter::gen_to_iter(closure)
 //     }
-
-pub fn gather<P: AsRef<Path>>(
-    start_item_path: P,
-    method_map: &HashMap<String, CollectMethod>,
-    meta_format: MetaFormat,
-    selection: &Selection,
-    sort_order: SortOrder,
-) -> MetaBlock {
-    let mut composed_result_mb = MetaBlock::new();
-
-    let mut frontier = VecDeque::new();
-
-    // The metadata of the starting item is not considered.
-    // Add the children of the starting item to the frontier.
-    match selection.select_in_dir_sorted(start_item_path, sort_order) {
-        Ok(mut sub_item_paths) => {
-            for p in sub_item_paths.drain(..) {
-                frontier.push_back(p);
-            }
-        },
-        Err(err) => {
-            // If the error is that the item is not a directory, continue gracefully.
-            // Otherwise, warn.
-            match err {
-                SelectionError::InvalidDirPath(..) => {},
-                _ => { warn!("{}", err); },
-            }
-        },
-    }
-
-    // For each path in the frontier, load its metadata.
-    while let Some(frontier_item_path) = frontier.pop_front() {
-        match MetaProcessor::process_item_file(
-            frontier_item_path,
-            meta_format,
-            selection,
-            sort_order,
-        ) {
-            Ok(mb) => {
-
-            },
-            Err(err) => {
-                warn!("{}", err);
-            },
-        }
-    }
-
-    composed_result_mb
-}
-
-pub fn yield_found_keys<P: AsRef<Path>>(
-    start_item_dir_path: P,
-    method_map: HashMap<String, CollectMethod>,
-    meta_format: MetaFormat,
-    selection: &Selection,
-    sort_order: SortOrder,
-) -> impl Iterator<Item = (String, MetaVal)>
-{
-    let frontier: VecDeque<PathBuf> = VecDeque::new();
-
-    selection.select_in_dir_sorted(start_item_dir_path, sort_order);
-
-    std::iter::empty()
-}
-
-struct CollectIterator<'s> {
-    frontier: VecDeque<PathBuf>,
-    remaining_curr_mb: MetaBlock,
-    remaining_method_map: HashMap<String, CollectMethod>,
-    meta_format: MetaFormat,
-    selection: &'s Selection,
-    sort_order: SortOrder,
-}
-
-impl<'s> CollectIterator<'s> {
-    fn new(
-        meta_format: MetaFormat,
-        selection: &'s Selection,
-        sort_order: SortOrder,
-        method_map: HashMap<String, CollectMethod>,
-    ) -> Self {
-        let frontier = VecDeque::new();
-        let remaining_curr_mb = MetaBlock::new();
-        let remaining_method_map = method_map;
-
-        CollectIterator {
-            frontier,
-            remaining_curr_mb,
-            remaining_method_map,
-            meta_format,
-            selection,
-            sort_order,
-        }
-    }
-}
 
 /// Different ways to process child metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
@@ -182,72 +85,53 @@ pub enum CollectMethod {
 }
 
 impl CollectMethod {
-    // pub fn process<II>(self, mvs: II) -> MetaVal
-    // where
-    //     II: IntoIterator<Item = MetaVal>,
-    // {
-    //     let mut mvs = mvs.into_iter();
-
-    //     match self {
-    //         CollectMethod::First => {
-    //             mvs.next().unwrap_or(MetaVal::Nil)
-    //         },
-    //         CollectMethod::Iterate => {
-    //             MetaVal::Seq(mvs.collect())
-    //         },
-    //     }
-    // }
-
     pub fn process<P: AsRef<Path>>(
         start_item_path: P,
+        method_map: &HashMap<String, CollectMethod>,
         meta_format: MetaFormat,
         selection: &Selection,
         sort_order: SortOrder,
-        method_map: &HashMap<String, Self>,
-    ) -> MetaBlock
-    {
-        MetaBlock::new()
-    }
-
-    fn recursive_helper<P: AsRef<Path>>(
-        item_path: P,
-        meta_format: MetaFormat,
-        selection: &Selection,
-        sort_order: SortOrder,
-        remaining_method_map: HashMap<String, Self>,
     ) -> MetaBlock {
-        // Get the meta block for this current item.
-        match MetaProcessor::process_item_file(item_path, meta_format, selection, sort_order) {
-            Ok(mb) => {
-                // Iterate over the keys in the current meta block.
-                for (k, v) in mb {
-                    // Check if the key is in the method mapping.
-                    // if let Some()
+        let mut composed_result_mb = MetaBlock::new();
+
+        let mut frontier = VecDeque::new();
+
+        // The metadata of the starting item is not considered.
+        // Add the children of the starting item to the frontier.
+        match selection.select_in_dir_sorted(start_item_path, sort_order) {
+            Ok(mut sub_item_paths) => {
+                for p in sub_item_paths.drain(..) {
+                    frontier.push_back(p);
                 }
             },
             Err(err) => {
-                warn!("{}", err);
+                // If the error is that the item is not a directory, continue gracefully.
+                // Otherwise, warn.
+                match err {
+                    SelectionError::InvalidDirPath(..) => {},
+                    _ => { warn!("{}", err); },
+                }
             },
-        };
+        }
 
-        MetaBlock::new()
-    }
+        // For each path in the frontier, load its metadata.
+        while let Some(frontier_item_path) = frontier.pop_front() {
+            match MetaProcessor::process_item_file(
+                frontier_item_path,
+                meta_format,
+                selection,
+                sort_order,
+            ) {
+                Ok(mb) => {
 
-    fn helper<P: AsRef<Path>>(
-        curr_item_path: P,
-        meta_format: MetaFormat,
-        selection: &Selection,
-        sort_order: SortOrder,
-        remaining_method_map: &HashMap<String, Self>,
-    ) -> MetaBlock
-    {
-        MetaBlock::new()
-    }
+                },
+                Err(err) => {
+                    warn!("{}", err);
+                },
+            }
+        }
 
-    /// For a provided item path, gets requested fields and reports which fields are still missing.
-    /// If the missing field mapping is empty, then processing subitems should be skipped.
-    fn node_helper() -> (HashMap<String, MetaVal>, HashMap<String, Self>) {
-        (HashMap::new(), HashMap::new())
+        composed_result_mb
     }
 }
 
