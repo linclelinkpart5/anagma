@@ -6,17 +6,23 @@ use std::path::PathBuf;
 use std::path::Ancestors;
 use std::iter::FusedIterator;
 use std::collections::VecDeque;
+use std::collections::HashMap;
 
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
 use metadata::types::MetaBlock;
+use metadata::types::MetaKey;
 use metadata::processor::MetaProcessor;
 
 use self::inherit::InheritMethod;
 use self::collect::CollectMethod;
 
-/// Different ways to process parent metadata into desired outputs.
+pub type KeyPath = (String, Vec<MetaKey>);
+
+pub type FallbackMapping = HashMap<KeyPath, FallbackMethod>;
+
+/// Different ways to process missing metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FallbackMethod {
