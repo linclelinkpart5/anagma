@@ -9,6 +9,7 @@ use config::selection::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {
+    InvalidDirPath(PathBuf),
     CannotBuildMatcher(MatcherError),
     CannotReadDir(std::io::Error),
     CannotReadDirEntry(std::io::Error),
@@ -17,6 +18,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
+            Error::InvalidDirPath(ref p) => write!(f, "not a valid directory: {}", p.display()),
             Error::CannotBuildMatcher(ref err) => write!(f, "cannot build matcher: {}", err),
             Error::CannotReadDir(ref err) => write!(f, "cannot read directory: {}", err),
             Error::CannotReadDirEntry(ref err) => write!(f, "cannot read directory entry: {}", err),
@@ -27,6 +29,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
+            Error::InvalidDirPath(..) => None,
             Error::CannotBuildMatcher(ref err) => Some(err),
             Error::CannotReadDir(ref err) => Some(err),
             Error::CannotReadDirEntry(ref err) => Some(err),
@@ -100,8 +103,13 @@ impl Selection {
     where
         P: AsRef<Path>,
     {
+        let dir_path = dir_path.as_ref();
+
+        if !dir_path.is_dir() {
+            return Err(Error::InvalidDirPath(dir_path.to_path_buf()));
+        }
+
         let item_entries = dir_path
-            .as_ref()
             .read_dir().map_err(Error::CannotReadDir)?
             .collect::<Result<Vec<_>, _>>().map_err(Error::CannotReadDirEntry)?;
 

@@ -3,8 +3,6 @@ mod collect;
 
 use std::path::Path;
 use std::path::PathBuf;
-use std::path::Ancestors;
-use std::iter::FusedIterator;
 use std::collections::VecDeque;
 use std::collections::HashMap;
 
@@ -18,70 +16,22 @@ use metadata::processor::MetaProcessor;
 use self::inherit::InheritMethod;
 use self::collect::CollectMethod;
 
-pub type KeyPath = (String, Vec<MetaKey>);
 
-pub type FallbackMapping = HashMap<KeyPath, FallbackMethod>;
+pub type FallbackSpec = HashMap<String, FallbackSpecNode>;
 
-/// Different ways to process missing metadata into desired outputs.
+/// Node type for the tree representation of fallback methods.
+pub enum FallbackSpecNode {
+    Children(HashMap<MetaKey, FallbackSpecNode>),
+    Method(FallbackMethod),
+}
+
+/// Different ways to process parent metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FallbackMethod {
     Inherit(InheritMethod),
     Collect(CollectMethod),
 }
-
-struct InheritIterator<'p, 's> {
-    ancestors: Ancestors<'p>,
-
-    meta_format: MetaFormat,
-    selection: &'s Selection,
-    sort_order: SortOrder,
-}
-
-impl<'p, 's> InheritIterator<'p, 's> {
-    pub fn new(
-        start_item_path: &'p Path,
-        meta_format: MetaFormat,
-        selection: &'s Selection,
-        sort_order: SortOrder,
-    ) -> Self
-    {
-        let mut ancestors = start_item_path.ancestors();
-
-        // Advance by one in order to skip the start item.
-        ancestors.next();
-
-        InheritIterator {
-            ancestors,
-            meta_format,
-            selection,
-            sort_order,
-        }
-    }
-}
-
-impl<'p, 's> Iterator for InheritIterator<'p, 's> {
-    type Item = MetaBlock;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.ancestors.next().and_then(|curr_item_path| {
-            match MetaProcessor::process_item_file(
-                curr_item_path,
-                self.meta_format,
-                self.selection,
-                self.sort_order,
-            ) {
-                Ok(mb) => Some(mb),
-                Err(err) => {
-                    warn!("{}", err);
-                    self.next()
-                },
-            }
-        })
-    }
-}
-
-impl<'p, 's> FusedIterator for InheritIterator<'p, 's> {}
 
 struct CollectIterator<'s> {
     frontier: VecDeque<PathBuf>,
