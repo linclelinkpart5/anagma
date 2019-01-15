@@ -12,6 +12,100 @@ use metadata::processor::MetaProcessor;
 use std::path::PathBuf;
 use std::collections::VecDeque;
 
+// struct CollectIterator<'s> {
+//     frontier: VecDeque<PathBuf>,
+//     last_processed_path: Option<PathBuf>,
+
+//     meta_format: MetaFormat,
+//     selection: &'s Selection,
+//     sort_order: SortOrder,
+// }
+
+// impl<'s> CollectIterator<'s> {
+//     pub fn new<P: AsRef<Path>>(
+//         start_item_path: P,
+//         meta_format: MetaFormat,
+//         selection: &'s Selection,
+//         sort_order: SortOrder,
+//     ) -> Self
+//     {
+//         // Initialize the frontier with the subitems of the start item path.
+//         let mut frontier = VecDeque::new();
+
+//         match selection.select_in_dir_sorted(start_item_path, sort_order) {
+//             Err(err) => {
+//                 warn!("{}", err);
+//             },
+//             Ok(mut sub_item_paths) => {
+//                 for p in sub_item_paths.drain(..) {
+//                     frontier.push_back(p);
+//                 }
+//             },
+//         };
+
+//         CollectIterator {
+//             frontier,
+//             last_processed_path: None,
+//             meta_format,
+//             selection,
+//             sort_order,
+//         }
+//     }
+
+//     /// Manually delves into a directory, and adds its subitems to the frontier.
+//     pub fn delve(&mut self) -> Option<PathBuf> {
+//         if let Some(lpp) = self.last_processed_path.take() {
+//             // If the last processed path is a directory, add its children to the frontier.
+//             if lpp.is_dir() {
+//                 match self.selection.select_in_dir_sorted(&lpp, self.sort_order) {
+//                     Err(err) => {
+//                         warn!("{}", err);
+//                     },
+//                     Ok(mut sub_item_paths) => {
+//                         for p in sub_item_paths.drain(..).rev() {
+//                             self.frontier.push_front(p);
+//                         }
+//                     },
+//                 }
+//             }
+
+//             Some(lpp)
+//         }
+//         else {
+//             None
+//         }
+//     }
+// }
+
+// impl<'p, 's> Iterator for CollectIterator<'p> {
+//     type Item = MetaBlock;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if let Some(frontier_item_path) = self.frontier.pop_front() {
+//             let ret_mb = match MetaProcessor::process_item_file(
+//                 &frontier_item_path,
+//                 self.meta_format,
+//                 self.selection,
+//                 self.sort_order,
+//             ) {
+//                 Ok(mb) => Some(mb),
+//                 Err(err) => {
+//                     warn!("{}", err);
+//                     self.next()
+//                 },
+//             };
+
+//             // Save the most recently processed item path.
+//             self.last_processed_path = Some(frontier_item_path);
+
+//             ret_mb
+//         }
+//         else {
+//             None
+//         }
+//     }
+// }
+
 //     pub fn resolve_field_children_helper<'a, P, S>(
 //         item_path: P,
 //         field: S,
@@ -80,7 +174,7 @@ use std::collections::VecDeque;
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CollectMethod {
-    Iterate,
+    Collect,
     First,
 }
 
@@ -173,7 +267,7 @@ mod tests {
     //         ),
     //         (
     //             (
-    //                 CollectMethod::Iterate,
+    //                 CollectMethod::Collect,
     //                 vec![
     //                     MetaVal::Str(String::from("A")),
     //                     MetaVal::Str(String::from("B")),
@@ -190,7 +284,7 @@ mod tests {
     //         ),
     //         (
     //             (
-    //                 CollectMethod::Iterate,
+    //                 CollectMethod::Collect,
     //                 vec![],
     //             ),
     //             MetaVal::Seq(vec![]),

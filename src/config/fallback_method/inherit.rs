@@ -14,13 +14,13 @@ use metadata::processor::MetaProcessor;
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InheritMethod {
-    Overwrite,
+    Inherit,
     Merge,
 }
 
 impl Default for InheritMethod {
     fn default() -> Self {
-        InheritMethod::Overwrite
+        InheritMethod::Inherit
     }
 }
 
@@ -62,7 +62,7 @@ impl InheritMethod {
                         let i_method = method_map.get(&older_key).cloned().unwrap_or_default();
 
                         let combined_val = match i_method {
-                            InheritMethod::Overwrite => overwrite(older_val, newer_val),
+                            InheritMethod::Inherit => overwrite(older_val, newer_val),
                             InheritMethod::Merge => merge(older_val, newer_val),
                         };
 

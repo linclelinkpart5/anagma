@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
+use config::fallback_method::FallbackSpec;
+use config::fallback_method::FallbackMethod;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -19,6 +21,8 @@ pub struct Config {
     pub item_fn: String,
     pub self_fn: String,
     pub meta_format: MetaFormat,
+    pub fallbacks: FallbackSpec,
+    pub default_fallback: FallbackMethod,
 }
 
 impl Default for Config {
@@ -31,6 +35,8 @@ impl Default for Config {
         let meta_format = MetaFormat::default();
         let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
         let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
+        let fallbacks = FallbackSpec::default();
+        let default_fallback = FallbackMethod::default();
 
         Config {
             selection,
@@ -38,6 +44,8 @@ impl Default for Config {
             item_fn,
             self_fn,
             meta_format,
+            fallbacks,
+            default_fallback,
         }
     }
 }
@@ -52,7 +60,11 @@ mod tests {
 
     #[test]
     fn test_deserialization() {
-        let text_config = "selection:\n  include: '*.flac'\nsort_order: name";
+        let text_config = r#"
+            selection:
+                include: '*.flac'
+            sort_order: name
+        "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
@@ -66,7 +78,13 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
 
-        let text_config = "selection:\n  include:\n    - '*.flac'\n    - '*.mp3'\nsort_order: mod_time";
+        let text_config = r#"
+            selection:
+                include:
+                    - '*.flac'
+                    - '*.mp3'
+            sort_order: mod_time
+        "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
@@ -78,7 +96,11 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
 
-        let text_config = "selection:\n  include: '*'\nsort_order: mod_time";
+        let text_config = r#"
+            selection:
+                include: '*'
+            sort_order: mod_time
+        "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
@@ -90,13 +112,17 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
 
-        let text_config = "selection:
-  include: '*'
-  exclude: '*.mp3'
-sort_order: name
-item_fn: item_meta.yml
-meta_format: yaml
-";
+        let text_config = r#"
+            selection:
+                include: '*'
+                exclude: '*.mp3'
+            sort_order: name
+            item_fn: item_meta.yml
+            meta_format: yaml
+            fallbacks:
+                title: inherit
+            default_fallback: collect
+        "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
