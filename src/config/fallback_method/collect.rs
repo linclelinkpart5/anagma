@@ -178,6 +178,12 @@ pub enum CollectMethod {
     First,
 }
 
+impl Default for CollectMethod {
+    fn default() -> Self {
+        Self::Collect
+    }
+}
+
 impl CollectMethod {
     pub fn process<P: AsRef<Path>>(
         start_item_path: P,

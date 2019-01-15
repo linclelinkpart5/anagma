@@ -20,7 +20,7 @@ pub enum InheritMethod {
 
 impl Default for InheritMethod {
     fn default() -> Self {
-        InheritMethod::Inherit
+        Self::Inherit
     }
 }
 
