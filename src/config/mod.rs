@@ -5,13 +5,11 @@ pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
-use std::collections::HashMap;
-
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
 use config::fallback_method::FallbackSpec;
-use config::fallback_method::FallbackMethod;
+use config::fallback_method::Fallback;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -22,7 +20,7 @@ pub struct Config {
     pub self_fn: String,
     pub meta_format: MetaFormat,
     pub fallbacks: FallbackSpec,
-    pub default_fallback: FallbackMethod,
+    pub default_fallback: Fallback,
     pub map_root_key: String,
 }
 
@@ -37,7 +35,7 @@ impl Default for Config {
         let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
         let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
         let fallbacks = FallbackSpec::default();
-        let default_fallback = FallbackMethod::default();
+        let default_fallback = Fallback::default();
         let map_root_key = String::from("~");
 
         Config {
@@ -61,9 +59,9 @@ mod tests {
     use config::sort_order::SortOrder;
     use config::meta_format::MetaFormat;
     use config::fallback_method::FallbackSpecNode;
-    use config::fallback_method::FallbackMethod;
-    use config::fallback_method::InheritMethod;
-    use config::fallback_method::CollectMethod;
+    use config::fallback_method::Fallback;
+    use config::fallback_method::AncestorFallback;
+    use config::fallback_method::ChildrenFallback;
 
     #[test]
     fn test_deserialization() {
@@ -127,7 +125,7 @@ mod tests {
             item_fn: item_meta.yml
             meta_format: yaml
             fallbacks:
-                title: inherit
+                title: override
             default_fallback: collect
             map_root_key: 'null'
         "#;
@@ -142,9 +140,9 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
         assert_eq!(config.fallbacks, hashmap![
-            String::from("title") => FallbackSpecNode::Leaf(FallbackMethod::Inherit(InheritMethod::Inherit)),
+            String::from("title") => FallbackSpecNode::Leaf(Fallback::Ancestor(AncestorFallback::Override)),
         ]);
-        assert_eq!(config.default_fallback, FallbackMethod::Collect(CollectMethod::Collect));
+        assert_eq!(config.default_fallback, Fallback::Children(ChildrenFallback::Collect));
         assert_eq!(config.map_root_key, "null");
     }
 }

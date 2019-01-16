@@ -46,7 +46,7 @@ impl Metadata {
     }
 
     pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<MetaBlock, Error> {
-        let mb = MetaProcessor::process_item_file_flattened(
+        let mb = MetaProcessor::process_item_file(
             item_path,
             config.meta_format,
             &config.selection,
