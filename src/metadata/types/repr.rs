@@ -21,7 +21,7 @@ impl MetaVal {
             MetaVal::Nil => RealMetaVal::Nil,
             MetaVal::Str(s) => RealMetaVal::Str(s),
             MetaVal::Seq(seq) => {
-                RealMetaVal::Seq(seq.into_iter().map(|mv| mv.to_real_meta_val(&map_root_key)).collect())
+                RealMetaVal::Seq(seq.into_iter().map(|mv| mv.to_real_meta_val(map_root_key.as_ref())).collect())
             },
             MetaVal::Map(map) => {
                 // All occurences of the map root key must be converted into a null meta key.
@@ -33,7 +33,7 @@ impl MetaVal {
                         false => RealMetaKey::Str(k),
                     };
 
-                    let new_v = v.to_real_meta_val(&map_root_key);
+                    let new_v = v.to_real_meta_val(map_root_key.as_ref());
 
                     new_map.insert(new_k, new_v);
                 }
@@ -66,4 +66,90 @@ pub(crate) enum ManyMetaStructure {
 pub(crate) enum MetaStructure {
     Unit(UnitMetaStructure),
     Many(ManyMetaStructure),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MetaVal;
+
+    use metadata::types::MetaKey as RealMetaKey;
+    use metadata::types::MetaVal as RealMetaVal;
+
+    #[test]
+    fn test_to_real_meta_val() {
+        const MAP_ROOT_KEY: &str = "key_root";
+        let inputs_and_expected = vec![
+            (
+                MetaVal::Nil,
+                RealMetaVal::Nil,
+            ),
+            (
+                MetaVal::Str(String::from("val_a")),
+                RealMetaVal::Str(String::from("val_a")),
+            ),
+            (
+                MetaVal::Seq(vec![
+                    MetaVal::Str(String::from("val_a")),
+                    MetaVal::Str(String::from("val_b")),
+                    MetaVal::Str(String::from("val_c")),
+                ]),
+                RealMetaVal::Seq(vec![
+                    RealMetaVal::Str(String::from("val_a")),
+                    RealMetaVal::Str(String::from("val_b")),
+                    RealMetaVal::Str(String::from("val_c")),
+                ]),
+            ),
+            (
+                MetaVal::Map(btreemap![
+                    String::from(MAP_ROOT_KEY) => MetaVal::Str(String::from("val_root")),
+                    String::from("key_a") => MetaVal::Str(String::from("val_a")),
+                    String::from("key_b") => MetaVal::Str(String::from("val_b")),
+                ]),
+                RealMetaVal::Map(btreemap![
+                    RealMetaKey::Nil => RealMetaVal::Str(String::from("val_root")),
+                    RealMetaKey::Str(String::from("key_a")) => RealMetaVal::Str(String::from("val_a")),
+                    RealMetaKey::Str(String::from("key_b")) => RealMetaVal::Str(String::from("val_b")),
+                ]),
+            ),
+            (
+                MetaVal::Map(btreemap![
+                    String::from(MAP_ROOT_KEY) => MetaVal::Str(String::from("val_root")),
+                    String::from("key_a") => MetaVal::Str(String::from("val_a")),
+                    String::from("key_b") => MetaVal::Map(btreemap![
+                        String::from(MAP_ROOT_KEY) => MetaVal::Str(String::from("sub_val_root")),
+                        String::from("sub_key_a") => MetaVal::Str(String::from("sub_val_a")),
+                    ]),
+                ]),
+                RealMetaVal::Map(btreemap![
+                    RealMetaKey::Nil => RealMetaVal::Str(String::from("val_root")),
+                    RealMetaKey::Str(String::from("key_a")) => RealMetaVal::Str(String::from("val_a")),
+                    RealMetaKey::Str(String::from("key_b")) => RealMetaVal::Map(btreemap![
+                        RealMetaKey::Nil => RealMetaVal::Str(String::from("sub_val_root")),
+                        RealMetaKey::Str(String::from("sub_key_a")) => RealMetaVal::Str(String::from("sub_val_a")),
+                    ]),
+                ]),
+            ),
+            (
+                MetaVal::Seq(vec![
+                    MetaVal::Str(String::from("val_a")),
+                    MetaVal::Map(btreemap![
+                        String::from(MAP_ROOT_KEY) => MetaVal::Str(String::from("sub_val_root")),
+                        String::from("sub_key_a") => MetaVal::Str(String::from("sub_val_a")),
+                    ]),
+                ]),
+                RealMetaVal::Seq(vec![
+                    RealMetaVal::Str(String::from("val_a")),
+                    RealMetaVal::Map(btreemap![
+                        RealMetaKey::Nil => RealMetaVal::Str(String::from("sub_val_root")),
+                        RealMetaKey::Str(String::from("sub_key_a")) => RealMetaVal::Str(String::from("sub_val_a")),
+                    ]),
+                ]),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = input.to_real_meta_val(MAP_ROOT_KEY);
+            assert_eq!(expected, produced);
+        }
+    }
 }
