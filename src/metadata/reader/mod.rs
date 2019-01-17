@@ -5,6 +5,7 @@ pub mod yaml;
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::collections::BTreeMap;
 
 use config::meta_format::MetaFormat;
 use metadata::location::MetaLocation;
@@ -44,6 +45,14 @@ impl std::error::Error for Error {
             Error::InvalidItemName(..) => None,
         }
     }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Hash, Deserialize)]
+pub enum MetaValRepr {
+    Nil,
+    Str(String),
+    Seq(Vec<MetaValRepr>),
+    Map(BTreeMap<String, MetaValRepr>),
 }
 
 pub trait MetaReader {
