@@ -1,12 +1,10 @@
 //! Methodologies for parsing text representations of metadata in various formats into a usable form.
 
 pub mod yaml;
-pub mod yaml_serde;
 
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
-use std::collections::BTreeMap;
 
 use config::meta_format::MetaFormat;
 use metadata::location::MetaLocation;
@@ -68,7 +66,7 @@ pub trait MetaReader {
 impl MetaReader for MetaFormat {
     fn from_str<S: AsRef<str>, M: AsRef<str>>(&self, s: S, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error> {
         let meta_structure_repr = match *self {
-            MetaFormat::Yaml => yaml_serde::read_str(s, mt)?,
+            MetaFormat::Yaml => yaml::read_str(s, mt)?,
         };
 
         Ok(meta_structure_repr.to_real_meta_structure(map_root_key))
