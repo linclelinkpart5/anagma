@@ -21,24 +21,29 @@ impl MetaVal {
             MetaVal::Nil => RealMetaVal::Nil,
             MetaVal::Str(s) => RealMetaVal::Str(s),
             MetaVal::Seq(seq) => {
-                RealMetaVal::Seq(seq.into_iter().map(|mv| mv.to_real_meta_val(map_root_key.as_ref())).collect())
+                RealMetaVal::Seq(
+                    seq
+                        .into_iter()
+                        .map(|mv| mv.to_real_meta_val(map_root_key.as_ref()))
+                        .collect()
+                )
             },
             MetaVal::Map(map) => {
                 // All occurences of the map root key must be converted into a null meta key.
-                let mut new_map = BTreeMap::new();
-
-                for (k, v) in map {
-                    let new_k = match k == map_root_key.as_ref() {
-                        true => RealMetaKey::Nil,
-                        false => RealMetaKey::Str(k),
-                    };
-
-                    let new_v = v.to_real_meta_val(map_root_key.as_ref());
-
-                    new_map.insert(new_k, new_v);
-                }
-
-                RealMetaVal::Map(new_map)
+                RealMetaVal::Map(
+                    map
+                        .into_iter()
+                        .map(|(k, v)| {
+                            (
+                                match k == map_root_key.as_ref() {
+                                    true => RealMetaKey::Nil,
+                                    false => RealMetaKey::Str(k),
+                                },
+                                v.to_real_meta_val(map_root_key.as_ref())
+                            )
+                        })
+                        .collect()
+                )
             },
         }
     }
