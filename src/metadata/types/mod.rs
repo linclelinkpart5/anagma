@@ -2,7 +2,7 @@
 
 pub mod key;
 pub mod val;
-mod repr;
+pub(crate) mod repr;
 
 use std::collections::BTreeMap;
 use std::collections::HashMap;

@@ -1,6 +1,7 @@
 //! Methodologies for parsing text representations of metadata in various formats into a usable form.
 
 pub mod yaml;
+pub mod yaml_serde;
 
 use std::path::Path;
 use std::fs::File;
