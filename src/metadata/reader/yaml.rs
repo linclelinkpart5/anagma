@@ -17,14 +17,43 @@ mod tests {
 
     #[test]
     fn test_read_str() {
-        let input = r#"const_key: const_val
-self_key: self_val
-ROOT_self_key: ROOT_self_val
-overridden: ROOT_self
-"#;
+        let input = r#"
+            key_a: val_a
+            key_b: val_b
+            key_c: val_c
+            key_d: val_d
+        "#;
         let _ = read_str(input, MetaLocation::Contains).unwrap();
 
-        let input = r#"{key_a: {sub_key_a: sub_val_a, sub_key_b: sub_val_b, '~': sub_val_c}, key_b: []}"#;
+        let input = r#"
+            key_a: val_a
+            key_b:
+                sub_key_a: sub_val_a
+                sub_key_b: sub_val_b
+            key_c: [val_a, val_b]
+            key_d: {sub_key_a: sub_val_a, sub_key_b: sub_val_b}
+            key_e:
+                -   val_a
+                -   val_b
+        "#;
         let _ = read_str(input, MetaLocation::Contains).unwrap();
+
+        let input = r#"
+            -   key_1_a: val_1_a
+                key_1_b: val_1_b
+            -   key_2_a: val_2_a
+                key_2_b: val_2_b
+        "#;
+        let _ = read_str(input, MetaLocation::Siblings).unwrap();
+
+        let input = r#"
+            item_1:
+                key_1_a: val_1_a
+                key_1_b: val_1_b
+            item_2:
+                key_2_a: val_2_a
+                key_2_b: val_2_b
+        "#;
+        let _ = read_str(input, MetaLocation::Siblings).unwrap();
     }
 }
