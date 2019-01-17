@@ -65,13 +65,14 @@ pub enum FallbackSpecNode {
 pub type FallbackSpec = HashMap<String, FallbackSpecNode>;
 
 
-pub fn process_fallbacks<P: AsRef<Path>>(
+pub fn process_fallbacks<P: AsRef<Path>, S: AsRef<str>>(
     start_item_path: P,
     meta_format: MetaFormat,
     selection: &Selection,
     sort_order: SortOrder,
     fallback_spec: &FallbackSpec,
     default_fallback: Fallback,
+    map_root_key: S,
 ) -> MetaBlock
 {
     // Load the origin metadata.
@@ -81,6 +82,7 @@ pub fn process_fallbacks<P: AsRef<Path>>(
         meta_format,
         selection,
         sort_order,
+        map_root_key,
     ).unwrap();
 
     MetaBlock::new()

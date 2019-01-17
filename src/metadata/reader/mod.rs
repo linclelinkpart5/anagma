@@ -20,6 +20,7 @@ pub enum Error {
     EmptyMetadata,
     CannotConvert(&'static str, &'static str),
     InvalidItemName(String),
+    YamlDeserializeError(serde_yaml::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -31,6 +32,7 @@ impl std::fmt::Display for Error {
             Error::EmptyMetadata => write!(f, "metadata is empty"),
             Error::CannotConvert(source, target) => write!(f, "cannot convert from {} to {}", source, target),
             Error::InvalidItemName(ref item_name) => write!(f, "invalid item name: {}", item_name),
+            Error::YamlDeserializeError(ref err) => write!(f, "cannot deserialize YAML: {}", err),
         }
     }
 }
@@ -44,46 +46,31 @@ impl std::error::Error for Error {
             Error::EmptyMetadata => None,
             Error::CannotConvert(..) => None,
             Error::InvalidItemName(..) => None,
+            Error::YamlDeserializeError(ref err) => Some(err),
         }
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash, Deserialize)]
-pub enum MetaValRepr {
-    Nil,
-    Str(String),
-    Seq(Vec<MetaValRepr>),
-    Map(BTreeMap<String, MetaValRepr>),
-}
-
 pub trait MetaReader {
-    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
+    fn from_str<S: AsRef<str>, M: AsRef<str>>(&self, s: S, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error>;
 
-    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    fn from_file<P: AsRef<Path>, M: AsRef<str>>(&self, p: P, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-        self.from_str(buffer, mt)
+        self.from_str(buffer, mt, map_root_key)
     }
 }
 
 impl MetaReader for MetaFormat {
-    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
-        match *self {
-            MetaFormat::Yaml => yaml::read_str(s, mt),
-        }
-    }
+    fn from_str<S: AsRef<str>, M: AsRef<str>>(&self, s: S, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error> {
+        let meta_structure_repr = match *self {
+            MetaFormat::Yaml => yaml_serde::read_str(s, mt)?,
+        };
 
-    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
-        let p = p.as_ref();
-        let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
-
-        let mut buffer = String::new();
-        f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
-
-        self.from_str(buffer, mt)
+        Ok(meta_structure_repr.to_real_meta_structure(map_root_key))
     }
 }

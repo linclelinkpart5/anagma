@@ -10,6 +10,7 @@ use metadata::types::MetaStructure as RealMetaStructure;
 use metadata::types::MetaBlock as RealMetaBlock;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Deserialize)]
+#[serde(untagged)]
 pub enum MetaVal {
     Nil,
     Str(String),
