@@ -6,6 +6,8 @@ use std::collections::HashMap;
 
 use metadata::types::MetaVal as RealMetaVal;
 use metadata::types::MetaKey as RealMetaKey;
+use metadata::types::MetaStructure as RealMetaStructure;
+use metadata::types::MetaBlock as RealMetaBlock;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Deserialize)]
 pub enum MetaVal {
@@ -53,10 +55,27 @@ pub type MetaBlock = BTreeMap<String, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
 pub type MetaBlockMap = HashMap<String, MetaBlock>;
 
+fn to_real_meta_block<S: AsRef<str>>(mb: MetaBlock, map_root_key: S) -> RealMetaBlock {
+    mb
+        .into_iter()
+        .map(|(k, v)| {
+            (k, v.to_real_meta_val(map_root_key.as_ref()))
+        })
+        .collect()
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum UnitMetaStructure {
     One(MetaBlock),
+}
+
+impl UnitMetaStructure {
+    pub fn to_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
+        match self {
+            UnitMetaStructure::One(mb) => RealMetaStructure::One(to_real_meta_block(mb, map_root_key)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -66,11 +85,39 @@ pub(crate) enum ManyMetaStructure {
     Map(MetaBlockMap),
 }
 
+impl ManyMetaStructure {
+    pub fn to_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
+        match self {
+            ManyMetaStructure::Seq(mb_seq) => RealMetaStructure::Seq(
+                mb_seq
+                    .into_iter()
+                    .map(|mb| to_real_meta_block(mb, map_root_key.as_ref()))
+                    .collect()
+            ),
+            ManyMetaStructure::Map(mb_map) => RealMetaStructure::Map(
+                mb_map
+                    .into_iter()
+                    .map(|(k, mb)| (k, to_real_meta_block(mb, map_root_key.as_ref())))
+                    .collect()
+            ),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum MetaStructure {
     Unit(UnitMetaStructure),
     Many(ManyMetaStructure),
+}
+
+impl MetaStructure {
+    pub fn to_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
+        match self {
+            MetaStructure::Unit(u_ms) => u_ms.to_real_meta_structure(map_root_key),
+            MetaStructure::Many(m_ms) => m_ms.to_real_meta_structure(map_root_key),
+        }
+    }
 }
 
 #[cfg(test)]
