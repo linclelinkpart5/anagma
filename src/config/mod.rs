@@ -60,8 +60,8 @@ mod tests {
     use config::meta_format::MetaFormat;
     use config::fallback_method::FallbackSpecNode;
     use config::fallback_method::Fallback;
-    use config::fallback_method::AncestorFallback;
-    use config::fallback_method::ChildrenFallback;
+    use config::fallback_method::InheritFallback;
+    use config::fallback_method::HarvestFallback;
 
     #[test]
     fn test_deserialization() {
@@ -140,9 +140,9 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
         assert_eq!(config.fallbacks, hashmap![
-            String::from("title") => FallbackSpecNode::Leaf(Fallback::Ancestor(AncestorFallback::Override)),
+            String::from("title") => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
         ]);
-        assert_eq!(config.default_fallback, Fallback::Children(ChildrenFallback::Collect));
+        assert_eq!(config.default_fallback, Fallback::Harvest(HarvestFallback::Collect));
         assert_eq!(config.map_root_key, "null");
     }
 }

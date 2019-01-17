@@ -10,59 +10,15 @@ use config::sort_order::SortOrder;
 use metadata::types::MetaBlock;
 use metadata::processor::MetaProcessor;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
-#[serde(rename_all = "snake_case")]
-#[serde(untagged)]
-pub enum SuperFallback {
-    // Traverses ancestors.
-    Override,
-    Merge,
-
-    // Traverses children.
-    Collect,
-    First,
-
-    // No traversing.
-    None,
-}
-
-impl Default for SuperFallback {
-    fn default() -> Self {
-        Self::Override
-    }
-}
-
-impl SuperFallback {
-    pub fn travserses_ancestors(&self) -> bool {
-        match self {
-            Self::Override => true,
-            Self::Merge => true,
-            Self::Collect => false,
-            Self::First => false,
-            Self::None => false,
-        }
-    }
-
-    pub fn travserses_children(&self) -> bool {
-        match self {
-            Self::Override => false,
-            Self::Merge => false,
-            Self::Collect => true,
-            Self::First => true,
-            Self::None => false,
-        }
-    }
-}
-
 /// Different ways to process parent metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum AncestorFallback {
+pub enum InheritFallback {
     Override,
     Merge,
 }
 
-impl Default for AncestorFallback {
+impl Default for InheritFallback {
     fn default() -> Self {
         Self::Override
     }
@@ -71,12 +27,12 @@ impl Default for AncestorFallback {
 /// Different ways to process child metadata into desired outputs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum ChildrenFallback {
+pub enum HarvestFallback {
     Collect,
     First,
 }
 
-impl Default for ChildrenFallback {
+impl Default for HarvestFallback {
     fn default() -> Self {
         Self::Collect
     }
@@ -86,40 +42,28 @@ impl Default for ChildrenFallback {
 #[serde(rename_all = "snake_case")]
 #[serde(untagged)]
 pub enum Fallback {
+    Inherit(InheritFallback),
+    Harvest(HarvestFallback),
     None,
-    Ancestor(AncestorFallback),
-    Children(ChildrenFallback),
 }
 
 impl Default for Fallback {
     fn default() -> Self {
-        Self::Ancestor(AncestorFallback::default())
+        Self::Inherit(InheritFallback::default())
     }
 }
 
-pub type AncestorFallbackSpec = HashMap<String, AncestorFallbackSpecNode>;
+impl Fallback {
+    pub fn is_ancestor(&self) -> bool {
+        if let Self::Inherit(..) = self { true }
+        else { false }
+    }
 
-/// Node type for the tree representation of fallback methods.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum AncestorFallbackSpecNode {
-    Leaf(AncestorFallback),
-    Pass(HashMap<String, AncestorFallbackSpecNode>),
-    Both(AncestorFallback, HashMap<String, AncestorFallbackSpecNode>),
+    pub fn is_children(&self) -> bool {
+        if let Self::Harvest(..) = self { true }
+        else { false }
+    }
 }
-
-pub type ChildrenFallbackSpec = HashMap<String, ChildrenFallbackSpecNode>;
-
-/// Node type for the tree representation of fallback methods.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum ChildrenFallbackSpecNode {
-    Leaf(ChildrenFallback),
-    Pass(HashMap<String, ChildrenFallbackSpecNode>),
-    Both(ChildrenFallback, HashMap<String, ChildrenFallbackSpecNode>),
-}
-
-pub type FallbackSpec = HashMap<String, FallbackSpecNode>;
 
 /// Node type for the tree representation of fallback methods.
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -130,27 +74,8 @@ pub enum FallbackSpecNode {
     Both(Fallback, HashMap<String, FallbackSpecNode>),
 }
 
+pub type FallbackSpec = HashMap<String, FallbackSpecNode>;
 
-fn divide(mut fallback_spec: FallbackSpec) -> (AncestorFallbackSpec, ChildrenFallbackSpec) {
-    let mut a_fs = AncestorFallbackSpec::new();
-    let mut c_fs = ChildrenFallbackSpec::new();
-
-    for (k, fsn) in fallback_spec.drain() {
-        // Check what kind of node this is.
-        match fsn {
-            FallbackSpecNode::Leaf(f) => {
-            },
-            FallbackSpecNode::Pass(map) => {},
-            FallbackSpecNode::Both(f, map) => {},
-        }
-    }
-
-    (a_fs, c_fs)
-}
-
-fn divide_node(mut fallback_spec_node: FallbackSpecNode) -> () {
-
-}
 
 pub fn process_fallbacks<P: AsRef<Path>>(
     start_item_path: P,
@@ -161,6 +86,10 @@ pub fn process_fallbacks<P: AsRef<Path>>(
     default_fallback: Fallback,
 ) -> MetaBlock
 {
+    // Check which directions we need to traverse, if any.
+    let need_ancestor = default_fallback.is_ancestor();
+    let need_children = default_fallback.is_children();
+
     // Load the origin metadata.
     // This is the isolated metadata block for just the starting item.
     let origin_mb = MetaProcessor::process_item_file(
