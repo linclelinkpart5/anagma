@@ -157,6 +157,7 @@ mod tests {
     use config::meta_format::MetaFormat;
     use metadata::location::MetaLocation;
     use metadata::types::MetaVal;
+    use metadata::types::MetaKey;
 
     use test_util::create_temp_media_test_dir;
 
@@ -186,34 +187,34 @@ mod tests {
                 (path.join("item.yml"), MetaLocation::Siblings),
                 hashmap![
                     path.join("ALBUM_01") => btreemap![
-                        "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
-                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                        "overridden".to_owned() => MetaVal::Str("ALBUM_01_item".to_owned()),
+                        MetaKey::Str("ALBUM_01_item_key".into()) => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                        MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                        MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                        MetaKey::Str("overridden".into()) => MetaVal::Str("ALBUM_01_item".to_owned()),
                     ],
                     path.join("ALBUM_02") => btreemap![
-                        "ALBUM_02_item_key".to_owned() => MetaVal::Str("ALBUM_02_item_val".to_owned()),
-                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                        "overridden".to_owned() => MetaVal::Str("ALBUM_02_item".to_owned()),
+                        MetaKey::Str("ALBUM_02_item_key".into()) => MetaVal::Str("ALBUM_02_item_val".to_owned()),
+                        MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                        MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                        MetaKey::Str("overridden".into()) => MetaVal::Str("ALBUM_02_item".to_owned()),
                     ],
                     path.join("ALBUM_03") => btreemap![
-                        "ALBUM_03_item_key".to_owned() => MetaVal::Str("ALBUM_03_item_val".to_owned()),
-                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                        "overridden".to_owned() => MetaVal::Str("ALBUM_03_item".to_owned()),
+                        MetaKey::Str("ALBUM_03_item_key".into()) => MetaVal::Str("ALBUM_03_item_val".to_owned()),
+                        MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                        MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                        MetaKey::Str("overridden".into()) => MetaVal::Str("ALBUM_03_item".to_owned()),
                     ],
                     path.join("ALBUM_04.flac") => btreemap![
-                        "ALBUM_04_item_key".to_owned() => MetaVal::Str("ALBUM_04_item_val".to_owned()),
-                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                        "overridden".to_owned() => MetaVal::Str("ALBUM_04_item".to_owned()),
+                        MetaKey::Str("ALBUM_04_item_key".into()) => MetaVal::Str("ALBUM_04_item_val".to_owned()),
+                        MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                        MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                        MetaKey::Str("overridden".into()) => MetaVal::Str("ALBUM_04_item".to_owned()),
                     ],
                     path.join("ALBUM_05") => btreemap![
-                        "ALBUM_05_item_key".to_owned() => MetaVal::Str("ALBUM_05_item_val".to_owned()),
-                        "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                        "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                        "overridden".to_owned() => MetaVal::Str("ALBUM_05_item".to_owned()),
+                        MetaKey::Str("ALBUM_05_item_key".into()) => MetaVal::Str("ALBUM_05_item_val".to_owned()),
+                        MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                        MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                        MetaKey::Str("overridden".into()) => MetaVal::Str("ALBUM_05_item".to_owned()),
                     ],
                 ],
             ),
@@ -275,30 +276,30 @@ mod tests {
             (
                 path.to_owned(),
                 btreemap![
-                    "ROOT_self_key".to_owned() => MetaVal::Str("ROOT_self_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("ROOT_self".to_owned()),
+                    MetaKey::Str("ROOT_self_key".into()) => MetaVal::Str("ROOT_self_val".to_owned()),
+                    MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                    MetaKey::Str("self_key".into()) => MetaVal::Str("self_val".to_owned()),
+                    MetaKey::Str("overridden".into()) => MetaVal::Str("ROOT_self".to_owned()),
                 ],
             ),
             (
                 path.join("ALBUM_01"),
                 btreemap![
-                    "ALBUM_01_item_key".to_owned() => MetaVal::Str("ALBUM_01_item_val".to_owned()),
-                    "ALBUM_01_self_key".to_owned() => MetaVal::Str("ALBUM_01_self_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                    "self_key".to_owned() => MetaVal::Str("self_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("ALBUM_01_self".to_owned()),
+                    MetaKey::Str("ALBUM_01_item_key".into()) => MetaVal::Str("ALBUM_01_item_val".to_owned()),
+                    MetaKey::Str("ALBUM_01_self_key".into()) => MetaVal::Str("ALBUM_01_self_val".to_owned()),
+                    MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                    MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                    MetaKey::Str("self_key".into()) => MetaVal::Str("self_val".to_owned()),
+                    MetaKey::Str("overridden".into()) => MetaVal::Str("ALBUM_01_self".to_owned()),
                 ],
             ),
             (
                 path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"),
                 btreemap![
-                    "TRACK_01_item_key".to_owned() => MetaVal::Str("TRACK_01_item_val".to_owned()),
-                    "const_key".to_owned() => MetaVal::Str("const_val".to_owned()),
-                    "item_key".to_owned() => MetaVal::Str("item_val".to_owned()),
-                    "overridden".to_owned() => MetaVal::Str("TRACK_01_item".to_owned()),
+                    MetaKey::Str("TRACK_01_item_key".into()) => MetaVal::Str("TRACK_01_item_val".to_owned()),
+                    MetaKey::Str("const_key".into()) => MetaVal::Str("const_val".to_owned()),
+                    MetaKey::Str("item_key".into()) => MetaVal::Str("item_val".to_owned()),
+                    MetaKey::Str("overridden".into()) => MetaVal::Str("TRACK_01_item".to_owned()),
                 ],
             ),
         ];

@@ -8,6 +8,7 @@ use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
 use metadata::types::MetaBlock;
+use metadata::types::MetaKey;
 use metadata::processor::MetaProcessor;
 
 /// Different ways to process parent metadata into desired outputs.
@@ -54,18 +55,88 @@ impl Default for Fallback {
 }
 
 /// Node type for the tree representation of fallback methods.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FallbackSpecNode {
     Leaf(Fallback),
-    Pass(FallbackSpec),
-    Both(Fallback, FallbackSpec),
+    Pass(HashMap<MetaKey, FallbackSpecNode>),
+    Both(Fallback, HashMap<MetaKey, FallbackSpecNode>),
 }
 
-pub type FallbackSpec = HashMap<String, FallbackSpecNode>;
+pub type FallbackSpec = HashMap<MetaKey, FallbackSpecNode>;
 
-fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&String>, Fallback> {
+/// Node type for the tree representation of fallback methods.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum FallbackSpecNodeRepr {
+    Leaf(Fallback),
+    Pass(HashMap<String, FallbackSpecNodeRepr>),
+    Both(Fallback, HashMap<String, FallbackSpecNodeRepr>),
+}
+
+impl FallbackSpecNodeRepr {
+    pub(crate) fn into_fallback_spec_node<S: AsRef<str>>(self, map_root_key: S) -> FallbackSpecNode {
+        match self {
+            Self::Leaf(fb) => FallbackSpecNode::Leaf(fb),
+            Self::Pass(map) => {
+                FallbackSpecNode::Pass(
+                    map
+                        .into_iter()
+                        .map(|(k, v)| {
+                            (
+                                match k == map_root_key.as_ref() {
+                                    true => MetaKey::Nil,
+                                    false => MetaKey::Str(k),
+                                },
+                                v.into_fallback_spec_node(map_root_key.as_ref()),
+                            )
+                        })
+                        .collect()
+                )
+            },
+            Self::Both(fb, map) => {
+                FallbackSpecNode::Both(
+                    fb,
+                    map
+                        .into_iter()
+                        .map(|(k, v)| {
+                            (
+                                match k == map_root_key.as_ref() {
+                                    true => MetaKey::Nil,
+                                    false => MetaKey::Str(k),
+                                },
+                                v.into_fallback_spec_node(map_root_key.as_ref()),
+                            )
+                        })
+                        .collect()
+                )
+            },
+        }
+    }
+}
+
+pub type FallbackSpecRepr = HashMap<String, FallbackSpecNodeRepr>;
+
+pub(crate) fn into_fallback_spec<S: AsRef<str>>(fbsr: FallbackSpecRepr, map_root_key: S) -> FallbackSpec {
+    fbsr
+        .into_iter()
+        .map(|(k, v)| {
+            (
+                match k == map_root_key.as_ref() {
+                    true => MetaKey::Nil,
+                    false => MetaKey::Str(k),
+                },
+                v.into_fallback_spec_node(map_root_key.as_ref()),
+            )
+        })
+        .collect()
+}
+
+fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&MetaKey>, Fallback> {
     let mut mapping = HashMap::new();
+
+    for (k, v) in fallback_spec {
+
+    }
 
     listify_fallback_spec_helper(fallback_spec, vec![], &mut mapping);
 
@@ -73,9 +144,9 @@ fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&String>, 
 }
 
 fn listify_fallback_spec_helper<'a>(
-    fallback_spec: &'a FallbackSpec,
-    curr_path: Vec<&'a String>,
-    mapping: &mut HashMap<Vec<&'a String>, Fallback>)
+    fallback_spec: &'a HashMap<MetaKey, FallbackSpecNode>,
+    curr_path: Vec<&'a MetaKey>,
+    mapping: &mut HashMap<Vec<&'a MetaKey>, Fallback>)
 {
     for (k, fsn) in fallback_spec {
         let mut new_path = curr_path.clone();
@@ -128,11 +199,13 @@ mod tests {
     use super::InheritFallback;
     use super::HarvestFallback;
 
+    use metadata::types::MetaKey;
+
     #[test]
     fn test_listify_fallback_spec() {
-        let title_key = String::from("title");
-        let rg_key = String::from("rg");
-        let peak_key = String::from("peak");
+        let title_key = MetaKey::Str(String::from("title"));
+        let rg_key = MetaKey::Str(String::from("rg"));
+        let peak_key = MetaKey::Str(String::from("peak"));
 
         let inputs_and_expected = vec![
             (

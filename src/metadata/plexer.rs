@@ -140,24 +140,25 @@ mod tests {
 
     use config::sort_order::SortOrder;
     use metadata::types::MetaStructure;
-    use metadata::types::val::MetaVal;
+    use metadata::types::MetaVal;
+    use metadata::types::MetaKey;
 
     #[test]
     fn test_plex() {
         let mb_a = btreemap![
-            String::from("key_1a") => MetaVal::Str(String::from("val_1a")),
-            String::from("key_1b") => MetaVal::Str(String::from("val_1b")),
-            String::from("key_1c") => MetaVal::Str(String::from("val_1c")),
+            MetaKey::Str("key_1a".into()) => MetaVal::Str(String::from("val_1a")),
+            MetaKey::Str("key_1b".into()) => MetaVal::Str(String::from("val_1b")),
+            MetaKey::Str("key_1c".into()) => MetaVal::Str(String::from("val_1c")),
         ];
         let mb_b = btreemap![
-            String::from("key_2a") => MetaVal::Str(String::from("val_2a")),
-            String::from("key_2b") => MetaVal::Str(String::from("val_2b")),
-            String::from("key_2c") => MetaVal::Str(String::from("val_2c")),
+            MetaKey::Str("key_2a".into()) => MetaVal::Str(String::from("val_2a")),
+            MetaKey::Str("key_2b".into()) => MetaVal::Str(String::from("val_2b")),
+            MetaKey::Str("key_2c".into()) => MetaVal::Str(String::from("val_2c")),
         ];
         let mb_c = btreemap![
-            String::from("key_3a") => MetaVal::Str(String::from("val_3a")),
-            String::from("key_3b") => MetaVal::Str(String::from("val_3b")),
-            String::from("key_3c") => MetaVal::Str(String::from("val_3c")),
+            MetaKey::Str("key_3a".into()) => MetaVal::Str(String::from("val_3a")),
+            MetaKey::Str("key_3b".into()) => MetaVal::Str(String::from("val_3b")),
+            MetaKey::Str("key_3c".into()) => MetaVal::Str(String::from("val_3c")),
         ];
 
         let ms_a = MetaStructure::One(mb_a.clone());

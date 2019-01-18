@@ -5,14 +5,57 @@ pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
+use serde::Deserialize;
+use serde::de::Deserializer;
+
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
 use config::fallback_method::FallbackSpec;
+use config::fallback_method::FallbackSpecRepr;
 use config::fallback_method::Fallback;
+use config::fallback_method::into_fallback_spec;
 
 #[derive(Deserialize)]
 #[serde(default)]
+struct ConfigRepr {
+    pub selection: Selection,
+    pub sort_order: SortOrder,
+    pub item_fn: String,
+    pub self_fn: String,
+    pub meta_format: MetaFormat,
+    pub fallbacks: FallbackSpecRepr,
+    pub default_fallback: Fallback,
+    pub map_root_key: String,
+}
+
+impl Default for ConfigRepr {
+    fn default() -> Self {
+        use metadata::location::MetaLocation;
+
+        // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
+        let selection = Selection::default();
+        let sort_order = SortOrder::default();
+        let meta_format = MetaFormat::default();
+        let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
+        let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
+        let fallbacks = FallbackSpecRepr::default();
+        let default_fallback = Fallback::default();
+        let map_root_key = String::from("~");
+
+        ConfigRepr {
+            selection,
+            sort_order,
+            item_fn,
+            self_fn,
+            meta_format,
+            fallbacks,
+            default_fallback,
+            map_root_key,
+        }
+    }
+}
+
 pub struct Config {
     pub selection: Selection,
     pub sort_order: SortOrder,
@@ -26,28 +69,31 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        use metadata::location::MetaLocation;
+        ConfigRepr::default().into()
+    }
+}
 
-        // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
-        let selection = Selection::default();
-        let sort_order = SortOrder::default();
-        let meta_format = MetaFormat::default();
-        let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
-        let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
-        let fallbacks = FallbackSpec::default();
-        let default_fallback = Fallback::default();
-        let map_root_key = String::from("~");
-
+impl From<ConfigRepr> for Config {
+    fn from(other: ConfigRepr) -> Self {
         Config {
-            selection,
-            sort_order,
-            item_fn,
-            self_fn,
-            meta_format,
-            fallbacks,
-            default_fallback,
-            map_root_key,
+            selection: other.selection,
+            sort_order: other.sort_order,
+            item_fn: other.item_fn,
+            self_fn: other.self_fn,
+            meta_format: other.meta_format,
+            fallbacks: into_fallback_spec(other.fallbacks, &other.map_root_key),
+            default_fallback: other.default_fallback,
+            map_root_key: other.map_root_key,
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for Config {
+    fn deserialize<D>(deserializer: D) -> Result<Config, D::Error>
+    where D: Deserializer<'de> {
+        use serde::de::Error;
+        let config_repr = ConfigRepr::deserialize(deserializer).map_err(Error::custom)?;
+        Ok(config_repr.into())
     }
 }
 
@@ -62,6 +108,8 @@ mod tests {
     use config::fallback_method::Fallback;
     use config::fallback_method::InheritFallback;
     use config::fallback_method::HarvestFallback;
+
+    use metadata::types::MetaKey;
 
     #[test]
     fn test_deserialization() {
@@ -140,7 +188,7 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
         assert_eq!(config.fallbacks, hashmap![
-            String::from("title") => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
+            MetaKey::Str("title".into()) => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
         ]);
         assert_eq!(config.default_fallback, Fallback::Harvest(HarvestFallback::Collect));
         assert_eq!(config.map_root_key, "null");

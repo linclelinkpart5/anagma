@@ -10,7 +10,7 @@ use std::collections::HashMap;
 pub use metadata::types::val::MetaVal;
 pub use metadata::types::key::MetaKey;
 
-pub type MetaBlock = BTreeMap<String, MetaVal>;
+pub type MetaBlock = BTreeMap<MetaKey, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
 pub type MetaBlockMap = HashMap<String, MetaBlock>;
 

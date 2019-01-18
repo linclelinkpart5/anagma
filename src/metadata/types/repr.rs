@@ -60,7 +60,13 @@ fn to_real_meta_block<S: AsRef<str>>(mb: MetaBlock, map_root_key: S) -> RealMeta
     mb
         .into_iter()
         .map(|(k, v)| {
-            (k, v.to_real_meta_val(map_root_key.as_ref()))
+            (
+                match k == map_root_key.as_ref() {
+                    true => RealMetaKey::Nil,
+                    false => RealMetaKey::Str(k),
+                },
+                v.to_real_meta_val(map_root_key.as_ref()),
+            )
         })
         .collect()
 }
