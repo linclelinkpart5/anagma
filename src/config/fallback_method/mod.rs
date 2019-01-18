@@ -106,6 +106,8 @@ pub fn process_fallbacks<P: AsRef<Path>, S: AsRef<str>>(
     map_root_key: S,
 ) -> MetaBlock
 {
+    let listified = listify_fallback_spec(fallback_spec);
+
     // Load the origin metadata.
     // This is the isolated metadata block for just the starting item.
     let origin_mb = MetaProcessor::process_item_file(
@@ -122,7 +124,6 @@ pub fn process_fallbacks<P: AsRef<Path>, S: AsRef<str>>(
 #[cfg(test)]
 mod tests {
     use super::Fallback;
-    use super::FallbackSpec;
     use super::FallbackSpecNode;
     use super::InheritFallback;
     use super::HarvestFallback;
@@ -162,6 +163,22 @@ mod tests {
                         Fallback::Inherit(InheritFallback::Override),
                     vec![&rg_key] =>
                         Fallback::Inherit(InheritFallback::Merge),
+                    vec![&rg_key, &peak_key] =>
+                        Fallback::Harvest(HarvestFallback::First),
+                ],
+            ),
+            (
+                hashmap![
+                    title_key.clone() => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
+                    rg_key.clone() => FallbackSpecNode::Pass(
+                        hashmap![
+                            peak_key.clone() => FallbackSpecNode::Leaf(Fallback::Harvest(HarvestFallback::First)),
+                        ],
+                    ),
+                ],
+                hashmap![
+                    vec![&title_key] =>
+                        Fallback::Inherit(InheritFallback::Override),
                     vec![&rg_key, &peak_key] =>
                         Fallback::Harvest(HarvestFallback::First),
                 ],
