@@ -19,7 +19,7 @@ pub enum MetaVal {
 }
 
 impl MetaVal {
-    pub fn to_real_meta_val<S: AsRef<str>>(self, map_root_key: S) -> RealMetaVal {
+    pub fn into_real_meta_val<S: AsRef<str>>(self, map_root_key: S) -> RealMetaVal {
         match self {
             MetaVal::Nil => RealMetaVal::Nil,
             MetaVal::Str(s) => RealMetaVal::Str(s),
@@ -27,7 +27,7 @@ impl MetaVal {
                 RealMetaVal::Seq(
                     seq
                         .into_iter()
-                        .map(|mv| mv.to_real_meta_val(map_root_key.as_ref()))
+                        .map(|mv| mv.into_real_meta_val(map_root_key.as_ref()))
                         .collect()
                 )
             },
@@ -42,7 +42,7 @@ impl MetaVal {
                                     true => RealMetaKey::Nil,
                                     false => RealMetaKey::Str(k),
                                 },
-                                v.to_real_meta_val(map_root_key.as_ref())
+                                v.into_real_meta_val(map_root_key.as_ref())
                             )
                         })
                         .collect()
@@ -56,7 +56,7 @@ pub type MetaBlock = BTreeMap<String, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
 pub type MetaBlockMap = HashMap<String, MetaBlock>;
 
-fn to_real_meta_block<S: AsRef<str>>(mb: MetaBlock, map_root_key: S) -> RealMetaBlock {
+fn into_real_meta_block<S: AsRef<str>>(mb: MetaBlock, map_root_key: S) -> RealMetaBlock {
     mb
         .into_iter()
         .map(|(k, v)| {
@@ -65,7 +65,7 @@ fn to_real_meta_block<S: AsRef<str>>(mb: MetaBlock, map_root_key: S) -> RealMeta
                     true => RealMetaKey::Nil,
                     false => RealMetaKey::Str(k),
                 },
-                v.to_real_meta_val(map_root_key.as_ref()),
+                v.into_real_meta_val(map_root_key.as_ref()),
             )
         })
         .collect()
@@ -78,9 +78,9 @@ pub(crate) enum UnitMetaStructure {
 }
 
 impl UnitMetaStructure {
-    pub fn to_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
+    pub fn into_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
         match self {
-            UnitMetaStructure::One(mb) => RealMetaStructure::One(to_real_meta_block(mb, map_root_key)),
+            UnitMetaStructure::One(mb) => RealMetaStructure::One(into_real_meta_block(mb, map_root_key)),
         }
     }
 }
@@ -93,18 +93,18 @@ pub(crate) enum ManyMetaStructure {
 }
 
 impl ManyMetaStructure {
-    pub fn to_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
+    pub fn into_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
         match self {
             ManyMetaStructure::Seq(mb_seq) => RealMetaStructure::Seq(
                 mb_seq
                     .into_iter()
-                    .map(|mb| to_real_meta_block(mb, map_root_key.as_ref()))
+                    .map(|mb| into_real_meta_block(mb, map_root_key.as_ref()))
                     .collect()
             ),
             ManyMetaStructure::Map(mb_map) => RealMetaStructure::Map(
                 mb_map
                     .into_iter()
-                    .map(|(k, mb)| (k, to_real_meta_block(mb, map_root_key.as_ref())))
+                    .map(|(k, mb)| (k, into_real_meta_block(mb, map_root_key.as_ref())))
                     .collect()
             ),
         }
@@ -119,10 +119,10 @@ pub(crate) enum MetaStructure {
 }
 
 impl MetaStructure {
-    pub fn to_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
+    pub fn into_real_meta_structure<S: AsRef<str>>(self, map_root_key: S) -> RealMetaStructure {
         match self {
-            MetaStructure::Unit(u_ms) => u_ms.to_real_meta_structure(map_root_key),
-            MetaStructure::Many(m_ms) => m_ms.to_real_meta_structure(map_root_key),
+            MetaStructure::Unit(u_ms) => u_ms.into_real_meta_structure(map_root_key),
+            MetaStructure::Many(m_ms) => m_ms.into_real_meta_structure(map_root_key),
         }
     }
 }
@@ -135,7 +135,7 @@ mod tests {
     use metadata::types::MetaVal as RealMetaVal;
 
     #[test]
-    fn test_to_real_meta_val() {
+    fn test_into_real_meta_val() {
         const MAP_ROOT_KEY: &str = "key_root";
         let inputs_and_expected = vec![
             (
@@ -207,7 +207,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.to_real_meta_val(MAP_ROOT_KEY);
+            let produced = input.into_real_meta_val(MAP_ROOT_KEY);
             assert_eq!(expected, produced);
         }
     }

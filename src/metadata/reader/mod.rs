@@ -69,6 +69,6 @@ impl MetaReader for MetaFormat {
             MetaFormat::Yaml => yaml::read_str(s, mt)?,
         };
 
-        Ok(meta_structure_repr.to_real_meta_structure(map_root_key))
+        Ok(meta_structure_repr.into_real_meta_structure(map_root_key))
     }
 }
