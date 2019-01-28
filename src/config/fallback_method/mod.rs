@@ -1,5 +1,5 @@
-mod inherit;
-mod collect;
+//! Representation and processing logic for metadata fallbacks.
+//! A fallback is a way to obtain metadata from another source if it is missing for anm item.
 
 use std::path::Path;
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ use metadata::types::MetaBlock;
 use metadata::types::MetaKey;
 use metadata::processor::MetaProcessor;
 
-/// Different ways to process parent metadata into desired outputs.
+/// Fallbacks that source missing data by looking at the ancestors/parents of an item.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum InheritFallback {
@@ -25,7 +25,7 @@ impl Default for InheritFallback {
     }
 }
 
-/// Different ways to process child metadata into desired outputs.
+/// Fallbacks that source missing data by looking at the descendants/children of an item.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum HarvestFallback {
@@ -133,10 +133,6 @@ pub(crate) fn into_fallback_spec<S: AsRef<str>>(fbsr: FallbackSpecRepr, map_root
 
 fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&MetaKey>, Fallback> {
     let mut mapping = HashMap::new();
-
-    for (k, v) in fallback_spec {
-
-    }
 
     listify_fallback_spec_helper(fallback_spec, vec![], &mut mapping);
 
