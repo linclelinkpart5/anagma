@@ -76,7 +76,7 @@ impl<'s> ChildrenItemVisitor<'s> {
         match selection.select_in_dir_sorted(origin_item_path, sort_order) {
             // TODO: Return Result<PathBuf, *> instead of just PathBuf.
             Err(err) => {
-                frontier.push_back(Err(Error::Selection(err)))
+                frontier.push_back(Err(Error::Selection(err)));
             },
             Ok(mut sub_item_paths) => {
                 for p in sub_item_paths.drain(..) {
@@ -101,7 +101,7 @@ impl<'s> ChildrenItemVisitor<'s> {
             if lpp.is_dir() {
                 match self.selection.select_in_dir_sorted(&lpp, self.sort_order) {
                     Err(err) => {
-                        warn!("{}", err);
+                        self.frontier.push_back(Err(Error::Selection(err)));
                     },
                     Ok(mut sub_item_paths) => {
                         for p in sub_item_paths.drain(..).rev() {
