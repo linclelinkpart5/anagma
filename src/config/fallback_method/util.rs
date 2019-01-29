@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::collections::VecDeque;
+use std::borrow::Cow;
 
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
@@ -37,7 +38,7 @@ impl<'p> AncestorItemVisitor<'p> {
 }
 
 impl<'p> Iterator for AncestorItemVisitor<'p> {
-    type Item = &'p Path;
+    type Item = Result<Cow<'p, Path>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.0 {
@@ -46,7 +47,7 @@ impl<'p> Iterator for AncestorItemVisitor<'p> {
 
                 self.0 = p.parent();
 
-                ret
+                ret.map(Cow::Borrowed).map(Result::Ok)
             },
             None => None,
         }
@@ -74,7 +75,6 @@ impl<'s> ChildrenItemVisitor<'s> {
 
         // Initialize the frontier with the subitems of the origin.
         match selection.select_in_dir_sorted(origin_item_path, sort_order) {
-            // TODO: Return Result<PathBuf, *> instead of just PathBuf.
             Err(err) => {
                 frontier.push_back(Err(Error::Selection(err)));
             },
@@ -94,16 +94,17 @@ impl<'s> ChildrenItemVisitor<'s> {
         }
     }
 
-    pub fn delve(&mut self) {
+    pub fn delve(&mut self) -> Result<(), Error> {
         // Manually delves into a directory, and adds its subitems to the frontier.
         if let Some(lpp) = self.last_processed_path.take() {
             // If the last processed path is a directory, add its children to the frontier.
             if lpp.is_dir() {
                 match self.selection.select_in_dir_sorted(&lpp, self.sort_order) {
                     Err(err) => {
-                        self.frontier.push_back(Err(Error::Selection(err)));
+                        return Err(Error::Selection(err));
                     },
                     Ok(mut sub_item_paths) => {
+                        // NOTE: Reversing and pushing onto the front of the queue is needed.
                         for p in sub_item_paths.drain(..).rev() {
                             self.frontier.push_front(Ok(p));
                         }
@@ -111,11 +112,13 @@ impl<'s> ChildrenItemVisitor<'s> {
                 }
             }
         }
+
+        Ok(())
     }
 }
 
 impl<'s> Iterator for ChildrenItemVisitor<'s> {
-    type Item = Result<PathBuf, Error>;
+    type Item = Result<Cow<'s, Path>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(frontier_item_result) = self.frontier.pop_front() {
@@ -124,7 +127,7 @@ impl<'s> Iterator for ChildrenItemVisitor<'s> {
                 self.last_processed_path = Some(frontier_item_path.clone());
             }
 
-            Some(frontier_item_result)
+            Some(frontier_item_result.map(Cow::Owned))
         }
         else {
             None
