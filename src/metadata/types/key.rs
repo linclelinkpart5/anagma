@@ -20,6 +20,11 @@ impl MetaKey {
     }
 }
 
+/// A sequence of `MetaKey`s that index into a `MetaBlock`.
+/// This works like a hierarchical index on the contents of the `MetaBlock`.
+/// An empty `MetaKeyPath` references the entire target `MetaBlock`.
+pub type MetaKeyPath = Vec<MetaKey>;
+
 #[cfg(test)]
 mod tests {
     use super::MetaKey;
