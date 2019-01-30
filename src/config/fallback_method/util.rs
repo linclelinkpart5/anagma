@@ -58,7 +58,6 @@ struct ChildrenItemVisitor<'s> {
     frontier: VecDeque<Result<PathBuf, Error>>,
     last_processed_path: Option<PathBuf>,
 
-    meta_format: MetaFormat,
     selection: &'s Selection,
     sort_order: SortOrder,
 }
@@ -66,7 +65,6 @@ struct ChildrenItemVisitor<'s> {
 impl<'s> ChildrenItemVisitor<'s> {
     pub fn new<P: AsRef<Path>>(
         origin_item_path: P,
-        meta_format: MetaFormat,
         selection: &'s Selection,
         sort_order: SortOrder,
     ) -> Self
@@ -88,7 +86,6 @@ impl<'s> ChildrenItemVisitor<'s> {
         Self {
             frontier,
             last_processed_path: None,
-            meta_format,
             selection,
             sort_order,
         }
