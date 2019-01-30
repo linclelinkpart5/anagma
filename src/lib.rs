@@ -4,9 +4,9 @@
 #![feature(type_alias_enum_variants)]
 
 #[macro_use] extern crate maplit;
-extern crate yaml_rust;
 extern crate serde;
 extern crate serde_yaml;
+extern crate serde_json;
 #[macro_use] extern crate serde_derive;
 extern crate globset;
 extern crate itertools;

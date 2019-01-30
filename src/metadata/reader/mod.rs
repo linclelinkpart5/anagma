@@ -1,6 +1,7 @@
 //! Methodologies for parsing text representations of metadata in various formats into a usable form.
 
 pub mod yaml;
+pub mod json;
 
 use std::path::Path;
 use std::fs::File;
@@ -19,6 +20,7 @@ pub enum Error {
     CannotConvert(&'static str, &'static str),
     InvalidItemName(String),
     YamlDeserializeError(serde_yaml::Error),
+    JsonDeserializeError(serde_json::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -31,6 +33,7 @@ impl std::fmt::Display for Error {
             Error::CannotConvert(source, target) => write!(f, "cannot convert from {} to {}", source, target),
             Error::InvalidItemName(ref item_name) => write!(f, "invalid item name: {}", item_name),
             Error::YamlDeserializeError(ref err) => write!(f, "cannot deserialize YAML: {}", err),
+            Error::JsonDeserializeError(ref err) => write!(f, "cannot deserialize JSON: {}", err),
         }
     }
 }
@@ -45,6 +48,7 @@ impl std::error::Error for Error {
             Error::CannotConvert(..) => None,
             Error::InvalidItemName(..) => None,
             Error::YamlDeserializeError(ref err) => Some(err),
+            Error::JsonDeserializeError(ref err) => Some(err),
         }
     }
 }
@@ -67,6 +71,7 @@ impl MetaReader for MetaFormat {
     fn from_str<S: AsRef<str>, M: AsRef<str>>(&self, s: S, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error> {
         let meta_structure_repr = match *self {
             MetaFormat::Yaml => yaml::read_str(s, mt)?,
+            MetaFormat::Json => json::read_str(s, mt)?,
         };
 
         Ok(meta_structure_repr.into_real_meta_structure(map_root_key))
