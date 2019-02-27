@@ -188,7 +188,7 @@ mod tests {
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
         assert_eq!(config.fallbacks, hashmap![
-            MetaKey::Str("title".into()) => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
+            MetaKey::Str("title".into()) => FallbackSpecNode::Leaf(Some(Fallback::Inherit(InheritFallback::Override))),
         ]);
         assert_eq!(config.default_fallback, Fallback::Harvest(HarvestFallback::Collect));
         assert_eq!(config.map_root_key, "null");

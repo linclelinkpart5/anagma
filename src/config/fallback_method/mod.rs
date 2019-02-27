@@ -47,7 +47,6 @@ impl Default for HarvestFallback {
 pub enum Fallback {
     Inherit(InheritFallback),
     Harvest(HarvestFallback),
-    None,
 }
 
 impl Default for Fallback {
@@ -59,9 +58,9 @@ impl Default for Fallback {
 /// Node type for the tree representation of fallback methods.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FallbackSpecNode {
-    Leaf(Fallback),
+    Leaf(Option<Fallback>),
     Pass(HashMap<MetaKey, FallbackSpecNode>),
-    Both(Fallback, HashMap<MetaKey, FallbackSpecNode>),
+    Both(Option<Fallback>, HashMap<MetaKey, FallbackSpecNode>),
 }
 
 pub type FallbackSpec = HashMap<MetaKey, FallbackSpecNode>;
@@ -70,9 +69,9 @@ pub type FallbackSpec = HashMap<MetaKey, FallbackSpecNode>;
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum FallbackSpecNodeRepr {
-    Leaf(Fallback),
+    Leaf(Option<Fallback>),
     Pass(HashMap<String, FallbackSpecNodeRepr>),
-    Both(Fallback, HashMap<String, FallbackSpecNodeRepr>),
+    Both(Option<Fallback>, HashMap<String, FallbackSpecNodeRepr>),
 }
 
 impl FallbackSpecNodeRepr {
@@ -133,7 +132,7 @@ pub(crate) fn into_fallback_spec<S: AsRef<str>>(fbsr: FallbackSpecRepr, map_root
         .collect()
 }
 
-fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&MetaKey>, Fallback> {
+fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&MetaKey>, Option<Fallback>> {
     let mut mapping = HashMap::new();
 
     listify_fallback_spec_helper(fallback_spec, vec![], &mut mapping);
@@ -144,7 +143,7 @@ fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&MetaKey>,
 fn listify_fallback_spec_helper<'a>(
     fallback_spec: &'a HashMap<MetaKey, FallbackSpecNode>,
     curr_path: Vec<&'a MetaKey>,
-    mapping: &mut HashMap<Vec<&'a MetaKey>, Fallback>)
+    mapping: &mut HashMap<Vec<&'a MetaKey>, Option<Fallback>>)
 {
     for (k, fsn) in fallback_spec {
         let mut new_path = curr_path.clone();
@@ -212,46 +211,46 @@ mod tests {
             ),
             (
                 hashmap![
-                    title_key.clone() => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
+                    title_key.clone() => FallbackSpecNode::Leaf(Some(Fallback::Inherit(InheritFallback::Override))),
                 ],
                 hashmap![
                     vec![&title_key] =>
-                        Fallback::Inherit(InheritFallback::Override),
+                        Some(Fallback::Inherit(InheritFallback::Override)),
                 ],
             ),
             (
                 hashmap![
-                    title_key.clone() => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
+                    title_key.clone() => FallbackSpecNode::Leaf(Some(Fallback::Inherit(InheritFallback::Override))),
                     rg_key.clone() => FallbackSpecNode::Both(
-                        Fallback::Inherit(InheritFallback::Merge),
+                        Some(Fallback::Inherit(InheritFallback::Merge)),
                         hashmap![
-                            peak_key.clone() => FallbackSpecNode::Leaf(Fallback::Harvest(HarvestFallback::First)),
+                            peak_key.clone() => FallbackSpecNode::Leaf(Some(Fallback::Harvest(HarvestFallback::First))),
                         ],
                     ),
                 ],
                 hashmap![
                     vec![&title_key] =>
-                        Fallback::Inherit(InheritFallback::Override),
+                        Some(Fallback::Inherit(InheritFallback::Override)),
                     vec![&rg_key] =>
-                        Fallback::Inherit(InheritFallback::Merge),
+                        Some(Fallback::Inherit(InheritFallback::Merge)),
                     vec![&rg_key, &peak_key] =>
-                        Fallback::Harvest(HarvestFallback::First),
+                        Some(Fallback::Harvest(HarvestFallback::First)),
                 ],
             ),
             (
                 hashmap![
-                    title_key.clone() => FallbackSpecNode::Leaf(Fallback::Inherit(InheritFallback::Override)),
+                    title_key.clone() => FallbackSpecNode::Leaf(Some(Fallback::Inherit(InheritFallback::Override))),
                     rg_key.clone() => FallbackSpecNode::Pass(
                         hashmap![
-                            peak_key.clone() => FallbackSpecNode::Leaf(Fallback::Harvest(HarvestFallback::First)),
+                            peak_key.clone() => FallbackSpecNode::Leaf(Some(Fallback::Harvest(HarvestFallback::First))),
                         ],
                     ),
                 ],
                 hashmap![
                     vec![&title_key] =>
-                        Fallback::Inherit(InheritFallback::Override),
+                        Some(Fallback::Inherit(InheritFallback::Override)),
                     vec![&rg_key, &peak_key] =>
-                        Fallback::Harvest(HarvestFallback::First),
+                        Some(Fallback::Harvest(HarvestFallback::First)),
                 ],
             ),
         ];

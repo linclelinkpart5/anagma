@@ -37,7 +37,7 @@ pub fn is_valid_item_name<S: AsRef<str>>(s: S) -> bool {
         return false;
     }
 
-    // The single component but be normal.
+    // The single component must be normal.
     match components[0] {
         Component::Normal(_) => {},
         _ => { return false; },
