@@ -6,15 +6,17 @@ use config::meta_format::MetaFormat;
 use metadata::types::MetaKey;
 use metadata::types::MetaVal;
 use metadata::processor::MetaProcessor;
-
+use metadata::processor::Error as ProcessorError;
 
 #[derive(Debug)]
 pub enum Error {
+    Processor(ProcessorError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
+            Error::Processor(ref err) => write!(f, "processor error: {}", err),
         }
     }
 }
@@ -22,6 +24,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
+            Error::Processor(ref err) => Some(err),
         }
     }
 }
@@ -50,21 +53,53 @@ impl<'k, 'p, 's, 'mrk> Iterator for PIter<'k, 'p, 's, 'mrk> {
             Some(curr_path) => {
                 self.next_path = curr_path.parent();
 
-                let processed = MetaProcessor::process_item_file(
+                let mut processed = MetaProcessor::process_item_file(
                     curr_path,
                     self.meta_format,
                     self.selection,
                     self.sort_order,
                     self.map_root_key,
-                );
+                ).map_err(Error::Processor);
 
                 match processed {
-                    Ok(mb) => {},
-                    Err(err) => {},
-                };
+                    Err(err) => Some(Err(err)),
+                    Ok(mb) => {
+                        // A meta block was found, see if the target is found in it.
+                        let target_key_path = self.target_key_path.clone();
 
-                None
+                        // Initalize the meta value by wrapping the entire meta block in a map.
+                        let mut curr_val = MetaVal::Map(mb);
+
+                        for key in target_key_path {
+                            // See if the current meta value is indeed a mapping.
+                            match curr_val {
+                                MetaVal::Map(mut map) => {
+                                    // See if the current key in the key path is found in this mapping.
+                                    match map.remove(key) {
+                                        None => {
+                                            // The target is not found in this entire meta block.
+                                            // Short circuit and try the next `next`.
+                                            return self.next()
+                                        }
+                                        Some(val) => {
+                                            // The current key was found, set the new current value.
+                                            curr_val = val;
+                                        }
+                                    }
+                                },
+                                _ => {
+                                    // ERROR: Trying to get a key of a non-map.
+                                    panic!("trying to get a key of a non-map");
+                                },
+                            }
+                        }
+
+                        // The remaining current value is what is needed to return.
+                        Some(Ok(curr_val))
+                    },
+                }
             },
+            // No more paths to iterate over.
             None => None,
         }
     }
