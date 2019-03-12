@@ -7,6 +7,18 @@ pub enum MetaKey {
     Str(String),
 }
 
+impl<S> From<Option<S>> for MetaKey
+where
+    S: Into<String>
+{
+    fn from(opt_str: Option<S>) -> Self {
+        match opt_str {
+            Some(s) => MetaKey::Str(s.into()),
+            None => MetaKey::Nil,
+        }
+    }
+}
+
 impl MetaKey {
     pub fn iter_over<'a>(&'a self) -> impl Iterator<Item = &'a String> {
         let closure = move || {

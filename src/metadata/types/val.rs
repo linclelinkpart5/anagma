@@ -56,18 +56,6 @@ impl MetaVal {
     // }
 }
 
-impl<S> From<Option<S>> for MetaKey
-where
-    S: Into<String>
-{
-    fn from(opt_str: Option<S>) -> Self {
-        match opt_str {
-            Some(s) => MetaKey::Str(s.into()),
-            None => MetaKey::Nil,
-        }
-    }
-}
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum MappingIterScheme {
     Keys,
