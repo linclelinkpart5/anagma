@@ -16,7 +16,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::Processor(ref err) => write!(f, "processor error: {}", err),
+            Self::Processor(ref err) => write!(f, "processor error: {}", err),
         }
     }
 }
@@ -24,7 +24,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::Processor(ref err) => Some(err),
+            Self::Processor(ref err) => Some(err),
         }
     }
 }
@@ -79,7 +79,7 @@ impl<'k, 'p, 's, 'mrk> Iterator for PIter<'k, 'p, 's, 'mrk> {
                                         None => {
                                             // The target is not found in this entire meta block.
                                             // Short circuit and try the next `next`.
-                                            return self.next()
+                                            return self.next();
                                         }
                                         Some(val) => {
                                             // The current key was found, set the new current value.
@@ -88,8 +88,9 @@ impl<'k, 'p, 's, 'mrk> Iterator for PIter<'k, 'p, 's, 'mrk> {
                                     }
                                 },
                                 _ => {
-                                    // ERROR: Trying to get a key of a non-map.
-                                    panic!("trying to get a key of a non-map");
+                                    // An attempt was made to get the key of a non-mapping.
+                                    // Treat this as a "not found".
+                                    return self.next();
                                 },
                             }
                         }
