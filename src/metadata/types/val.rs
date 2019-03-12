@@ -14,13 +14,10 @@ pub enum MetaVal {
 }
 
 impl MetaVal {
-    pub fn get_key_path<'k, II>(&self, key_path: II) -> Option<&MetaVal>
-    where
-        II: IntoIterator<Item = &'k MetaKey>,
-    {
+    pub fn get_key_path<'k>(&self, key_path: &[&'k MetaKey]) -> Option<&MetaVal> {
         let mut curr_val = self;
 
-        for key in key_path.into_iter() {
+        for key in key_path {
             // See if the current meta value is indeed a mapping.
             match curr_val {
                 MetaVal::Map(map) => {
@@ -184,7 +181,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (val, key_path) = input;
-            let produced = val.get_key_path(key_path);
+            let produced = val.get_key_path(&key_path);
             assert_eq!(expected, produced);
         }
     }
