@@ -2,6 +2,7 @@
 //! A fallback is a way to obtain metadata from another source if it is missing for anm item.
 
 mod util;
+mod iter;
 
 use std::path::Path;
 use std::collections::HashMap;
