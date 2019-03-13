@@ -64,39 +64,13 @@ impl<'k, 'p, 's, 'mrk> Iterator for PIter<'k, 'p, 's, 'mrk> {
                 match processed {
                     Err(err) => Some(Err(err)),
                     Ok(mb) => {
-                        // A meta block was found, see if the target is found in it.
-                        let target_key_path = self.target_key_path.clone();
-
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         let mut curr_val = MetaVal::Map(mb);
 
-                        for key in target_key_path {
-                            // See if the current meta value is indeed a mapping.
-                            match curr_val {
-                                MetaVal::Map(mut map) => {
-                                    // See if the current key in the key path is found in this mapping.
-                                    match map.remove(key) {
-                                        None => {
-                                            // The target is not found in this entire meta block.
-                                            // Short circuit and try the next `next`.
-                                            return self.next();
-                                        }
-                                        Some(val) => {
-                                            // The current key was found, set the new current value.
-                                            curr_val = val;
-                                        }
-                                    }
-                                },
-                                _ => {
-                                    // An attempt was made to get the key of a non-mapping.
-                                    // Treat this as a "not found".
-                                    return self.next();
-                                },
-                            }
-                        }
-
-                        // The remaining current value is what is needed to return.
-                        Some(Ok(curr_val))
+                        return match curr_val.resolve_key_path(&self.target_key_path) {
+                            None => self.next(),
+                            Some(val) => Some(Ok(val)),
+                        };
                     },
                 }
             },

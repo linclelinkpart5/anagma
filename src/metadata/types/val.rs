@@ -44,6 +44,36 @@ impl MetaVal {
         Some(curr_val)
     }
 
+    pub fn resolve_key_path<'k>(self, key_path: &[&'k MetaKey]) -> Option<MetaVal> {
+        let mut curr_val = self;
+
+        for key in key_path {
+            // See if the current meta value is indeed a mapping.
+            match curr_val {
+                MetaVal::Map(mut map) => {
+                    // See if the current key in the key path is found in this mapping.
+                    match map.remove(key) {
+                        None => {
+                            // Unable to proceed on the key path, short circuit.
+                            return None;
+                        }
+                        Some(val) => {
+                            // The current key was found, set the new current value.
+                            curr_val = val;
+                        }
+                    }
+                },
+                _ => {
+                    // An attempt was made to get the key of a non-mapping, short circuit.
+                    return None;
+                },
+            }
+        }
+
+        // The remaining current value is what is needed to return.
+        Some(curr_val)
+    }
+
     // pub fn iter_over<'a>(&'a self, mis: MappingIterScheme) -> impl Iterator<Item = &'a String> {
     //     // LEARN: The `Box::new()` calls are to allow the generator to be recursive.
     //     let closure = move || {
