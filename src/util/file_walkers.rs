@@ -1,9 +1,6 @@
 use std::borrow::Cow;
 use std::path::Path;
-
-use walkdir::WalkDir;
-use walkdir::FilterEntry;
-use walkdir::IntoIter;
+use std::collections::VecDeque;
 
 use config::selection::Selection;
 use config::selection::Error as SelectionError;
@@ -30,15 +27,15 @@ impl std::error::Error for Error {
     }
 }
 
-pub(crate) struct PItemIter<'p>(Option<&'p Path>);
+struct AncestorFileWalker<'p>(Option<&'p Path>);
 
-impl<'p> PItemIter<'p> {
+impl<'p> AncestorFileWalker<'p> {
     pub fn new(origin_item_path: &'p Path) -> Self {
         Self(Some(origin_item_path))
     }
 }
 
-impl<'p> Iterator for PItemIter<'p> {
+impl<'p> Iterator for AncestorFileWalker<'p> {
     type Item = Result<Cow<'p, Path>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -55,33 +52,66 @@ impl<'p> Iterator for PItemIter<'p> {
     }
 }
 
-pub(crate) struct CItemIter<'s>(IntoIter, &'s Selection);
+struct ChildrenFileWalker<'p, 's> {
+    frontier: VecDeque<Result<Cow<'p, Path>, Error>>,
+    last_processed_path: Option<Cow<'p, Path>>,
 
-impl<'s> CItemIter<'s> {
-    pub fn new(origin_item_path: &Path, selection: &'s Selection, sort_order: SortOrder) -> Self {
-        Self(
-            WalkDir::new(origin_item_path)
-                .follow_links(true)
-                .sort_by(move |a, b| sort_order.path_sort_cmp(a.path(), b.path()))
-                .into_iter(),
+    selection: &'s Selection,
+    sort_order: SortOrder,
+}
+
+impl<'p, 's> ChildrenFileWalker<'p, 's> {
+    pub fn new(origin_item_path: &'p Path, selection: &'s Selection, sort_order: SortOrder) -> Self {
+        let mut frontier = VecDeque::new();
+
+        // Initialize the frontier with the origin item.
+        frontier.push_back(Ok(Cow::Borrowed(origin_item_path)));
+
+        Self {
+            frontier,
+            last_processed_path: None,
             selection,
-        )
+            sort_order,
+        }
+    }
+
+    pub fn delve(&mut self) -> Result<(), Error> {
+        // Manually delves into a directory, and adds its subitems to the frontier.
+        if let Some(lpp) = self.last_processed_path.take() {
+            // If the last processed path is a directory, add its children to the frontier.
+            if lpp.is_dir() {
+                match self.selection.select_in_dir_sorted(&lpp, self.sort_order) {
+                    Err(err) => {
+                        return Err(Error::Selection(err));
+                    },
+                    Ok(mut sub_item_paths) => {
+                        // NOTE: Reversing and pushing onto the front of the queue is needed.
+                        for p in sub_item_paths.drain(..).rev() {
+                            self.frontier.push_front(Ok(Cow::Owned(p)));
+                        }
+                    },
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
-// impl Iterator for CItemIter {
-//     type Item = Result<Cow<'p, Path>, Error>;
+impl<'p, 's> Iterator for ChildrenFileWalker<'p, 's> {
+    type Item = Result<Cow<'p, Path>, Error>;
 
-//     fn next(&mut self) -> Option<Self::Item> {
-//         match self.0 {
-//             Some(p) => {
-//                 let ret = Some(p);
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(frontier_item_result) = self.frontier.pop_front() {
+            // Save the most recently processed item path, if any.
+            if let Ok(frontier_item_path) = frontier_item_result.as_ref() {
+                self.last_processed_path = Some(frontier_item_path.clone());
+            }
 
-//                 self.0 = p.parent();
-
-//                 ret.map(Cow::Borrowed).map(Result::Ok)
-//             },
-//             None => None,
-//         }
-//     }
-// }
+            Some(frontier_item_result)
+        }
+        else {
+            None
+        }
+    }
+}
