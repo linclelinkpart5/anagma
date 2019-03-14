@@ -1,3 +1,5 @@
+mod file_walkers;
+
 use std::ops::Generator;
 use std::ops::GeneratorState;
 use std::path::Path;
