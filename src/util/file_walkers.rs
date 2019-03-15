@@ -132,7 +132,7 @@ mod tests {
     use config::sort_order::SortOrder;
 
     const FANOUT: u8 = 3;
-    const MAX_DEPTH: u8 = 4;
+    const MAX_DEPTH: u8 = 3;
 
     fn create_dir_tree(name: &str) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
@@ -193,11 +193,29 @@ mod tests {
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2"));
+        assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
         walker.delve().unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1"));
+
+        walker.delve().unwrap();
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0"));
+
+        // Once files are found, observe the results of the selection.
+        // NOTE: The 3_0 file is skipped.
+        walker.delve().unwrap();
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0").join("3_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0").join("3_2"));
+
+        // Delving on a file does nothing.
+        walker.delve().unwrap();
+
+        // Right back to where we were before delving into depth 3.
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_2"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_2"));
+        assert!(walker.next().is_none());
     }
 }
