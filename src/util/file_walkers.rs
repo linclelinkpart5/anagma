@@ -115,3 +115,89 @@ impl<'p, 's> Iterator for ChildrenFileWalker<'p, 's> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::AncestorFileWalker;
+    use super::ChildrenFileWalker;
+
+    use std::path::Path;
+    use std::fs::DirBuilder;
+    use std::fs::File;
+
+    use tempfile::Builder;
+    use tempfile::TempDir;
+
+    use config::selection::Selection;
+    use config::sort_order::SortOrder;
+
+    const FANOUT: u8 = 3;
+    const MAX_DEPTH: u8 = 4;
+
+    fn create_dir_tree(name: &str) -> TempDir {
+        let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+
+        fn fill_dir(p: &Path, db: &DirBuilder, curr_depth: u8) {
+            for i in 0..FANOUT {
+                let name = format!("{}_{}", curr_depth, i);
+                let new_path = p.join(&name);
+
+                if curr_depth >= MAX_DEPTH {
+                    // Create files.
+                    File::create(&new_path).unwrap();
+                }
+                else {
+                    // Create dirs and then recurse.
+                    db.create(&new_path).unwrap();
+                    fill_dir(&new_path, &db, curr_depth + 1);
+                }
+            }
+        }
+
+        let db = DirBuilder::new();
+
+        fill_dir(root_dir.path(), &db, 0);
+
+        root_dir
+    }
+
+    #[test]
+    fn test_ancestor_file_walker() {
+        let root_dir = create_dir_tree("test_ancestor_file_walker");
+
+        let start_path = root_dir.path().join("0_0").join("1_0").join("2_0");
+        let mut walker = AncestorFileWalker::new(&start_path);
+
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0").join("1_0").join("2_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0").join("1_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
+    }
+
+    #[test]
+    fn test_children_file_walker() {
+        let root_dir = create_dir_tree("test_children_file_walker");
+
+        let start_path = root_dir.path();
+
+        // Skip the first file of each leaf directory.
+        // NOTE: Recall that directories are always selected.
+        let selection = Selection::from_patterns(vec!["*_*"], vec!["*_0"]).unwrap();
+        let mut walker = ChildrenFileWalker::new(&start_path, &selection, SortOrder::Name);
+
+        // We should get just the root value, since no delving has happened.
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
+        assert!(walker.next().is_none());
+
+        walker.delve().unwrap();
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2"));
+
+        // This delve call opens up the most recently accessed directory.
+        walker.delve().unwrap();
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_2"));
+    }
+}
