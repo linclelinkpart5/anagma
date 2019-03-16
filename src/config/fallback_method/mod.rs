@@ -1,5 +1,5 @@
 //! Representation and processing logic for metadata fallbacks.
-//! A fallback is a way to obtain metadata from another source if it is missing for anm item.
+//! A fallback is a way to obtain metadata from another source if it is missing for an item.
 
 mod util;
 mod iter;
