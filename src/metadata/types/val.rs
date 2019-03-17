@@ -2,6 +2,8 @@
 
 use std::collections::BTreeMap;
 
+use num_rational::Rational64;
+
 use util::GenConverter;
 use metadata::types::key::MetaKey;
 
@@ -11,6 +13,9 @@ pub enum MetaVal {
     Str(String),
     Seq(Vec<MetaVal>),
     Map(BTreeMap<MetaKey, MetaVal>),
+    Int(i64),
+    Bul(bool),
+    Dec(Rational64),
 }
 
 impl MetaVal {

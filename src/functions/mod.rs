@@ -89,6 +89,9 @@ impl From<&MetaVal> for ParamType {
             &MetaVal::Str(..) => Self::Text,
             &MetaVal::Seq(..) => Self::Sequence,
             &MetaVal::Map(..) => Self::Mapping,
+            &MetaVal::Int(..) => Self::Integer,
+            &MetaVal::Bul(..) => Self::Boolean,
+            &MetaVal::Dec(..) => Self::Float,
         }
     }
 }
