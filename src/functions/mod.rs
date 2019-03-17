@@ -1,5 +1,57 @@
+use metadata::types::MetaVal;
+
+#[derive(Debug)]
+pub enum Error {
+    EmptyStack,
+    UnexpectedType{expected: ParamType, found: ParamType},
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::EmptyStack => write!(f, "empty stack"),
+            Self::UnexpectedType{expected, found} => write!(f, "expected {}, found {}",  expected, found),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Self::EmptyStack => None,
+            Self::UnexpectedType{..} => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum StackItem {
+    Val(MetaVal),
+    UnaryOp(UnaryOp),
+    BinaryOp(BinaryOp),
+}
+
+impl From<MetaVal> for StackItem {
+    fn from(meta_val: MetaVal) -> Self {
+        Self::Val(meta_val)
+    }
+}
+
+impl From<UnaryOp> for StackItem {
+    fn from(unary_op: UnaryOp) -> Self {
+        Self::UnaryOp(unary_op)
+    }
+}
+
+impl From<BinaryOp> for StackItem {
+    fn from(binary_op: BinaryOp) -> Self {
+        Self::BinaryOp(binary_op)
+    }
+}
+
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum ParamType {
+    Any,
     Text,
     Sequence,
     Mapping,
@@ -7,16 +59,60 @@ pub enum ParamType {
     Number,
     Integer,
     Float,
-    Any,
     Null,
     UnaryOp,
     BinaryOp,
 }
 
-pub enum Function {
-    Unary(UnaryOp),
-    Binary(BinaryOp),
+impl std::fmt::Display for ParamType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::Any => write!(f, "any"),
+            Self::Text => write!(f, "text"),
+            Self::Sequence => write!(f, "sequence"),
+            Self::Mapping => write!(f, "mapping"),
+            Self::Boolean => write!(f, "boolean"),
+            Self::Number => write!(f, "number"),
+            Self::Integer => write!(f, "integer"),
+            Self::Float => write!(f, "float"),
+            Self::Null => write!(f, "null"),
+            Self::UnaryOp => write!(f, "unary op"),
+            Self::BinaryOp => write!(f, "binary op"),
+        }
+    }
 }
+
+impl From<&MetaVal> for ParamType {
+    fn from(meta_val: &MetaVal) -> Self {
+        match meta_val {
+            &MetaVal::Nil => Self::Null,
+            &MetaVal::Str(..) => Self::Text,
+            &MetaVal::Seq(..) => Self::Sequence,
+            &MetaVal::Map(..) => Self::Mapping,
+        }
+    }
+}
+
+impl From<&StackItem> for ParamType {
+    fn from(stack_item: &StackItem) -> Self {
+        match stack_item {
+            &StackItem::Val(ref meta_val) => meta_val.into(),
+            &StackItem::UnaryOp(..) => Self::UnaryOp,
+            &StackItem::BinaryOp(..) => Self::BinaryOp,
+        }
+    }
+}
+
+// pub trait Op {
+//     const ARITY: usize;
+
+//     fn input_types(&self) -> &'static [ParamType; Self::ARITY];
+//     fn output_type(&self) -> ParamType;
+
+//     fn process_stack(&self, stack: &mut Vec<StackItem>) -> Result<StackItem, Error> {
+//         Ok(StackItem::Val(MetaVal::Nil))
+//     }
+// }
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum UnaryOp {
