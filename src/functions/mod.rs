@@ -211,6 +211,7 @@ trait Op {
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum UnaryOp {
+    Collect,
     Count,
     First,
     Last,
