@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use num_rational::Rational64;
+use bigdecimal::BigDecimal;
 
 use util::GenConverter;
 use metadata::types::key::MetaKey;
@@ -15,7 +15,7 @@ pub enum MetaVal {
     Map(BTreeMap<MetaKey, MetaVal>),
     Int(i64),
     Bul(bool),
-    Dec(Rational64),
+    Dec(BigDecimal),
 }
 
 impl MetaVal {

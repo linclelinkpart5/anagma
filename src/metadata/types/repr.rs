@@ -4,6 +4,8 @@
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
+use bigdecimal::BigDecimal;
+
 use metadata::types::MetaVal as RealMetaVal;
 use metadata::types::MetaKey as RealMetaKey;
 use metadata::types::MetaStructure as RealMetaStructure;
@@ -16,6 +18,9 @@ pub enum MetaVal {
     Str(String),
     Seq(Vec<MetaVal>),
     Map(BTreeMap<String, MetaVal>),
+    Int(i64),
+    Bul(bool),
+    Dec(BigDecimal),
 }
 
 impl MetaVal {
@@ -48,6 +53,9 @@ impl MetaVal {
                         .collect()
                 )
             },
+            MetaVal::Int(i) => RealMetaVal::Int(i),
+            MetaVal::Bul(b) => RealMetaVal::Bul(b),
+            MetaVal::Dec(d) => RealMetaVal::Dec(d),
         }
     }
 }
