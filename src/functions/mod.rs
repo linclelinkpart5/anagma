@@ -1,9 +1,15 @@
+use std::collections::BTreeMap;
+
+use bigdecimal::BigDecimal;
+
+use metadata::types::MetaKey;
 use metadata::types::MetaVal;
 
 #[derive(Debug)]
 pub enum Error {
     EmptyStack,
     UnexpectedType{expected: ParamType, found: ParamType},
+    ZeroInteger,
 }
 
 impl std::fmt::Display for Error {
@@ -11,6 +17,7 @@ impl std::fmt::Display for Error {
         match *self {
             Self::EmptyStack => write!(f, "empty stack"),
             Self::UnexpectedType{expected, found} => write!(f, "expected {}, found {}",  expected, found),
+            Self::ZeroInteger => write!(f, "zero integer"),
         }
     }
 }
@@ -20,15 +27,18 @@ impl std::error::Error for Error {
         match *self {
             Self::EmptyStack => None,
             Self::UnexpectedType{..} => None,
+            Self::ZeroInteger => None,
         }
     }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum StackItem {
+enum StackItem {
     Val(MetaVal),
     UnaryOp(UnaryOp),
     BinaryOp(BinaryOp),
+    NNInteger(usize),
+    PosInteger(usize),
 }
 
 impl From<MetaVal> for StackItem {
@@ -49,6 +59,21 @@ impl From<BinaryOp> for StackItem {
     }
 }
 
+impl From<usize> for StackItem {
+    fn from(ui: usize) -> Self {
+        Self::NNInteger(ui)
+    }
+}
+
+impl StackItem {
+    fn validate(&self) -> Result<(), Error> {
+        match self {
+            &Self::PosInteger(i) => if i > 0 { Ok(()) } else { Err(Error::ZeroInteger) },
+            _ => Ok(()),
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum ParamType {
     Any,
@@ -62,6 +87,40 @@ pub enum ParamType {
     Null,
     UnaryOp,
     BinaryOp,
+    NNInteger,
+    PosInteger,
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum Number {
+    Integer(i64),
+    Decimal(BigDecimal),
+}
+
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub enum SItem {
+    Null,
+    Text(String),
+    Sequence(Vec<SItem>),
+    Mapping(BTreeMap<MetaKey, SItem>),
+    Boolean(bool),
+    Number(Number),
+    UnaryOp(UnaryOp),
+    BinaryOp(BinaryOp),
+}
+
+impl From<MetaVal> for SItem {
+    fn from(meta_val: MetaVal) -> Self {
+        match meta_val {
+            MetaVal::Nil => SItem::Null,
+            MetaVal::Str(s) => SItem::Text(s),
+            MetaVal::Seq(s) => SItem::Sequence(s.into_iter().map(|v| v.into()).collect()),
+            MetaVal::Map(m) => SItem::Mapping(m.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            MetaVal::Bul(b) => SItem::Boolean(b),
+            MetaVal::Int(i) => SItem::Number(Number::Integer(i)),
+            MetaVal::Dec(d) => SItem::Number(Number::Decimal(d)),
+        }
+    }
 }
 
 impl std::fmt::Display for ParamType {
@@ -78,6 +137,8 @@ impl std::fmt::Display for ParamType {
             Self::Null => write!(f, "null"),
             Self::UnaryOp => write!(f, "unary op"),
             Self::BinaryOp => write!(f, "binary op"),
+            Self::NNInteger => write!(f, "non-negative integer"),
+            Self::PosInteger => write!(f, "positive integer"),
         }
     }
 }
@@ -102,6 +163,28 @@ impl From<&StackItem> for ParamType {
             &StackItem::Val(ref meta_val) => meta_val.into(),
             &StackItem::UnaryOp(..) => Self::UnaryOp,
             &StackItem::BinaryOp(..) => Self::BinaryOp,
+            &StackItem::NNInteger(..) => Self::NNInteger,
+            &StackItem::PosInteger(..) => Self::PosInteger,
+        }
+    }
+}
+
+impl ParamType {
+    fn process_stack(&self, stack: &mut Vec<StackItem>) -> Result<StackItem, Error> {
+        match stack.pop() {
+            None => Err(Error::EmptyStack),
+            Some(stack_item) => {
+                let stack_item_type: ParamType = (&stack_item).into();
+
+                if self == &stack_item_type {
+                    stack_item.validate()?;
+
+                    Ok(stack_item)
+                }
+                else {
+                    Err(Error::UnexpectedType{expected: *self, found: stack_item_type})
+                }
+            },
         }
     }
 }
@@ -197,16 +280,16 @@ impl BinaryOp {
             Self::Ge => (ParamType::Any, ParamType::Any),
             Self::Lt => (ParamType::Any, ParamType::Any),
             Self::Le => (ParamType::Any, ParamType::Any),
-            Self::Nth => (ParamType::Sequence, ParamType::Integer),
-            Self::StepBy => (ParamType::Sequence, ParamType::Integer),
+            Self::Nth => (ParamType::Sequence, ParamType::NNInteger),
+            Self::StepBy => (ParamType::Sequence, ParamType::PosInteger),
             Self::Chain => (ParamType::Sequence, ParamType::Sequence),
             Self::Zip => (ParamType::Sequence, ParamType::Sequence),
             Self::Map => (ParamType::Sequence, ParamType::UnaryOp),
             Self::Filter => (ParamType::Sequence, ParamType::UnaryOp),
             Self::SkipWhile => (ParamType::Sequence, ParamType::UnaryOp),
             Self::TakeWhile => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Skip => (ParamType::Sequence, ParamType::Integer),
-            Self::Take => (ParamType::Sequence, ParamType::Integer),
+            Self::Skip => (ParamType::Sequence, ParamType::PosInteger),
+            Self::Take => (ParamType::Sequence, ParamType::PosInteger),
             Self::Fold => (ParamType::Sequence, ParamType::BinaryOp),
             Self::All => (ParamType::Sequence, ParamType::UnaryOp),
             Self::Any => (ParamType::Sequence, ParamType::UnaryOp),
@@ -214,8 +297,8 @@ impl BinaryOp {
             Self::Position => (ParamType::Sequence, ParamType::UnaryOp),
             Self::Interleave => (ParamType::Sequence, ParamType::Any),
             Self::Intersperse => (ParamType::Sequence, ParamType::Sequence),
-            Self::Chunks => (ParamType::Sequence, ParamType::Integer),
-            Self::Windows => (ParamType::Sequence, ParamType::Integer),
+            Self::Chunks => (ParamType::Sequence, ParamType::PosInteger),
+            Self::Windows => (ParamType::Sequence, ParamType::PosInteger),
             Self::Merge => (ParamType::Sequence, ParamType::Sequence),
         }
     }
@@ -229,7 +312,7 @@ pub enum TernaryOp {
 impl TernaryOp {
     pub fn input_type_spec(&self) -> (ParamType, ParamType, ParamType) {
         match *self {
-            Self::Pad => (ParamType::Sequence, ParamType::Integer, ParamType::Any),
+            Self::Pad => (ParamType::Sequence, ParamType::PosInteger, ParamType::Any),
         }
     }
 }
