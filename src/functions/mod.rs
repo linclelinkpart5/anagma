@@ -97,6 +97,23 @@ pub enum Number {
     Decimal(BigDecimal),
 }
 
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Number {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            (Self::Integer(l), Self::Integer(r)) => l.cmp(r),
+            (Self::Integer(l), Self::Decimal(r)) => BigDecimal::from(*l).cmp(r),
+            (Self::Decimal(l), Self::Integer(r)) => l.cmp(&BigDecimal::from(*r)),
+            (Self::Decimal(l), Self::Decimal(r)) => l.cmp(r),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum SItem {
     Null,
