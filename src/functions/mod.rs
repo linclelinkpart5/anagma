@@ -8,7 +8,7 @@ use metadata::types::MetaVal;
 #[derive(Debug)]
 pub enum Error {
     EmptyStack,
-    UnexpectedType{expected: ParamType, found: ParamType},
+    UnexpectedType{expected: &'static str, found: &'static str},
     ZeroInteger,
 }
 
@@ -30,65 +30,6 @@ impl std::error::Error for Error {
             Self::ZeroInteger => None,
         }
     }
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-enum StackItem {
-    Val(MetaVal),
-    UnaryOp(UnaryOp),
-    BinaryOp(BinaryOp),
-    NNInteger(usize),
-    PosInteger(usize),
-}
-
-impl From<MetaVal> for StackItem {
-    fn from(meta_val: MetaVal) -> Self {
-        Self::Val(meta_val)
-    }
-}
-
-impl From<UnaryOp> for StackItem {
-    fn from(unary_op: UnaryOp) -> Self {
-        Self::UnaryOp(unary_op)
-    }
-}
-
-impl From<BinaryOp> for StackItem {
-    fn from(binary_op: BinaryOp) -> Self {
-        Self::BinaryOp(binary_op)
-    }
-}
-
-impl From<usize> for StackItem {
-    fn from(ui: usize) -> Self {
-        Self::NNInteger(ui)
-    }
-}
-
-impl StackItem {
-    fn validate(&self) -> Result<(), Error> {
-        match self {
-            &Self::PosInteger(i) => if i > 0 { Ok(()) } else { Err(Error::ZeroInteger) },
-            _ => Ok(()),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
-pub enum ParamType {
-    Any,
-    Text,
-    Sequence,
-    Mapping,
-    Boolean,
-    Number,
-    Integer,
-    Float,
-    Null,
-    UnaryOp,
-    BinaryOp,
-    NNInteger,
-    PosInteger,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -114,108 +55,159 @@ impl Ord for Number {
     }
 }
 
+impl From<i64> for Number {
+    fn from(n: i64) -> Self {
+        Self::Integer(n)
+    }
+}
+
+impl From<BigDecimal> for Number {
+    fn from(n: BigDecimal) -> Self {
+        Self::Decimal(n)
+    }
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub enum SItem {
+pub enum StackOperand {
     Null,
     Text(String),
-    Sequence(Vec<SItem>),
-    Mapping(BTreeMap<MetaKey, SItem>),
+    Sequence(Vec<Self>),
+    Mapping(BTreeMap<MetaKey, Self>),
     Boolean(bool),
     Number(Number),
     UnaryOp(UnaryOp),
     BinaryOp(BinaryOp),
 }
 
-impl From<MetaVal> for SItem {
+impl From<MetaVal> for StackOperand {
     fn from(meta_val: MetaVal) -> Self {
         match meta_val {
-            MetaVal::Nil => SItem::Null,
-            MetaVal::Str(s) => SItem::Text(s),
-            MetaVal::Seq(s) => SItem::Sequence(s.into_iter().map(|v| v.into()).collect()),
-            MetaVal::Map(m) => SItem::Mapping(m.into_iter().map(|(k, v)| (k, v.into())).collect()),
-            MetaVal::Bul(b) => SItem::Boolean(b),
-            MetaVal::Int(i) => SItem::Number(Number::Integer(i)),
-            MetaVal::Dec(d) => SItem::Number(Number::Decimal(d)),
+            MetaVal::Nil => Self::Null,
+            MetaVal::Str(s) => Self::Text(s),
+            MetaVal::Seq(s) => Self::Sequence(s.into_iter().map(|v| v.into()).collect()),
+            MetaVal::Map(m) => Self::Mapping(m.into_iter().map(|(k, v)| (k, v.into())).collect()),
+            MetaVal::Bul(b) => Self::Boolean(b),
+            MetaVal::Int(i) => Self::Number(Number::Integer(i)),
+            MetaVal::Dec(d) => Self::Number(Number::Decimal(d)),
         }
     }
 }
 
-impl std::fmt::Display for ParamType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::Any => write!(f, "any"),
-            Self::Text => write!(f, "text"),
-            Self::Sequence => write!(f, "sequence"),
-            Self::Mapping => write!(f, "mapping"),
-            Self::Boolean => write!(f, "boolean"),
-            Self::Number => write!(f, "number"),
-            Self::Integer => write!(f, "integer"),
-            Self::Float => write!(f, "float"),
-            Self::Null => write!(f, "null"),
-            Self::UnaryOp => write!(f, "unary op"),
-            Self::BinaryOp => write!(f, "binary op"),
-            Self::NNInteger => write!(f, "non-negative integer"),
-            Self::PosInteger => write!(f, "positive integer"),
+impl From<UnaryOp> for StackOperand {
+    fn from(unary_op: UnaryOp) -> Self {
+        Self::UnaryOp(unary_op)
+    }
+}
+
+impl From<BinaryOp> for StackOperand {
+    fn from(binary_op: BinaryOp) -> Self {
+        Self::BinaryOp(binary_op)
+    }
+}
+
+impl StackOperand {
+    const NULL_DESC: &'static str = "null";
+    const TEXT_DESC: &'static str = "text";
+    const SEQUENCE_DESC: &'static str = "sequence";
+    const MAPPING_DESC: &'static str = "mapping";
+    const BOOLEAN_DESC: &'static str = "boolean";
+    const NUMBER_DESC: &'static str = "number";
+    const INTEGER_DESC: &'static str = "integer";
+    const DECIMAL_DESC: &'static str = "decimal";
+    const UNARY_OP_DESC: &'static str = "unary op";
+    const BINARY_OP_DESC: &'static str = "binary op";
+
+    fn description(&self) -> &'static str {
+        match &self {
+            &Self::Null => Self::NULL_DESC,
+            &Self::Text(..) => Self::TEXT_DESC,
+            &Self::Sequence(..) => Self::SEQUENCE_DESC,
+            &Self::Mapping(..) => Self::MAPPING_DESC,
+            &Self::Boolean(..) => Self::BOOLEAN_DESC,
+            &Self::Number(Number::Integer(..)) => Self::INTEGER_DESC,
+            &Self::Number(Number::Decimal(..)) => Self::DECIMAL_DESC,
+            &Self::UnaryOp(..) => Self::UNARY_OP_DESC,
+            &Self::BinaryOp(..) => Self::BINARY_OP_DESC,
+        }
+    }
+
+    fn process_stack_any(stack: &mut Vec<Self>) -> Result<Self, Error> {
+        stack.pop().ok_or_else(|| Error::EmptyStack)
+    }
+
+    fn process_stack_text(stack: &mut Vec<Self>) -> Result<String, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Text(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::TEXT_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_sequence(stack: &mut Vec<Self>) -> Result<Vec<Self>, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Sequence(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::SEQUENCE_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_mapping(stack: &mut Vec<Self>) -> Result<BTreeMap<MetaKey, Self>, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Mapping(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::MAPPING_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_boolean(stack: &mut Vec<Self>) -> Result<bool, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Boolean(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::BOOLEAN_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_number(stack: &mut Vec<Self>) -> Result<Number, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Number(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::NUMBER_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_integer(stack: &mut Vec<Self>) -> Result<i64, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Number(Number::Integer(val)) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::INTEGER_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_decimal(stack: &mut Vec<Self>) -> Result<BigDecimal, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::Number(Number::Decimal(val)) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::DECIMAL_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_unary_op(stack: &mut Vec<Self>) -> Result<UnaryOp, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::UnaryOp(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::UNARY_OP_DESC, found: other.description()})
+        }
+    }
+
+    fn process_stack_binary_op(stack: &mut Vec<Self>) -> Result<BinaryOp, Error> {
+        match Self::process_stack_any(stack)? {
+            Self::BinaryOp(val) => Ok(val),
+            other => Err(Error::UnexpectedType{expected: Self::BINARY_OP_DESC, found: other.description()})
         }
     }
 }
 
-impl From<&MetaVal> for ParamType {
-    fn from(meta_val: &MetaVal) -> Self {
-        match meta_val {
-            &MetaVal::Nil => Self::Null,
-            &MetaVal::Str(..) => Self::Text,
-            &MetaVal::Seq(..) => Self::Sequence,
-            &MetaVal::Map(..) => Self::Mapping,
-            &MetaVal::Int(..) => Self::Integer,
-            &MetaVal::Bul(..) => Self::Boolean,
-            &MetaVal::Dec(..) => Self::Float,
-        }
+trait Op {
+    fn operate(&self, stack: &mut Vec<StackOperand>) -> Result<StackOperand, Error>;
+
+    fn process(&self, stack: &mut Vec<StackOperand>) -> Result<(), Error> {
+        let output = self.operate(stack)?;
+        stack.push(output);
+        Ok(())
     }
 }
-
-impl From<&StackItem> for ParamType {
-    fn from(stack_item: &StackItem) -> Self {
-        match stack_item {
-            &StackItem::Val(ref meta_val) => meta_val.into(),
-            &StackItem::UnaryOp(..) => Self::UnaryOp,
-            &StackItem::BinaryOp(..) => Self::BinaryOp,
-            &StackItem::NNInteger(..) => Self::NNInteger,
-            &StackItem::PosInteger(..) => Self::PosInteger,
-        }
-    }
-}
-
-impl ParamType {
-    fn process_stack(&self, stack: &mut Vec<StackItem>) -> Result<StackItem, Error> {
-        match stack.pop() {
-            None => Err(Error::EmptyStack),
-            Some(stack_item) => {
-                let stack_item_type: ParamType = (&stack_item).into();
-
-                if self == &stack_item_type {
-                    stack_item.validate()?;
-
-                    Ok(stack_item)
-                }
-                else {
-                    Err(Error::UnexpectedType{expected: *self, found: stack_item_type})
-                }
-            },
-        }
-    }
-}
-
-// pub trait Op {
-//     const ARITY: usize;
-
-//     fn input_types(&self) -> &'static [ParamType; Self::ARITY];
-//     fn output_type(&self) -> ParamType;
-
-//     fn process_stack(&self, stack: &mut Vec<StackItem>) -> Result<StackItem, Error> {
-//         Ok(StackItem::Val(MetaVal::Nil))
-//     }
-// }
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum UnaryOp {
@@ -236,27 +228,27 @@ pub enum UnaryOp {
     Sort,
 }
 
-impl UnaryOp {
-    pub fn input_type_spec(&self) -> ParamType {
-        match *self {
-            Self::Count => ParamType::Sequence,
-            Self::First => ParamType::Sequence,
-            Self::Last => ParamType::Sequence,
-            Self::Enum => ParamType::Sequence,
-            Self::Flatten => ParamType::Sequence,
-            Self::FlattenRec => ParamType::Sequence,
-            Self::Max => ParamType::Sequence,
-            Self::Min => ParamType::Sequence,
-            Self::Rev => ParamType::Sequence,
-            Self::Sum => ParamType::Sequence,
-            Self::Product => ParamType::Sequence,
-            Self::Dedup => ParamType::Sequence,
-            Self::Unique => ParamType::Sequence,
-            Self::AllEqual => ParamType::Sequence,
-            Self::Sort => ParamType::Sequence,
-        }
-    }
-}
+// impl UnaryOp {
+//     pub fn input_type_spec(&self) -> ParamType {
+//         match *self {
+//             Self::Count => ParamType::Sequence,
+//             Self::First => ParamType::Sequence,
+//             Self::Last => ParamType::Sequence,
+//             Self::Enum => ParamType::Sequence,
+//             Self::Flatten => ParamType::Sequence,
+//             Self::FlattenRec => ParamType::Sequence,
+//             Self::Max => ParamType::Sequence,
+//             Self::Min => ParamType::Sequence,
+//             Self::Rev => ParamType::Sequence,
+//             Self::Sum => ParamType::Sequence,
+//             Self::Product => ParamType::Sequence,
+//             Self::Dedup => ParamType::Sequence,
+//             Self::Unique => ParamType::Sequence,
+//             Self::AllEqual => ParamType::Sequence,
+//             Self::Sort => ParamType::Sequence,
+//         }
+//     }
+// }
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum BinaryOp {
@@ -288,48 +280,48 @@ pub enum BinaryOp {
     Merge,
 }
 
-impl BinaryOp {
-    pub fn input_type_spec(&self) -> (ParamType, ParamType) {
-        match *self {
-            Self::Eq => (ParamType::Any, ParamType::Any),
-            Self::Ne => (ParamType::Any, ParamType::Any),
-            Self::Gt => (ParamType::Any, ParamType::Any),
-            Self::Ge => (ParamType::Any, ParamType::Any),
-            Self::Lt => (ParamType::Any, ParamType::Any),
-            Self::Le => (ParamType::Any, ParamType::Any),
-            Self::Nth => (ParamType::Sequence, ParamType::NNInteger),
-            Self::StepBy => (ParamType::Sequence, ParamType::PosInteger),
-            Self::Chain => (ParamType::Sequence, ParamType::Sequence),
-            Self::Zip => (ParamType::Sequence, ParamType::Sequence),
-            Self::Map => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Filter => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::SkipWhile => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::TakeWhile => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Skip => (ParamType::Sequence, ParamType::PosInteger),
-            Self::Take => (ParamType::Sequence, ParamType::PosInteger),
-            Self::Fold => (ParamType::Sequence, ParamType::BinaryOp),
-            Self::All => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Any => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Find => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Position => (ParamType::Sequence, ParamType::UnaryOp),
-            Self::Interleave => (ParamType::Sequence, ParamType::Any),
-            Self::Intersperse => (ParamType::Sequence, ParamType::Sequence),
-            Self::Chunks => (ParamType::Sequence, ParamType::PosInteger),
-            Self::Windows => (ParamType::Sequence, ParamType::PosInteger),
-            Self::Merge => (ParamType::Sequence, ParamType::Sequence),
-        }
-    }
-}
+// impl BinaryOp {
+//     pub fn input_type_spec(&self) -> (ParamType, ParamType) {
+//         match *self {
+//             Self::Eq => (ParamType::Any, ParamType::Any),
+//             Self::Ne => (ParamType::Any, ParamType::Any),
+//             Self::Gt => (ParamType::Any, ParamType::Any),
+//             Self::Ge => (ParamType::Any, ParamType::Any),
+//             Self::Lt => (ParamType::Any, ParamType::Any),
+//             Self::Le => (ParamType::Any, ParamType::Any),
+//             Self::Nth => (ParamType::Sequence, ParamType::NNInteger),
+//             Self::StepBy => (ParamType::Sequence, ParamType::PosInteger),
+//             Self::Chain => (ParamType::Sequence, ParamType::Sequence),
+//             Self::Zip => (ParamType::Sequence, ParamType::Sequence),
+//             Self::Map => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::Filter => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::SkipWhile => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::TakeWhile => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::Skip => (ParamType::Sequence, ParamType::PosInteger),
+//             Self::Take => (ParamType::Sequence, ParamType::PosInteger),
+//             Self::Fold => (ParamType::Sequence, ParamType::BinaryOp),
+//             Self::All => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::Any => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::Find => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::Position => (ParamType::Sequence, ParamType::UnaryOp),
+//             Self::Interleave => (ParamType::Sequence, ParamType::Any),
+//             Self::Intersperse => (ParamType::Sequence, ParamType::Sequence),
+//             Self::Chunks => (ParamType::Sequence, ParamType::PosInteger),
+//             Self::Windows => (ParamType::Sequence, ParamType::PosInteger),
+//             Self::Merge => (ParamType::Sequence, ParamType::Sequence),
+//         }
+//     }
+// }
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum TernaryOp {
     Pad,
 }
 
-impl TernaryOp {
-    pub fn input_type_spec(&self) -> (ParamType, ParamType, ParamType) {
-        match *self {
-            Self::Pad => (ParamType::Sequence, ParamType::PosInteger, ParamType::Any),
-        }
-    }
-}
+// impl TernaryOp {
+//     pub fn input_type_spec(&self) -> (ParamType, ParamType, ParamType) {
+//         match *self {
+//             Self::Pad => (ParamType::Sequence, ParamType::PosInteger, ParamType::Any),
+//         }
+//     }
+// }
