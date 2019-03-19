@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::borrow::Cow;
 
 use config::selection::Selection;
 use config::sort_order::SortOrder;
@@ -45,13 +46,13 @@ pub struct ParentIter<'k, 'fw, 's, 'mrk> {
 }
 
 impl<'k, 'fw, 's, 'mrk> Iterator for ParentIter<'k, 'fw, 's, 'mrk> {
-    type Item = Result<MetaVal, Error>;
+    type Item = Result<(Cow<'fw, Path>, MetaVal), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next() {
             Some(path) => {
                 let mut processed = MetaProcessor::process_item_file(
-                    path,
+                    &path,
                     self.meta_format,
                     self.selection,
                     self.sort_order,
@@ -67,7 +68,7 @@ impl<'k, 'fw, 's, 'mrk> Iterator for ParentIter<'k, 'fw, 's, 'mrk> {
                         return match curr_val.resolve_key_path(&self.target_key_path) {
                             // Not found here, delegate to the next iteration.
                             None => self.next(),
-                            Some(val) => Some(Ok(val)),
+                            Some(val) => Some(Ok((path, val))),
                         };
                     },
                 }
@@ -86,7 +87,7 @@ pub struct ChildrenIter<'k, 'fw, 's, 'mrk> {
 }
 
 impl<'k, 'fw, 's, 'mrk> Iterator for ChildrenIter<'k, 'fw, 's, 'mrk> {
-    type Item = Result<MetaVal, Error>;
+    type Item = Result<(Cow<'fw, Path>, MetaVal), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next() {
@@ -95,7 +96,7 @@ impl<'k, 'fw, 's, 'mrk> Iterator for ChildrenIter<'k, 'fw, 's, 'mrk> {
                     Err(err) => Some(Err(Error::FileWalker(err))),
                     Ok(path) => {
                         let mut processed = MetaProcessor::process_item_file(
-                            path,
+                            &path,
                             self.meta_format,
                             self.file_walker.selection,
                             self.file_walker.sort_order,
@@ -111,7 +112,7 @@ impl<'k, 'fw, 's, 'mrk> Iterator for ChildrenIter<'k, 'fw, 's, 'mrk> {
                                 match curr_val.resolve_key_path(&self.target_key_path) {
                                     // Not found here, delegate to the next iteration.
                                     None => self.next(),
-                                    Some(val) => Some(Ok(val)),
+                                    Some(val) => Some(Ok((path, val))),
                                 }
                             },
                         }
