@@ -171,3 +171,120 @@ pub fn create_temp_media_test_dir(name: &str) -> TempDir {
 pub fn create_temp_media_test_dir_staggered(name: &str) -> TempDir {
     create_temp_media_test_dir_helper(name, true)
 }
+
+pub(crate) struct TestUtil;
+
+impl TestUtil {
+    const FANOUT: usize = 3;
+    const MAX_DEPTH: usize = 3;
+
+    pub fn create_fanout_test_dir(name: &str) -> TempDir {
+        let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+
+        fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, curr_depth: usize, max_depth: usize) {
+            // Create self meta file.
+            let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
+            let self_lines = format!(
+                r#"{{
+                    "sample_string": "string",
+                    "sample_integer": 27,
+                    "sample_decimal": 3.1415,
+                    "sample_boolean": true,
+                    "sample_null": null,
+                    "sample_sequence": [
+                        "string",
+                        27
+                    ],
+                    "sample_mapping": {{
+                        "sample_string": "string",
+                        "sample_boolean": false,
+                        "sample_sequence": ["string", 27],
+                        "sample_mapping": {{
+                            "sample_string": "string"
+                        }}
+                    }},
+                    "self_key": "self_val",
+                    "source_meta_file": "self",
+                    "target_file_name": "{}"
+                }}"#,
+                parent_name,
+            );
+            writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
+
+            let mut item_block_entries = vec![];
+
+            for i in 0..fanout {
+                let name = if curr_depth >= max_depth {
+                    // Create files.
+                    let name = format!("FILE_L{}_N{}", curr_depth, i);
+                    let new_path = p.join(&name);
+                    File::create(&new_path).expect("unable to create item file");
+                    name
+                } else {
+                    // Create dirs and then recurse.
+                    let name = format!("DIR_L{}_N{}", curr_depth, i);
+                    let new_path = p.join(&name);
+                    db.create(&new_path).expect("unable to create item directory");
+                    fill_dir(&new_path, &db, &name, fanout, curr_depth + 1, max_depth);
+                    name
+                };
+
+                let item_block_lines = format!(
+                    r#"{{
+                        "sample_string": "string",
+                        "sample_integer": 27,
+                        "sample_decimal": 3.1415,
+                        "sample_boolean": true,
+                        "sample_null": null,
+                        "sample_sequence": [
+                            "string",
+                            27
+                        ],
+                        "sample_mapping": {{
+                            "sample_string": "string",
+                            "sample_boolean": false,
+                            "sample_sequence": ["string", 27],
+                            "sample_mapping": {{
+                                "sample_string": "string"
+                            }}
+                        }},
+                        "item_key": "item_val",
+                        "source_meta_file": "item",
+                        "target_file_name": "{}"
+                    }}"#,
+                    name,
+                );
+
+                item_block_entries.push(item_block_lines);
+            }
+
+            // Create item meta file.
+            let mut item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
+
+            let item_lines = format!(
+                r#"[
+                    {}
+                ]"#,
+                item_block_entries.join(",\n"),
+            );
+            writeln!(item_meta_file, "{}", item_lines).expect("unable to write to item meta file");
+        }
+
+        let db = DirBuilder::new();
+
+        fill_dir(root_dir.path(), &db, "ROOT", Self::FANOUT, 0, Self::MAX_DEPTH);
+
+        sleep(Duration::from_millis(1));
+        root_dir
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::TestUtil;
+
+    #[test]
+    fn test_create_fanout_test_dir() {
+        let temp_dir = TestUtil::create_fanout_test_dir("test_create_fanout_test_dir");
+    }
+}
