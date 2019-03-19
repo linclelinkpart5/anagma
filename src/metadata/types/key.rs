@@ -7,15 +7,24 @@ pub enum MetaKey {
     Str(String),
 }
 
-impl<S> From<Option<S>> for MetaKey
+// impl<S> From<Option<S>> for MetaKey
+// where
+//     S: Into<String>
+// {
+//     fn from(opt_str: Option<S>) -> Self {
+//         match opt_str {
+//             Some(s) => MetaKey::Str(s.into()),
+//             None => MetaKey::Nil,
+//         }
+//     }
+// }
+
+impl<S> From<S> for MetaKey
 where
     S: Into<String>
 {
-    fn from(opt_str: Option<S>) -> Self {
-        match opt_str {
-            Some(s) => MetaKey::Str(s.into()),
-            None => MetaKey::Nil,
-        }
+    fn from(s: S) -> Self {
+        MetaKey::Str(s.into())
     }
 }
 

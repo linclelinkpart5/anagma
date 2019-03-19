@@ -45,6 +45,29 @@ pub struct ParentIter<'k, 'fw, 's, 'mrk> {
     map_root_key: &'mrk str,
 }
 
+impl<'k, 'fw, 's, 'mrk> ParentIter<'k, 'fw, 's, 'mrk> {
+    pub fn new(
+        origin_item_path: &'fw Path,
+        target_key_path: Vec<&'k MetaKey>,
+        meta_format: MetaFormat,
+        selection: &'s Selection,
+        sort_order: SortOrder,
+        map_root_key: &'mrk str,
+    ) -> Self
+    {
+        let file_walker = ParentFileWalker::new(origin_item_path.into());
+
+        ParentIter {
+            target_key_path,
+            file_walker,
+            meta_format,
+            selection,
+            sort_order,
+            map_root_key,
+        }
+    }
+}
+
 impl<'k, 'fw, 's, 'mrk> Iterator for ParentIter<'k, 'fw, 's, 'mrk> {
     type Item = Result<(Cow<'fw, Path>, MetaVal), Error>;
 
@@ -86,6 +109,27 @@ pub struct ChildrenIter<'k, 'fw, 's, 'mrk> {
     map_root_key: &'mrk str,
 }
 
+impl<'k, 'fw, 's, 'mrk> ChildrenIter<'k, 'fw, 's, 'mrk> {
+    pub fn new(
+        origin_item_path: &'fw Path,
+        target_key_path: Vec<&'k MetaKey>,
+        meta_format: MetaFormat,
+        selection: &'s Selection,
+        sort_order: SortOrder,
+        map_root_key: &'mrk str,
+    ) -> Self
+    {
+        let file_walker = ChildrenFileWalker::new(origin_item_path.into(), selection, sort_order);
+
+        ChildrenIter {
+            target_key_path,
+            file_walker,
+            meta_format,
+            map_root_key,
+        }
+    }
+}
+
 impl<'k, 'fw, 's, 'mrk> Iterator for ChildrenIter<'k, 'fw, 's, 'mrk> {
     type Item = Result<(Cow<'fw, Path>, MetaVal), Error>;
 
@@ -111,7 +155,13 @@ impl<'k, 'fw, 's, 'mrk> Iterator for ChildrenIter<'k, 'fw, 's, 'mrk> {
 
                                 match curr_val.resolve_key_path(&self.target_key_path) {
                                     // Not found here, delegate to the next iteration.
-                                    None => self.next(),
+                                    None => {
+                                        // We need to delve here before proceeding.
+                                        match self.file_walker.delve() {
+                                            Ok(()) => self.next(),
+                                            Err(err) => Some(Err(Error::FileWalker(err))),
+                                        }
+                                    },
                                     Some(val) => Some(Ok((path, val))),
                                 }
                             },
@@ -121,6 +171,46 @@ impl<'k, 'fw, 's, 'mrk> Iterator for ChildrenIter<'k, 'fw, 's, 'mrk> {
             },
             // No more paths to iterate over.
             None => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParentIter;
+    use super::ChildrenIter;
+
+    use config::Config;
+    use metadata::types::MetaKey;
+
+    use test_util::create_temp_media_test_dir_staggered;
+
+    #[test]
+    fn test_parent_iter() {
+        let temp_dir = create_temp_media_test_dir_staggered("test_parent_iter");
+        let path = temp_dir.path();
+
+        let config = Config::default();
+        let meta_format = config.meta_format;
+        let selection = &config.selection;
+        let sort_order = config.sort_order;
+        let map_root_key = &config.map_root_key;
+
+        let staggered_key = MetaKey::from("staggered_key");
+        let sub_key_a = MetaKey::from("sub_key_a");
+        let sub_key_b = MetaKey::from("sub_key_b");
+        let sub_key_c = MetaKey::from("sub_key_c");
+        let sub_sub_key_a = MetaKey::from("sub_sub_key_a");
+        let sub_sub_key_b = MetaKey::from("sub_sub_key_b");
+
+        let origin_item_path = path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac");
+        let target_key_path = vec![&staggered_key, &sub_key_a];
+        let iter = ParentIter::new(&origin_item_path, target_key_path, meta_format, selection, sort_order, map_root_key);
+
+        // std::thread::sleep_ms(100000);
+
+        for x in iter {
+            println!("{:?}", x);
         }
     }
 }

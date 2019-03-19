@@ -139,8 +139,13 @@ where P: AsRef<Path>,
         item_meta_contents.push_str(&entry_string);
 
         if staggered && subentry.include_spelunk_str() {
-            // Add a unique meta key that is intended for child aggregating tests.
-            item_meta_contents.push_str(&format!("  staggered_key: {}_staggered_val\n", subentry.name()));
+            // Add unique meta keys that are intended for child aggregating tests.
+            item_meta_contents.push_str(&format!("  staggered_key:\n"));
+            item_meta_contents.push_str(&format!("    sub_key_a: {}_sub_val_a\n", subentry.name()));
+            item_meta_contents.push_str(&format!("    sub_key_b: {}_sub_val_b\n", subentry.name()));
+            item_meta_contents.push_str(&format!("    sub_key_c:\n"));
+            item_meta_contents.push_str(&format!("      sub_sub_key_a: {}_sub_sub_val_a\n", subentry.name()));
+            item_meta_contents.push_str(&format!("      sub_sub_key_b: {}_sub_sub_val_b\n", subentry.name()));
         }
     }
 
