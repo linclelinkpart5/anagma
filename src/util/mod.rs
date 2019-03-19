@@ -1,4 +1,4 @@
-mod file_walkers;
+pub mod file_walkers;
 
 use std::ops::Generator;
 use std::ops::GeneratorState;

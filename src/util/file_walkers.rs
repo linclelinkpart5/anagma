@@ -27,16 +27,16 @@ impl std::error::Error for Error {
     }
 }
 
-struct AncestorFileWalker<'p>(Option<&'p Path>);
+pub struct ParentFileWalker<'p>(Option<&'p Path>);
 
-impl<'p> AncestorFileWalker<'p> {
+impl<'p> ParentFileWalker<'p> {
     pub fn new(origin_item_path: &'p Path) -> Self {
         Self(Some(origin_item_path))
     }
 }
 
-impl<'p> Iterator for AncestorFileWalker<'p> {
-    type Item = Result<Cow<'p, Path>, Error>;
+impl<'p> Iterator for ParentFileWalker<'p> {
+    type Item = Cow<'p, Path>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.0 {
@@ -45,19 +45,19 @@ impl<'p> Iterator for AncestorFileWalker<'p> {
 
                 self.0 = p.parent();
 
-                ret.map(Cow::Borrowed).map(Result::Ok)
+                ret.map(Cow::Borrowed)
             },
             None => None,
         }
     }
 }
 
-struct ChildrenFileWalker<'p, 's> {
+pub struct ChildrenFileWalker<'p, 's> {
     frontier: VecDeque<Result<Cow<'p, Path>, Error>>,
     last_processed_path: Option<Cow<'p, Path>>,
 
-    selection: &'s Selection,
-    sort_order: SortOrder,
+    pub(crate) selection: &'s Selection,
+    pub(crate) sort_order: SortOrder,
 }
 
 impl<'p, 's> ChildrenFileWalker<'p, 's> {
@@ -118,7 +118,7 @@ impl<'p, 's> Iterator for ChildrenFileWalker<'p, 's> {
 
 #[cfg(test)]
 mod tests {
-    use super::AncestorFileWalker;
+    use super::ParentFileWalker;
     use super::ChildrenFileWalker;
 
     use std::path::Path;
@@ -166,12 +166,12 @@ mod tests {
         let root_dir = create_dir_tree("test_ancestor_file_walker");
 
         let start_path = root_dir.path().join("0_0").join("1_0").join("2_0");
-        let mut walker = AncestorFileWalker::new(&start_path);
+        let mut walker = ParentFileWalker::new(&start_path);
 
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0").join("1_0").join("2_0"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0").join("1_0"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
+        assert_eq!(walker.next().unwrap(), root_dir.path().join("0_0").join("1_0").join("2_0"));
+        assert_eq!(walker.next().unwrap(), root_dir.path().join("0_0").join("1_0"));
+        assert_eq!(walker.next().unwrap(), root_dir.path().join("0_0"));
+        assert_eq!(walker.next().unwrap(), root_dir.path());
     }
 
     #[test]
