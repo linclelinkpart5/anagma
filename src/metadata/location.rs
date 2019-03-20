@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::fs;
 
 use config::selection::Selection;
+use config::meta_format::MetaFormat;
 
 #[derive(Debug)]
 pub enum Error {
@@ -15,7 +16,7 @@ pub enum Error {
 
     // InvalidMetaDirPath(PathBuf),
     InvalidMetaFilePath(PathBuf),
-    NonexistentMetaPath(PathBuf),
+    NonexistentMetaPath(Vec<PathBuf>),
     NoMetaPathParent(PathBuf),
     // CannotReadMetaDir(std::io::Error),
     // CannotReadMetaDirEntry(std::io::Error),
@@ -33,7 +34,7 @@ impl std::fmt::Display for Error {
 
             // Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.display()),
             Error::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.display()),
-            Error::NonexistentMetaPath(ref p) => write!(f, "meta path does not exist: {}", p.display()),
+            Error::NonexistentMetaPath(ref ps) => write!(f, "meta path does not exist, tried: {:?}", ps),
             Error::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.display()),
             // Error::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
             // Error::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
@@ -60,35 +61,56 @@ pub enum MetaLocation {
 }
 
 impl MetaLocation {
-    pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P) -> Result<PathBuf, Error> {
+    pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P, meta_format: MetaFormat) -> Result<PathBuf, Error> {
         let item_path = item_path.as_ref();
 
         if !item_path.exists() {
             Err(Error::NonexistentItemPath(item_path.to_path_buf()))?
         }
 
-        let meta_path = match *self {
+        let meta_path_parent_dir = match *self {
             MetaLocation::Contains => {
                 if !item_path.is_dir() {
                     Err(Error::InvalidItemDirPath(item_path.to_path_buf()))?
                 }
 
-                item_path.join("self.yml")
+                item_path
             },
             MetaLocation::Siblings => {
                 match item_path.parent() {
-                    Some(item_path_parent) => item_path_parent.join("item.yml"),
+                    Some(item_path_parent) => item_path_parent,
                     None => Err(Error::NoItemPathParent(item_path.to_path_buf()))?,
                 }
             }
         };
 
-        // LEARN: This is done to avoid calling `.clone()` unnecessarily.
-        match (meta_path.exists(), meta_path.is_file()) {
-            (false, _) => Err(Error::NonexistentMetaPath(meta_path)),
-            (_, false) => Err(Error::InvalidMetaFilePath(meta_path)),
-            (true, true) => Ok(meta_path),
+        // Start with the default extension of the meta format.
+        let exts = std::iter::once(meta_format.default_file_extension()).chain(meta_format.extra_file_extensions().into_iter().cloned());
+
+        let mut attempted_paths = vec![];
+
+        for ext in exts {
+            // Create the target meta file name.
+            let target_fn = format!("{}.{}", self.default_file_name(), meta_format.default_file_extension());
+            let meta_path = meta_path_parent_dir.join(target_fn);
+
+            // LEARN: This is done to avoid calling `.clone()` unnecessarily.
+            match (meta_path.exists(), meta_path.is_file()) {
+                // Only an error if all extensions do not match.
+                (false, _) => {
+                    attempted_paths.push(meta_path);
+                    continue
+                },
+
+                // Found a directory with the name of the meta file, that would be a very strange case.
+                (_, false) => return Err(Error::InvalidMetaFilePath(meta_path)),
+
+                (true, true) => return Ok(meta_path),
+            };
         }
+
+        // At this point, no valid meta paths were found.
+        Err(Error::NonexistentMetaPath(attempted_paths))
     }
 
     /// Provides the possible owned item paths of this location.
@@ -99,7 +121,7 @@ impl MetaLocation {
         let meta_path = meta_path.as_ref();
 
         if !meta_path.exists() {
-            Err(Error::NonexistentMetaPath(meta_path.to_path_buf()))?
+            Err(Error::NonexistentMetaPath(vec![meta_path.to_path_buf()]))?
         }
 
         if !meta_path.is_file() {

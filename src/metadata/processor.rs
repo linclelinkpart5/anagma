@@ -91,7 +91,7 @@ impl MetaProcessor {
         let mut comp_mb = MetaBlock::new();
 
         for meta_location in META_LOCATION_ORDER.into_iter() {
-            let meta_path = match meta_location.get_meta_path(&item_path) {
+            let meta_path = match meta_location.get_meta_path(&item_path, meta_format) {
                 Err(e) => {
                     match e {
                         LocationError::NonexistentMetaPath(..) |

@@ -274,7 +274,7 @@ impl TestUtil {
 
         fill_dir(root_dir.path(), &db, "ROOT", Self::FANOUT, 0, Self::MAX_DEPTH);
 
-        sleep(Duration::from_millis(1));
+        std::thread::sleep(Duration::from_millis(1));
         root_dir
     }
 }
