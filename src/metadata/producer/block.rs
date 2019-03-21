@@ -52,6 +52,15 @@ impl<'p, 's, 'mrk> Iterator for MetaBlockProducer<'p, 's, 'mrk> {
     }
 }
 
+impl<'p, 's, 'mrk> MetaBlockProducer<'p, 's, 'mrk> {
+    pub fn delve(&mut self) -> Result<(), Error> {
+        match self {
+            &mut Self::Fixed(..) => Ok(()),
+            &mut Self::File(ref mut producer) => producer.delve(),
+        }
+    }
+}
+
 /// A meta block producer that yields from a fixed sequence, used for testing.
 pub struct FixedMetaBlockProducer(VecDeque<MetaBlock>);
 
