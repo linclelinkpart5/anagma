@@ -27,6 +27,34 @@ impl std::error::Error for Error {
     }
 }
 
+/// Generic walker that supports either visiting parent or child files of an origin path.
+pub enum FileWalker<'p, 's> {
+    Parent(ParentFileWalker<'p>),
+    Children(ChildrenFileWalker<'p, 's>),
+}
+
+impl<'p, 's> Iterator for FileWalker<'p, 's> {
+    type Item = Result<Cow<'p, Path>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            // Parent walkers cannot error, so this needs wrapping in a `Result`.
+            &mut Self::Parent(ref mut fw) => fw.next().map(Result::Ok),
+            &mut Self::Children(ref mut fw) => fw.next(),
+        }
+    }
+}
+
+impl<'p, 's> FileWalker<'p, 's> {
+    pub fn delve(&mut self) -> Result<(), Error> {
+        match self {
+            // Parent walkers do not have to delve, just no-op.
+            &mut Self::Parent(..) => Ok(()),
+            &mut Self::Children(ref mut fw) => fw.delve(),
+        }
+    }
+}
+
 pub struct ParentFileWalker<'p>(Option<&'p Path>);
 
 impl<'p> ParentFileWalker<'p> {
