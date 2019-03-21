@@ -28,29 +28,29 @@ impl std::error::Error for Error {
 }
 
 /// Generic walker that supports either visiting parent or child files of an origin path.
-pub enum FileWalker<'p, 's> {
+pub enum FileWalker<'p> {
     Parent(ParentFileWalker<'p>),
-    Children(ChildrenFileWalker<'p, 's>),
+    Child(ChildFileWalker<'p>),
 }
 
-impl<'p, 's> Iterator for FileWalker<'p, 's> {
+impl<'p> Iterator for FileWalker<'p> {
     type Item = Result<Cow<'p, Path>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             // Parent walkers cannot error, so this needs wrapping in a `Result`.
             &mut Self::Parent(ref mut fw) => fw.next().map(Result::Ok),
-            &mut Self::Children(ref mut fw) => fw.next(),
+            &mut Self::Child(ref mut fw) => fw.next(),
         }
     }
 }
 
-impl<'p, 's> FileWalker<'p, 's> {
-    pub fn delve(&mut self) -> Result<(), Error> {
+impl<'p> FileWalker<'p> {
+    pub fn delve(&mut self, selection: &Selection, sort_order: SortOrder) -> Result<(), Error> {
         match self {
             // Parent walkers do not have to delve, just no-op.
             &mut Self::Parent(..) => Ok(()),
-            &mut Self::Children(ref mut fw) => fw.delve(),
+            &mut Self::Child(ref mut fw) => fw.delve(selection, sort_order),
         }
     }
 }
@@ -80,16 +80,13 @@ impl<'p> Iterator for ParentFileWalker<'p> {
     }
 }
 
-pub struct ChildrenFileWalker<'p, 's> {
+pub struct ChildFileWalker<'p> {
     frontier: VecDeque<Result<Cow<'p, Path>, Error>>,
     last_processed_path: Option<Cow<'p, Path>>,
-
-    pub(crate) selection: &'s Selection,
-    pub(crate) sort_order: SortOrder,
 }
 
-impl<'p, 's> ChildrenFileWalker<'p, 's> {
-    pub fn new(origin_item_path: &'p Path, selection: &'s Selection, sort_order: SortOrder) -> Self {
+impl<'p> ChildFileWalker<'p> {
+    pub fn new(origin_item_path: &'p Path) -> Self {
         let mut frontier = VecDeque::new();
 
         // Initialize the frontier with the origin item.
@@ -98,17 +95,15 @@ impl<'p, 's> ChildrenFileWalker<'p, 's> {
         Self {
             frontier,
             last_processed_path: None,
-            selection,
-            sort_order,
         }
     }
 
-    pub fn delve(&mut self) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sort_order: SortOrder) -> Result<(), Error> {
         // Manually delves into a directory, and adds its subitems to the frontier.
         if let Some(lpp) = self.last_processed_path.take() {
             // If the last processed path is a directory, add its children to the frontier.
             if lpp.is_dir() {
-                match self.selection.select_in_dir_sorted(&lpp, self.sort_order) {
+                match selection.select_in_dir_sorted(&lpp, sort_order) {
                     Err(err) => {
                         return Err(Error::Selection(err));
                     },
@@ -126,7 +121,7 @@ impl<'p, 's> ChildrenFileWalker<'p, 's> {
     }
 }
 
-impl<'p, 's> Iterator for ChildrenFileWalker<'p, 's> {
+impl<'p> Iterator for ChildFileWalker<'p> {
     type Item = Result<Cow<'p, Path>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -147,7 +142,7 @@ impl<'p, 's> Iterator for ChildrenFileWalker<'p, 's> {
 #[cfg(test)]
 mod tests {
     use super::ParentFileWalker;
-    use super::ChildrenFileWalker;
+    use super::ChildFileWalker;
 
     use std::path::Path;
     use std::fs::DirBuilder;
@@ -211,34 +206,35 @@ mod tests {
         // Skip the first file of each leaf directory.
         // NOTE: Recall that directories are always selected.
         let selection = Selection::from_patterns(vec!["*_*"], vec!["*_0"]).unwrap();
-        let mut walker = ChildrenFileWalker::new(&start_path, &selection, SortOrder::Name);
+        let sort_order = SortOrder::Name;
+        let mut walker = ChildFileWalker::new(&start_path);
 
         // We should get just the root value, since no delving has happened.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
         assert!(walker.next().is_none());
 
-        walker.delve().unwrap();
+        walker.delve(&selection, sort_order).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2"));
         assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
-        walker.delve().unwrap();
+        walker.delve(&selection, sort_order).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1"));
 
-        walker.delve().unwrap();
+        walker.delve(&selection, sort_order).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0"));
 
         // Once files are found, observe the results of the selection.
         // NOTE: The 3_0 file is skipped.
-        walker.delve().unwrap();
+        walker.delve(&selection, sort_order).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0").join("3_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0").join("3_2"));
 
         // Delving on a file does nothing.
-        walker.delve().unwrap();
+        walker.delve(&selection, sort_order).unwrap();
 
         // Right back to where we were before delving into depth 3.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_1"));

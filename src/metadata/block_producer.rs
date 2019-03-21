@@ -36,7 +36,23 @@ impl std::error::Error for Error {
     }
 }
 
-/// A meta block producer that yields from a fixed sequence.
+pub enum MetaBlockProducer<'p, 's, 'mrk> {
+    Fixed(FixedMetaBlockProducer),
+    File(FileMetaBlockProducer<'p, 's, 'mrk>),
+}
+
+impl<'p, 's, 'mrk> Iterator for MetaBlockProducer<'p, 's, 'mrk> {
+    type Item = Result<MetaBlock, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            &mut Self::Fixed(ref mut it) => it.next(),
+            &mut Self::File(ref mut it) => it.next(),
+        }
+    }
+}
+
+/// A meta block producer that yields from a fixed sequence, used for testing.
 pub struct FixedMetaBlockProducer(VecDeque<MetaBlock>);
 
 impl Iterator for FixedMetaBlockProducer {
@@ -47,8 +63,9 @@ impl Iterator for FixedMetaBlockProducer {
     }
 }
 
+/// A meta block producer that yields from files on disk, powered by a file walker.
 pub struct FileMetaBlockProducer<'p, 's, 'mrk> {
-    file_walker: FileWalker<'p, 's>,
+    file_walker: FileWalker<'p>,
     meta_format: MetaFormat,
     selection: &'s Selection,
     sort_order: SortOrder,
@@ -63,15 +80,15 @@ impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
             Some(path_res) => {
                 match path_res {
                     Ok(path) => {
-                        let mut processed = MetaProcessor::process_item_file(
-                            &path,
-                            self.meta_format,
-                            self.selection,
-                            self.sort_order,
-                            self.map_root_key,
-                        ).map_err(Error::Processor);
-
-                        Some(processed)
+                        Some(
+                            MetaProcessor::process_item_file(
+                                &path,
+                                self.meta_format,
+                                self.selection,
+                                self.sort_order,
+                                self.map_root_key,
+                            ).map_err(Error::Processor)
+                        )
                     },
                     Err(err) => Some(Err(Error::FileWalker(err))),
                 }
@@ -83,6 +100,6 @@ impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
 
 impl<'p, 's, 'mrk> FileMetaBlockProducer<'p, 's, 'mrk> {
     pub fn delve(&mut self) -> Result<(), Error> {
-        self.file_walker.delve().map_err(Error::FileWalker)
+        self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
     }
 }
