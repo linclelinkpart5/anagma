@@ -72,17 +72,3 @@ impl<'k, 'p, 's, 'mrk> Iterator for MetaFieldProducer<'k, 'p, 's, 'mrk> {
         }
     }
 }
-//                                 // Initalize the meta value by wrapping the entire meta block in a map.
-//                                 let mut curr_val = MetaVal::Map(mb);
-
-//                                 match curr_val.resolve_key_path(&self.target_key_path) {
-//                                     // Not found here, delegate to the next iteration.
-//                                     None => {
-//                                         // We need to delve here before proceeding.
-//                                         match self.file_walker.delve() {
-//                                             Ok(()) => self.next(),
-//                                             Err(err) => Some(Err(Error::FileWalker(err))),
-//                                         }
-//                                     },
-//                                     Some(val) => Some(Ok((path, val))),
-//                                 }
