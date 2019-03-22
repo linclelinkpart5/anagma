@@ -42,15 +42,15 @@ impl<'k, 'p, 's, 'mrk> MetaFieldProducer<'k, 'p, 's, 'mrk> {
 }
 
 impl<'k, 'p, 's, 'mrk> Iterator for MetaFieldProducer<'k, 'p, 's, 'mrk> {
-    // type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
-    type Item = Result<MetaVal, Error>;
+    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
+    // type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_producer.next() {
             Some(mb_res) => {
                 match mb_res {
                     Err(err) => Some(Err(Error::MetaBlockProducer(err))),
-                    Ok(mb) => {
+                    Ok((path, mb)) => {
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         let mut curr_val = MetaVal::Map(mb);
 
@@ -63,7 +63,7 @@ impl<'k, 'p, 's, 'mrk> Iterator for MetaFieldProducer<'k, 'p, 's, 'mrk> {
                                     Err(err) => Some(Err(Error::MetaBlockProducer(err))),
                                 }
                             },
-                            Some(val) => Some(Ok(val)),
+                            Some(val) => Some(Ok((path, val))),
                         }
                     },
                 }

@@ -1,6 +1,8 @@
 //! Iterators that yield meta blocks. This provides a layer of abstraction for later processes that
 //! need a stream of meta blocks from various sources.
 
+use std::borrow::Cow;
+use std::path::Path;
 use std::collections::VecDeque;
 
 use config::selection::Selection;
@@ -37,12 +39,12 @@ impl std::error::Error for Error {
 }
 
 pub enum MetaBlockProducer<'p, 's, 'mrk> {
-    Fixed(FixedMetaBlockProducer),
+    Fixed(FixedMetaBlockProducer<'p>),
     File(FileMetaBlockProducer<'p, 's, 'mrk>),
 }
 
 impl<'p, 's, 'mrk> Iterator for MetaBlockProducer<'p, 's, 'mrk> {
-    type Item = Result<MetaBlock, Error>;
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -62,10 +64,10 @@ impl<'p, 's, 'mrk> MetaBlockProducer<'p, 's, 'mrk> {
 }
 
 /// A meta block producer that yields from a fixed sequence, used for testing.
-pub struct FixedMetaBlockProducer(VecDeque<MetaBlock>);
+pub struct FixedMetaBlockProducer<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
 
-impl Iterator for FixedMetaBlockProducer {
-    type Item = Result<MetaBlock, Error>;
+impl<'p> Iterator for FixedMetaBlockProducer<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
@@ -82,7 +84,7 @@ pub struct FileMetaBlockProducer<'p, 's, 'mrk> {
 }
 
 impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
-    type Item = Result<MetaBlock, Error>;
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next() {
@@ -96,7 +98,9 @@ impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
                                 self.selection,
                                 self.sort_order,
                                 self.map_root_key,
-                            ).map_err(Error::Processor)
+                            )
+                            .map(|mb| (path, mb))
+                            .map_err(Error::Processor)
                         )
                     },
                     Err(err) => Some(Err(Error::FileWalker(err))),
