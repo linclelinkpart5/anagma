@@ -116,3 +116,51 @@ impl<'p, 's, 'mrk> FileMetaBlockProducer<'p, 's, 'mrk> {
         self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::MetaBlockProducer;
+    use super::FixedMetaBlockProducer;
+    use super::FileMetaBlockProducer;
+
+    use std::borrow::Cow;
+    use std::path::Path;
+    use std::collections::VecDeque;
+
+    use bigdecimal::BigDecimal;
+
+    use metadata::types::MetaKey;
+    use metadata::types::MetaVal;
+
+    #[test]
+    fn test_fixed_meta_block_producer() {
+        let mb_a = btreemap![
+            MetaKey::from("key_a") => MetaVal::Bul(true),
+            MetaKey::from("key_b") => MetaVal::Dec(BigDecimal::from(3.1415)),
+        ];
+        let mb_b = btreemap![
+            MetaKey::from("key_a") => MetaVal::Int(-1),
+            MetaKey::from("key_b") => MetaVal::Nil,
+        ];
+
+        let mut vd = VecDeque::new();
+        vd.push_back((Cow::Borrowed(Path::new("dummy_a")), mb_a.clone()));
+        vd.push_back((Cow::Borrowed(Path::new("dummy_b")), mb_b.clone()));
+
+        let mut producer = FixedMetaBlockProducer(vd);
+
+        assert_eq!(
+            producer.next().unwrap().unwrap(),
+            (Cow::Borrowed(Path::new("dummy_a")), mb_a.clone()),
+        );
+        assert_eq!(
+            producer.next().unwrap().unwrap(),
+            (Cow::Borrowed(Path::new("dummy_b")), mb_b.clone()),
+        );
+        assert!(producer.next().is_none());
+    }
+
+    #[test]
+    fn test_file_meta_block_producer() {
+    }
+}
