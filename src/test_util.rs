@@ -178,7 +178,34 @@ impl TestUtil {
     const FANOUT: usize = 3;
     const MAX_DEPTH: usize = 3;
 
-    pub fn create_fanout_test_dir(name: &str) -> TempDir {
+    pub fn create_plain_fanout_test_dir(name: &str) -> TempDir {
+        let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+
+        fn fill_dir(p: &Path, db: &DirBuilder, fanout: usize, curr_depth: usize, max_depth: usize) {
+            for i in 0..fanout {
+                let name = format!("{}_{}", curr_depth, i);
+                let new_path = p.join(&name);
+
+                if curr_depth >= max_depth {
+                    // Create files.
+                    File::create(&new_path).expect("unable to create file");
+                }
+                else {
+                    // Create dirs and then recurse.
+                    db.create(&new_path).expect("unable to create directory");
+                    fill_dir(&new_path, &db, fanout, curr_depth + 1, max_depth);
+                }
+            }
+        }
+
+        let db = DirBuilder::new();
+
+        fill_dir(root_dir.path(), &db, Self::FANOUT, 0, Self::MAX_DEPTH);
+
+        root_dir
+    }
+
+    pub fn create_meta_fanout_test_dir(name: &str) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
         fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, curr_depth: usize, max_depth: usize) {
@@ -284,7 +311,7 @@ mod tests {
     use super::TestUtil;
 
     #[test]
-    fn test_create_fanout_test_dir() {
-        let temp_dir = TestUtil::create_fanout_test_dir("test_create_fanout_test_dir");
+    fn test_create_meta_fanout_test_dir() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir");
     }
 }

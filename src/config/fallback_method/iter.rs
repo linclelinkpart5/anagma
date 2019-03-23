@@ -188,7 +188,7 @@ impl std::error::Error for Error {
 
 //     #[test]
 //     fn test_parent_iter() {
-//         let temp_dir = TestUtil::create_fanout_test_dir("test_parent_iter");
+//         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_parent_iter");
 //         let path = temp_dir.path();
 
 //         let config = Config::default();
