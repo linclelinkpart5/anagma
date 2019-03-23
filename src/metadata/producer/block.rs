@@ -126,11 +126,17 @@ mod tests {
     use std::borrow::Cow;
     use std::path::Path;
     use std::collections::VecDeque;
+    use test_util::TestUtil;
 
     use bigdecimal::BigDecimal;
 
     use metadata::types::MetaKey;
     use metadata::types::MetaVal;
+    use config::selection::Selection;
+    use config::sort_order::SortOrder;
+    use config::meta_format::MetaFormat;
+    use util::file_walkers::FileWalker;
+    use util::file_walkers::ParentFileWalker;
 
     #[test]
     fn test_fixed_meta_block_producer() {
@@ -162,5 +168,21 @@ mod tests {
 
     #[test]
     fn test_file_meta_block_producer() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_file_meta_block_producer");
+
+        let root_dir = temp_dir.path();
+        let test_path = root_dir.join("0_0").join("1_0").join("2_0");
+
+        let mut producer = FileMetaBlockProducer {
+            file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
+            meta_format: MetaFormat::Json,
+            selection: &Selection::default(),
+            sort_order: SortOrder::Name,
+            map_root_key: "~",
+        };
+
+        println!("{:?}", producer.next());
+        println!("{:?}", producer.next());
+        println!("{:?}", producer.next());
     }
 }

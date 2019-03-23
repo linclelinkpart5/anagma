@@ -243,13 +243,13 @@ impl TestUtil {
             for i in 0..fanout {
                 let name = if curr_depth >= max_depth {
                     // Create files.
-                    let name = format!("FILE_L{}_N{}", curr_depth, i);
+                    let name = format!("{}_{}", curr_depth, i);
                     let new_path = p.join(&name);
                     File::create(&new_path).expect("unable to create item file");
                     name
                 } else {
                     // Create dirs and then recurse.
-                    let name = format!("DIR_L{}_N{}", curr_depth, i);
+                    let name = format!("{}_{}", curr_depth, i);
                     let new_path = p.join(&name);
                     db.create(&new_path).expect("unable to create item directory");
                     fill_dir(&new_path, &db, &name, fanout, curr_depth + 1, max_depth);
