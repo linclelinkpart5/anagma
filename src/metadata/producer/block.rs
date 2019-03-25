@@ -172,7 +172,7 @@ mod tests {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_file_meta_block_producer");
         let root_dir = temp_dir.path();
 
-        let test_path = root_dir.join("0_0").join("1_0").join("2_0");
+        let test_path = root_dir.join("0").join("0_1").join("0_1_2");
 
         let mut producer = FileMetaBlockProducer {
             file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
@@ -182,9 +182,9 @@ mod tests {
             map_root_key: "~",
         };
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1_0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_0")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1_2")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0")));
         assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));
 
         let test_path = root_dir.clone();
@@ -202,16 +202,16 @@ mod tests {
 
         producer.delve().unwrap();
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_2")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2")));
         assert!(producer.next().is_none());
 
         producer.delve().unwrap();
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1_0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1_1")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1_2")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_0")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_1")));
+        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_2")));
         assert!(producer.next().is_none());
     }
 }

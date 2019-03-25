@@ -208,7 +208,7 @@ impl TestUtil {
     pub fn create_meta_fanout_test_dir(name: &str) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
-        fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, curr_depth: usize, max_depth: usize) {
+        fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
             let self_lines = format!(
@@ -241,20 +241,27 @@ impl TestUtil {
             let mut item_block_entries = vec![];
 
             for i in 0..fanout {
-                let name = if curr_depth >= max_depth {
+                let mut new_breadcrumbs = breadcrumbs.clone();
+
+                new_breadcrumbs.push(i);
+
+                let name = if new_breadcrumbs.len() == 0 {
+                    String::from("ROOT")
+                }
+                else {
+                    new_breadcrumbs.iter().map(|n| format!("{}", n)).collect::<Vec<_>>().join("_")
+                };
+
+                if breadcrumbs.len() >= max_depth {
                     // Create files.
-                    let name = format!("{}_{}", curr_depth, i);
                     let new_path = p.join(&name);
                     File::create(&new_path).expect("unable to create item file");
-                    name
                 } else {
                     // Create dirs and then recurse.
-                    let name = format!("{}_{}", curr_depth, i);
                     let new_path = p.join(&name);
                     db.create(&new_path).expect("unable to create item directory");
-                    fill_dir(&new_path, &db, &name, fanout, curr_depth + 1, max_depth);
-                    name
-                };
+                    fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth);
+                }
 
                 let item_block_lines = format!(
                     r#"{{
@@ -299,7 +306,7 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, "ROOT", Self::FANOUT, 0, Self::MAX_DEPTH);
+        fill_dir(root_dir.path(), &db, "ROOT", Self::FANOUT, vec![], Self::MAX_DEPTH);
 
         std::thread::sleep(Duration::from_millis(1));
         root_dir
