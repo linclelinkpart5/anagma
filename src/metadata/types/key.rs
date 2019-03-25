@@ -1,13 +1,15 @@
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Deserialize, Serialize)]
-#[serde(transparent)]
-pub struct MetaKey(String);
+#[serde(untagged)]
+pub enum MetaKey{
+    Str(String)
+}
 
 impl<S> From<S> for MetaKey
 where
     S: Into<String>
 {
     fn from(s: S) -> Self {
-        Self(s.into())
+        Self::Str(s.into())
     }
 }
 
