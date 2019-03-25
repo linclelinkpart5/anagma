@@ -1,12 +1,13 @@
-use metadata::types::repr::MetaStructure;
+use metadata::types::MetaStructure;
+use metadata::types::MetaStructureRepr;
 use metadata::reader::Error;
 use metadata::location::MetaLocation;
 
 pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
     Ok(match mt {
-        MetaLocation::Contains => MetaStructure::Unit(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
-        MetaLocation::Siblings => MetaStructure::Many(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
-    })
+        MetaLocation::Contains => MetaStructureRepr::Unit(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
+        MetaLocation::Siblings => MetaStructureRepr::Many(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
+    }.into())
 }
 
 #[cfg(test)]

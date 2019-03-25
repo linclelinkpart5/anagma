@@ -57,7 +57,7 @@ impl Default for Fallback {
 }
 
 /// Node type for the tree representation of fallback methods.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum FallbackSpecNode {
     Leaf(Option<Fallback>),
     Pass(HashMap<MetaKey, FallbackSpecNode>),
@@ -65,73 +65,6 @@ pub enum FallbackSpecNode {
 }
 
 pub type FallbackSpec = HashMap<MetaKey, FallbackSpecNode>;
-
-/// Node type for the tree representation of fallback methods.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
-#[serde(untagged)]
-pub enum FallbackSpecNodeRepr {
-    Leaf(Option<Fallback>),
-    Pass(HashMap<String, FallbackSpecNodeRepr>),
-    Both(Option<Fallback>, HashMap<String, FallbackSpecNodeRepr>),
-}
-
-impl FallbackSpecNodeRepr {
-    pub(crate) fn into_fallback_spec_node<S: AsRef<str>>(self, map_root_key: S) -> FallbackSpecNode {
-        match self {
-            Self::Leaf(fb) => FallbackSpecNode::Leaf(fb),
-            Self::Pass(map) => {
-                FallbackSpecNode::Pass(
-                    map
-                        .into_iter()
-                        .map(|(k, v)| {
-                            (
-                                match k == map_root_key.as_ref() {
-                                    true => MetaKey::Nil,
-                                    false => MetaKey::Str(k),
-                                },
-                                v.into_fallback_spec_node(map_root_key.as_ref()),
-                            )
-                        })
-                        .collect()
-                )
-            },
-            Self::Both(fb, map) => {
-                FallbackSpecNode::Both(
-                    fb,
-                    map
-                        .into_iter()
-                        .map(|(k, v)| {
-                            (
-                                match k == map_root_key.as_ref() {
-                                    true => MetaKey::Nil,
-                                    false => MetaKey::Str(k),
-                                },
-                                v.into_fallback_spec_node(map_root_key.as_ref()),
-                            )
-                        })
-                        .collect()
-                )
-            },
-        }
-    }
-}
-
-pub type FallbackSpecRepr = HashMap<String, FallbackSpecNodeRepr>;
-
-pub(crate) fn into_fallback_spec<S: AsRef<str>>(fbsr: FallbackSpecRepr, map_root_key: S) -> FallbackSpec {
-    fbsr
-        .into_iter()
-        .map(|(k, v)| {
-            (
-                match k == map_root_key.as_ref() {
-                    true => MetaKey::Nil,
-                    false => MetaKey::Str(k),
-                },
-                v.into_fallback_spec_node(map_root_key.as_ref()),
-            )
-        })
-        .collect()
-}
 
 fn listify_fallback_spec(fallback_spec: &FallbackSpec) -> HashMap<Vec<&MetaKey>, Option<Fallback>> {
     let mut mapping = HashMap::new();
@@ -201,9 +134,9 @@ mod tests {
 
     #[test]
     fn test_listify_fallback_spec() {
-        let title_key = MetaKey::Str(String::from("title"));
-        let rg_key = MetaKey::Str(String::from("rg"));
-        let peak_key = MetaKey::Str(String::from("peak"));
+        let title_key = MetaKey::from("title");
+        let rg_key = MetaKey::from("rg");
+        let peak_key = MetaKey::from("peak");
 
         let inputs_and_expected = vec![
             (
