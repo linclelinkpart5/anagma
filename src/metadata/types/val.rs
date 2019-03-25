@@ -121,6 +121,15 @@ impl MetaVal {
     // }
 }
 
+impl<S> From<S> for MetaVal
+where
+    S: Into<String>,
+{
+    fn from(s: S) -> Self {
+        Self::Str(s.into())
+    }
+}
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
 pub enum MappingIterScheme {
     Keys,

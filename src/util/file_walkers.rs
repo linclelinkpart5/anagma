@@ -185,8 +185,8 @@ mod tests {
     }
 
     #[test]
-    fn test_ancestor_file_walker() {
-        let root_dir = create_dir_tree("test_ancestor_file_walker");
+    fn test_parent_file_walker() {
+        let root_dir = create_dir_tree("test_parent_file_walker");
 
         let start_path = root_dir.path().join("0_0").join("1_0").join("2_0");
         let mut walker = ParentFileWalker::new(&start_path);
@@ -198,8 +198,8 @@ mod tests {
     }
 
     #[test]
-    fn test_children_file_walker() {
-        let root_dir = create_dir_tree("test_children_file_walker");
+    fn test_child_file_walker() {
+        let root_dir = create_dir_tree("test_child_file_walker");
 
         let start_path = root_dir.path();
 
