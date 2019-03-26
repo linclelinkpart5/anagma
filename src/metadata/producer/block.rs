@@ -38,12 +38,12 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum MetaBlockProducer<'p, 's, 'mrk> {
+pub enum MetaBlockProducer<'p, 's> {
     Fixed(FixedMetaBlockProducer<'p>),
-    File(FileMetaBlockProducer<'p, 's, 'mrk>),
+    File(FileMetaBlockProducer<'p, 's>),
 }
 
-impl<'p, 's, 'mrk> Iterator for MetaBlockProducer<'p, 's, 'mrk> {
+impl<'p, 's> Iterator for MetaBlockProducer<'p, 's> {
     type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -54,7 +54,7 @@ impl<'p, 's, 'mrk> Iterator for MetaBlockProducer<'p, 's, 'mrk> {
     }
 }
 
-impl<'p, 's, 'mrk> MetaBlockProducer<'p, 's, 'mrk> {
+impl<'p, 's> MetaBlockProducer<'p, 's> {
     pub fn delve(&mut self) -> Result<(), Error> {
         match self {
             &mut Self::Fixed(..) => Ok(()),
@@ -75,15 +75,14 @@ impl<'p> Iterator for FixedMetaBlockProducer<'p> {
 }
 
 /// A meta block producer that yields from files on disk, powered by a file walker.
-pub struct FileMetaBlockProducer<'p, 's, 'mrk> {
+pub struct FileMetaBlockProducer<'p, 's> {
     file_walker: FileWalker<'p>,
     meta_format: MetaFormat,
     selection: &'s Selection,
     sort_order: SortOrder,
-    map_root_key: &'mrk str,
 }
 
-impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
+impl<'p, 's> Iterator for FileMetaBlockProducer<'p, 's> {
     type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -97,7 +96,6 @@ impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
                                 self.meta_format,
                                 self.selection,
                                 self.sort_order,
-                                self.map_root_key,
                             )
                             .map(|mb| (path, mb))
                             .map_err(Error::Processor)
@@ -111,7 +109,7 @@ impl<'p, 's, 'mrk> Iterator for FileMetaBlockProducer<'p, 's, 'mrk> {
     }
 }
 
-impl<'p, 's, 'mrk> FileMetaBlockProducer<'p, 's, 'mrk> {
+impl<'p, 's> FileMetaBlockProducer<'p, 's> {
     pub fn delve(&mut self) -> Result<(), Error> {
         self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
     }
@@ -179,7 +177,6 @@ mod tests {
             meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sort_order: SortOrder::Name,
-            map_root_key: "~",
         };
 
         assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1_2")));
@@ -194,7 +191,6 @@ mod tests {
             meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sort_order: SortOrder::Name,
-            map_root_key: "~",
         };
 
         assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));

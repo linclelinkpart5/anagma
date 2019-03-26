@@ -24,7 +24,6 @@ pub struct Config {
     pub meta_format: MetaFormat,
     // pub fallbacks: FallbackSpec,
     pub default_fallback: Fallback,
-    pub map_root_key: String,
 }
 
 impl Default for Config {
@@ -39,7 +38,6 @@ impl Default for Config {
         let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
         // let fallbacks = FallbackSpec::default();
         let default_fallback = Fallback::default();
-        let map_root_key = String::from("~");
 
         Config {
             selection,
@@ -49,7 +47,6 @@ impl Default for Config {
             meta_format,
             // fallbacks,
             default_fallback,
-            map_root_key,
         }
     }
 }
@@ -130,7 +127,6 @@ mod tests {
             item_fn: item_meta.yml
             meta_format: yaml
             default_fallback: collect
-            map_root_key: 'null'
         "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
@@ -146,6 +142,5 @@ mod tests {
         //     MetaKey::from("title") => FallbackSpecNode::Leaf(Some(Fallback::Inherit(InheritFallback::Override))),
         // ]);
         assert_eq!(config.default_fallback, Fallback::Harvest(HarvestFallback::Collect));
-        assert_eq!(config.map_root_key, "null");
     }
 }

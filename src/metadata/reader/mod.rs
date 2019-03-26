@@ -54,21 +54,21 @@ impl std::error::Error for Error {
 }
 
 pub trait MetaReader {
-    fn from_str<S: AsRef<str>, M: AsRef<str>>(&self, s: S, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error>;
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
 
-    fn from_file<P: AsRef<Path>, M: AsRef<str>>(&self, p: P, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error> {
+    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-        self.from_str(buffer, mt, map_root_key)
+        self.from_str(buffer, mt)
     }
 }
 
 impl MetaReader for MetaFormat {
-    fn from_str<S: AsRef<str>, M: AsRef<str>>(&self, s: S, mt: MetaLocation, map_root_key: M) -> Result<MetaStructure, Error> {
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
         Ok(match *self {
             MetaFormat::Yaml => yaml::read_str(s, mt)?,
             MetaFormat::Json => json::read_str(s, mt)?,

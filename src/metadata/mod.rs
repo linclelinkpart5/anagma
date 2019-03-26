@@ -51,7 +51,6 @@ impl Metadata {
             config.meta_format,
             &config.selection,
             config.sort_order,
-            &config.map_root_key,
         ).map_err(Error::CannotProcessMetadata)?;
 
         Ok(mb)

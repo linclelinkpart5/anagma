@@ -2,7 +2,6 @@
 //! A fallback is a way to obtain metadata from another source if it is missing for an item.
 
 mod util;
-mod iter;
 
 use std::path::Path;
 use std::collections::HashMap;
@@ -96,31 +95,6 @@ fn listify_fallback_spec_helper<'a>(
             },
         }
     }
-}
-
-pub fn process_fallbacks<P: AsRef<Path>, S: AsRef<str>>(
-    start_item_path: P,
-    meta_format: MetaFormat,
-    selection: &Selection,
-    sort_order: SortOrder,
-    fallback_spec: &FallbackSpec,
-    default_fallback: Fallback,
-    map_root_key: S,
-) -> MetaBlock
-{
-    let listified = listify_fallback_spec(fallback_spec);
-
-    // Load the origin metadata.
-    // This is the isolated metadata block for just the starting item.
-    let origin_mb = MetaProcessor::process_item_file(
-        start_item_path,
-        meta_format,
-        selection,
-        sort_order,
-        map_root_key,
-    ).unwrap();
-
-    MetaBlock::new()
 }
 
 #[cfg(test)]

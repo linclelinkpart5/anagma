@@ -27,13 +27,13 @@ impl std::error::Error for Error {
     }
 }
 
-pub struct MetaFieldProducer<'k, 'p, 's, 'mrk> {
+pub struct MetaFieldProducer<'k, 'p, 's> {
     target_key_path: Vec<&'k MetaKey>,
-    meta_block_producer: MetaBlockProducer<'p, 's, 'mrk>,
+    meta_block_producer: MetaBlockProducer<'p, 's>,
 }
 
-impl<'k, 'p, 's, 'mrk> MetaFieldProducer<'k, 'p, 's, 'mrk> {
-    pub fn new(target_key_path: Vec<&'k MetaKey>, meta_block_producer: MetaBlockProducer<'p, 's, 'mrk>) -> Self {
+impl<'k, 'p, 's> MetaFieldProducer<'k, 'p, 's> {
+    pub fn new(target_key_path: Vec<&'k MetaKey>, meta_block_producer: MetaBlockProducer<'p, 's>) -> Self {
         Self {
             target_key_path,
             meta_block_producer,
@@ -41,7 +41,7 @@ impl<'k, 'p, 's, 'mrk> MetaFieldProducer<'k, 'p, 's, 'mrk> {
     }
 }
 
-impl<'k, 'p, 's, 'mrk> Iterator for MetaFieldProducer<'k, 'p, 's, 'mrk> {
+impl<'k, 'p, 's> Iterator for MetaFieldProducer<'k, 'p, 's> {
     type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
     // type Item = Result<MetaVal, Error>;
 
