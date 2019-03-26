@@ -322,6 +322,6 @@ mod tests {
 
     #[test]
     fn test_create_meta_fanout_test_dir() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3);
+        TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3);
     }
 }

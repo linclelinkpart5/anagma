@@ -80,27 +80,79 @@ impl MetaVal {
     }
 }
 
-impl<S> From<S> for MetaVal
-where
-    S: Into<String>,
-{
-    fn from(s: S) -> Self {
-        Self::Str(s.into())
+impl From<String> for MetaVal {
+    fn from(s: String) -> Self {
+        Self::Str(s)
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash)]
-pub enum MappingIterScheme {
-    Keys,
-    Vals,
-    Both,
+impl From<&str> for MetaVal {
+    fn from(s: &str) -> Self {
+        Self::Str(s.to_string())
+    }
+}
+
+impl From<i64> for MetaVal {
+    fn from(i: i64) -> Self {
+        Self::Int(i)
+    }
+}
+
+impl From<bool> for MetaVal {
+    fn from(b: bool) -> Self {
+        Self::Bul(b)
+    }
+}
+
+impl From<BigDecimal> for MetaVal {
+    fn from(d: BigDecimal) -> Self {
+        Self::Dec(d)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::MetaVal;
 
+    use bigdecimal::BigDecimal;
+
     use metadata::types::key::MetaKey;
+
+    #[test]
+    fn test_deserialize() {
+        let inputs_and_expected = vec![
+            ("null", MetaVal::Nil),
+            (r#""string""#, MetaVal::Str(String::from("string"))),
+            ("27", MetaVal::Int(27)),
+            ("-27", MetaVal::Int(-27)),
+            ("3.1415", MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
+            ("-3.1415", MetaVal::Dec(-BigDecimal::new(31415.into(), 4))),
+            ("true", MetaVal::Bul(true)),
+            ("false", MetaVal::Bul(false)),
+            (
+                r#"[null, "string", 27, true]"#,
+                MetaVal::Seq(vec![
+                    MetaVal::Nil,
+                    MetaVal::Str(String::from("string")),
+                    MetaVal::Int(27),
+                    MetaVal::Bul(true),
+                ]),
+            ),
+            (
+                r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
+                MetaVal::Map(btreemap![
+                    MetaKey::from("key_a") => MetaVal::Str(String::from("string")),
+                    MetaKey::from("key_b") => MetaVal::Int(-27),
+                    MetaKey::from("key_c") => MetaVal::Bul(false),
+                ]),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = serde_json::from_str::<MetaVal>(&input).unwrap();
+            assert_eq!(expected, produced);
+        }
+    }
 
     #[test]
     fn test_get_key_path() {

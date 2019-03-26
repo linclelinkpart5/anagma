@@ -144,47 +144,10 @@ mod tests {
     use super::ParentFileWalker;
     use super::ChildFileWalker;
 
-    use std::path::Path;
-    use std::fs::DirBuilder;
-    use std::fs::File;
-
-    use tempfile::Builder;
-    use tempfile::TempDir;
-
     use config::selection::Selection;
     use config::sort_order::SortOrder;
 
     use test_util::TestUtil;
-
-    const FANOUT: u8 = 3;
-    const MAX_DEPTH: u8 = 3;
-
-    fn create_dir_tree(name: &str) -> TempDir {
-        let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
-
-        fn fill_dir(p: &Path, db: &DirBuilder, curr_depth: u8) {
-            for i in 0..FANOUT {
-                let name = format!("{}_{}", curr_depth, i);
-                let new_path = p.join(&name);
-
-                if curr_depth >= MAX_DEPTH {
-                    // Create files.
-                    File::create(&new_path).unwrap();
-                }
-                else {
-                    // Create dirs and then recurse.
-                    db.create(&new_path).unwrap();
-                    fill_dir(&new_path, &db, curr_depth + 1);
-                }
-            }
-        }
-
-        let db = DirBuilder::new();
-
-        fill_dir(root_dir.path(), &db, 0);
-
-        root_dir
-    }
 
     #[test]
     fn test_parent_file_walker() {
