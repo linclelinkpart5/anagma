@@ -168,10 +168,6 @@ pub fn create_temp_media_test_dir(name: &str) -> TempDir {
     create_temp_media_test_dir_helper(name, false)
 }
 
-pub fn create_temp_media_test_dir_staggered(name: &str) -> TempDir {
-    create_temp_media_test_dir_helper(name, true)
-}
-
 pub(crate) struct TestUtil;
 
 impl TestUtil {

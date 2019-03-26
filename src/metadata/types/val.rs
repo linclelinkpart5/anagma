@@ -4,7 +4,6 @@ use std::collections::BTreeMap;
 
 use bigdecimal::BigDecimal;
 
-use util::GenConverter;
 use metadata::types::key::MetaKey;
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash, Deserialize)]

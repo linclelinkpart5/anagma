@@ -117,7 +117,6 @@ impl<'p, 's> FileMetaBlockProducer<'p, 's> {
 
 #[cfg(test)]
 mod tests {
-    use super::MetaBlockProducer;
     use super::FixedMetaBlockProducer;
     use super::FileMetaBlockProducer;
 

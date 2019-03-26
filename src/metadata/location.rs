@@ -91,7 +91,7 @@ impl MetaLocation {
 
         for ext in exts {
             // Create the target meta file name.
-            let target_fn = format!("{}.{}", self.default_file_name(), meta_format.default_file_extension());
+            let target_fn = format!("{}.{}", self.default_file_name(), ext);
             let meta_path = meta_path_parent_dir.join(target_fn);
 
             // LEARN: This is done to avoid calling `.clone()` unnecessarily.

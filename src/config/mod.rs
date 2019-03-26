@@ -5,13 +5,9 @@ pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
-use serde::Deserialize;
-use serde::de::Deserializer;
-
 use config::meta_format::MetaFormat;
 use config::selection::Selection;
 use config::sort_order::SortOrder;
-use config::fallback_method::FallbackSpec;
 use config::fallback_method::Fallback;
 
 #[derive(Deserialize)]
@@ -58,12 +54,8 @@ mod tests {
     use config::Config;
     use config::sort_order::SortOrder;
     use config::meta_format::MetaFormat;
-    use config::fallback_method::FallbackSpecNode;
     use config::fallback_method::Fallback;
-    use config::fallback_method::InheritFallback;
     use config::fallback_method::HarvestFallback;
-
-    use metadata::types::MetaKey;
 
     #[test]
     fn test_deserialization() {
