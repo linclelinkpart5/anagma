@@ -171,9 +171,6 @@ pub fn create_temp_media_test_dir(name: &str) -> TempDir {
 pub(crate) struct TestUtil;
 
 impl TestUtil {
-    const FANOUT: usize = 3;
-    const MAX_DEPTH: usize = 3;
-
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
@@ -206,12 +203,12 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, Self::FANOUT, vec![], Self::MAX_DEPTH);
+        fill_dir(root_dir.path(), &db, fanout, vec![], max_depth);
 
         root_dir
     }
 
-    pub fn create_meta_fanout_test_dir(name: &str) -> TempDir {
+    pub fn create_meta_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
         fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
@@ -312,7 +309,7 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, "ROOT", Self::FANOUT, vec![], Self::MAX_DEPTH);
+        fill_dir(root_dir.path(), &db, "ROOT", fanout, vec![], max_depth);
 
         std::thread::sleep(Duration::from_millis(1));
         root_dir
@@ -325,6 +322,6 @@ mod tests {
 
     #[test]
     fn test_create_meta_fanout_test_dir() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir");
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3);
     }
 }
