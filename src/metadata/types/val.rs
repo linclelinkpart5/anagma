@@ -152,6 +152,58 @@ mod tests {
             let produced = serde_json::from_str::<MetaVal>(&input).unwrap();
             assert_eq!(expected, produced);
         }
+
+        let inputs_and_expected = vec![
+            ("null", MetaVal::Nil),
+            ("~", MetaVal::Nil),
+            (r#""string""#, MetaVal::Str(String::from("string"))),
+            ("string", MetaVal::Str(String::from("string"))),
+            ("27", MetaVal::Int(27)),
+            ("-27", MetaVal::Int(-27)),
+            ("3.1415", MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
+            ("-3.1415", MetaVal::Dec(-BigDecimal::new(31415.into(), 4))),
+            ("true", MetaVal::Bul(true)),
+            ("false", MetaVal::Bul(false)),
+            (
+                r#"[null, "string", 27, true]"#,
+                MetaVal::Seq(vec![
+                    MetaVal::Nil,
+                    MetaVal::Str(String::from("string")),
+                    MetaVal::Int(27),
+                    MetaVal::Bul(true),
+                ]),
+            ),
+            (
+                "- null\n- string\n- 27\n- true",
+                MetaVal::Seq(vec![
+                    MetaVal::Nil,
+                    MetaVal::Str(String::from("string")),
+                    MetaVal::Int(27),
+                    MetaVal::Bul(true),
+                ]),
+            ),
+            (
+                r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
+                MetaVal::Map(btreemap![
+                    MetaKey::from("key_a") => MetaVal::Str(String::from("string")),
+                    MetaKey::from("key_b") => MetaVal::Int(-27),
+                    MetaKey::from("key_c") => MetaVal::Bul(false),
+                ]),
+            ),
+            (
+                "key_a: string\nkey_b: -27\nkey_c: false",
+                MetaVal::Map(btreemap![
+                    MetaKey::from("key_a") => MetaVal::Str(String::from("string")),
+                    MetaKey::from("key_b") => MetaVal::Int(-27),
+                    MetaKey::from("key_c") => MetaVal::Bul(false),
+                ]),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = serde_yaml::from_str::<MetaVal>(&input).unwrap();
+            assert_eq!(expected, produced);
+        }
     }
 
     #[test]
