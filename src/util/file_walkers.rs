@@ -154,6 +154,8 @@ mod tests {
     use config::selection::Selection;
     use config::sort_order::SortOrder;
 
+    use test_util::TestUtil;
+
     const FANOUT: u8 = 3;
     const MAX_DEPTH: u8 = 3;
 
@@ -186,20 +188,20 @@ mod tests {
 
     #[test]
     fn test_parent_file_walker() {
-        let root_dir = create_dir_tree("test_parent_file_walker");
+        let root_dir = TestUtil::create_plain_fanout_test_dir("test_parent_file_walker", 3, 3);
 
-        let start_path = root_dir.path().join("0_0").join("1_0").join("2_0");
+        let start_path = root_dir.path().join("0").join("0_1").join("0_1_0");
         let mut walker = ParentFileWalker::new(&start_path);
 
-        assert_eq!(walker.next().unwrap(), root_dir.path().join("0_0").join("1_0").join("2_0"));
-        assert_eq!(walker.next().unwrap(), root_dir.path().join("0_0").join("1_0"));
-        assert_eq!(walker.next().unwrap(), root_dir.path().join("0_0"));
+        assert_eq!(walker.next().unwrap(), root_dir.path().join("0").join("0_1").join("0_1_0"));
+        assert_eq!(walker.next().unwrap(), root_dir.path().join("0").join("0_1"));
+        assert_eq!(walker.next().unwrap(), root_dir.path().join("0"));
         assert_eq!(walker.next().unwrap(), root_dir.path());
     }
 
     #[test]
     fn test_child_file_walker() {
-        let root_dir = create_dir_tree("test_child_file_walker");
+        let root_dir = TestUtil::create_plain_fanout_test_dir("test_child_file_walker", 3, 3);
 
         let start_path = root_dir.path();
 
@@ -213,33 +215,34 @@ mod tests {
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
         assert!(walker.next().is_none());
 
+        // std::thread::sleep_ms(100000);
+
         walker.delve(&selection, sort_order).unwrap();
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_0"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_1"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2"));
         assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
         walker.delve(&selection, sort_order).unwrap();
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_0"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1"));
 
         walker.delve(&selection, sort_order).unwrap();
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0"));
 
         // Once files are found, observe the results of the selection.
-        // NOTE: The 3_0 file is skipped.
         walker.delve(&selection, sort_order).unwrap();
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0").join("3_1"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_0").join("3_2"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_2"));
 
         // Delving on a file does nothing.
         walker.delve(&selection, sort_order).unwrap();
 
         // Right back to where we were before delving into depth 3.
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_1"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_1").join("2_2"));
-        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0_2").join("1_2"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_1"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_2"));
+        assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_2"));
         assert!(walker.next().is_none());
     }
 }

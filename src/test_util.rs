@@ -174,29 +174,39 @@ impl TestUtil {
     const FANOUT: usize = 3;
     const MAX_DEPTH: usize = 3;
 
-    pub fn create_plain_fanout_test_dir(name: &str) -> TempDir {
+    pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
-        fn fill_dir(p: &Path, db: &DirBuilder, fanout: usize, curr_depth: usize, max_depth: usize) {
+        fn fill_dir(p: &Path, db: &DirBuilder, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
             for i in 0..fanout {
-                let name = format!("{}_{}", curr_depth, i);
+                let mut new_breadcrumbs = breadcrumbs.clone();
+
+                new_breadcrumbs.push(i);
+
+                let name = if new_breadcrumbs.len() == 0 {
+                    String::from("ROOT")
+                }
+                else {
+                    new_breadcrumbs.iter().map(|n| format!("{}", n)).collect::<Vec<_>>().join("_")
+                };
+
                 let new_path = p.join(&name);
 
-                if curr_depth >= max_depth {
+                if breadcrumbs.len() >= max_depth {
                     // Create files.
                     File::create(&new_path).expect("unable to create file");
                 }
                 else {
                     // Create dirs and then recurse.
                     db.create(&new_path).expect("unable to create directory");
-                    fill_dir(&new_path, &db, fanout, curr_depth + 1, max_depth);
+                    fill_dir(&new_path, &db, fanout, new_breadcrumbs, max_depth);
                 }
             }
         }
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, Self::FANOUT, 0, Self::MAX_DEPTH);
+        fill_dir(root_dir.path(), &db, Self::FANOUT, vec![], Self::MAX_DEPTH);
 
         root_dir
     }
