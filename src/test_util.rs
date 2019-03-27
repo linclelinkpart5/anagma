@@ -5,13 +5,14 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use tempfile::Builder;
 use tempfile::TempDir;
 use bigdecimal::BigDecimal;
 
 use config::meta_format::MetaFormat;
+use metadata::types::MetaVal;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -177,7 +178,7 @@ enum DataType {
     Null,
     Text(String),
     Sequence(Vec<DataType>),
-    Mapping(HashMap<String, DataType>),
+    Mapping(BTreeMap<String, DataType>),
     Integer(i64),
     Boolean(bool),
     Decimal(BigDecimal),
@@ -185,12 +186,27 @@ enum DataType {
 
 impl DataType {
     const INDENT: &'static str = "  ";
+    const YAML_LIST_ITEM: &'static str = "- ";
 
     fn indent_chunk(s: String) -> String {
         let mut to_join = vec![];
 
         for line in s.lines() {
             to_join.push(format!("{}{}", Self::INDENT, line));
+        }
+
+        to_join.join("\n")
+    }
+
+    fn indent_yaml_list_chunk(s: String) -> String {
+        // use std::iter::enumerate;
+
+        let mut to_join = vec![];
+
+        for (i, line) in s.lines().enumerate() {
+            let prefix = if i == 0 { Self::YAML_LIST_ITEM } else { Self::INDENT };
+
+            to_join.push(format!("{}{}", prefix, line));
         }
 
         to_join.join("\n")
@@ -204,24 +220,88 @@ impl DataType {
             (MetaFormat::Yaml, &Self::Text(ref s)) => s.clone(),
             (_, &Self::Integer(i)) => format!("{}", i),
             (_, &Self::Decimal(ref d)) => format!("{}", d),
+            (_, &Self::Boolean(b)) => format!("{}", b),
             (MetaFormat::Json, &Self::Sequence(ref seq)) => {
-                let mut inner_chunks = vec![];
-                for dt in seq {
-                    let inner_chunk = dt.to_serialized_chunk(meta_format);
+                let mut val_chunks = vec![];
 
-                    let inner_chunk = Self::indent_chunk(inner_chunk);
+                for val in seq {
+                    let val_chunk = val.to_serialized_chunk(meta_format);
 
-                    inner_chunks.push(inner_chunk);
+                    let val_chunk = Self::indent_chunk(val_chunk);
+
+                    val_chunks.push(val_chunk);
                 }
 
-                if inner_chunks.len() > 0 {
-                    format!("[\n{}\n]", inner_chunks.join(",\n"))
+                if val_chunks.len() > 0 {
+                    format!("[\n{}\n]", val_chunks.join(",\n"))
                 }
                 else {
                     String::from("[]")
                 }
             },
-            _ => String::new(),
+            (MetaFormat::Yaml, &Self::Sequence(ref seq)) => {
+                let mut val_chunks = vec![];
+
+                for val in seq {
+                    let val_chunk = val.to_serialized_chunk(meta_format);
+
+                    let val_chunk = Self::indent_yaml_list_chunk(val_chunk);
+
+                    val_chunks.push(val_chunk);
+                }
+
+                if val_chunks.len() > 0 {
+                    format!("{}", val_chunks.join("\n"))
+                }
+                else {
+                    String::from("[]")
+                }
+            },
+            (MetaFormat::Json, &Self::Mapping(ref map)) => {
+                let mut kv_pair_chunks = vec![];
+
+                for (key, val) in map {
+                    let val_chunk = val.to_serialized_chunk(meta_format);
+
+                    let kv_pair_chunk = format!(r#""{}": {}"#, key, val_chunk);
+
+                    let kv_pair_chunk = Self::indent_chunk(kv_pair_chunk);
+
+                    kv_pair_chunks.push(kv_pair_chunk);
+                }
+
+                if kv_pair_chunks.len() > 0 {
+                    format!("{{\n{}\n}}", kv_pair_chunks.join(",\n"))
+                }
+                else {
+                    String::from("{}")
+                }
+            },
+            (MetaFormat::Yaml, &Self::Mapping(ref map)) => {
+                let mut kv_pair_chunks = vec![];
+
+                for (key, val) in map {
+                    let val_chunk = {
+                        let val_chunk = val.to_serialized_chunk(meta_format);
+
+                        match val {
+                            Self::Sequence(..) | Self::Mapping(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
+                            _ => val_chunk,
+                        }
+                    };
+
+                    let kv_pair_chunk = format!("{}: {}", key, val_chunk);
+
+                    kv_pair_chunks.push(kv_pair_chunk);
+                }
+
+                if kv_pair_chunks.len() > 0 {
+                    format!("{}", kv_pair_chunks.join("\n"))
+                }
+                else {
+                    String::from("{}")
+                }
+            },
         }
     }
 }
@@ -391,11 +471,20 @@ mod tests {
         let dt_a = DataType::Sequence(vec![DataType::Integer(27), DataType::Text("string".into())]);
 
         println!("{}", dt_a.to_serialized_chunk(MetaFormat::Json));
+        println!("{}", dt_a.to_serialized_chunk(MetaFormat::Yaml));
 
         let a = dt_a.clone();
         let b = dt_a.clone();
         let dt_b = DataType::Sequence(vec![a, b]);
 
         println!("{}", dt_b.to_serialized_chunk(MetaFormat::Json));
+
+        let a = dt_a.clone();
+        let b = dt_a.clone();
+        let c = dt_b.clone();
+        let dt_c = DataType::Mapping(btreemap!["key_a".into() => a, "key_b".into() => b, "key_c".into() => c]);
+
+        println!("{}", dt_c.to_serialized_chunk(MetaFormat::Json));
+        println!("{}", dt_c.to_serialized_chunk(MetaFormat::Yaml));
     }
 }
