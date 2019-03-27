@@ -1,13 +1,17 @@
 #![cfg(test)]
 
-use std::fs::{DirBuilder, File};
+use std::fs::DirBuilder;
+use std::fs::File;
 use std::path::Path;
 use std::io::Write;
-use std::thread::sleep;
 use std::time::Duration;
+use std::collections::HashMap;
 
 use tempfile::Builder;
 use tempfile::TempDir;
+use bigdecimal::BigDecimal;
+
+use config::meta_format::MetaFormat;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -160,12 +164,66 @@ fn create_temp_media_test_dir_helper(name: &str, staggered: bool) -> TempDir {
 
     create_test_dir_entries("ROOT", root_dir.path(), TEST_DIR_ENTRIES, &db, staggered);
 
-    sleep(Duration::from_millis(1));
+    std::thread::sleep(Duration::from_millis(1));
     root_dir
 }
 
 pub fn create_temp_media_test_dir(name: &str) -> TempDir {
     create_temp_media_test_dir_helper(name, false)
+}
+
+#[derive(Clone)]
+enum DataType {
+    Null,
+    Text(String),
+    Sequence(Vec<DataType>),
+    Mapping(HashMap<String, DataType>),
+    Integer(i64),
+    Boolean(bool),
+    Decimal(BigDecimal),
+}
+
+impl DataType {
+    const INDENT: &'static str = "  ";
+
+    fn indent_chunk(s: String) -> String {
+        let mut to_join = vec![];
+
+        for line in s.lines() {
+            to_join.push(format!("{}{}", Self::INDENT, line));
+        }
+
+        to_join.join("\n")
+    }
+
+    fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
+        match (meta_format, self) {
+            (MetaFormat::Json, &Self::Null) => "null".into(),
+            (MetaFormat::Yaml, &Self::Null) => "~".into(),
+            (MetaFormat::Json, &Self::Text(ref s)) => format!(r#""{}""#, s),
+            (MetaFormat::Yaml, &Self::Text(ref s)) => s.clone(),
+            (_, &Self::Integer(i)) => format!("{}", i),
+            (_, &Self::Decimal(ref d)) => format!("{}", d),
+            (MetaFormat::Json, &Self::Sequence(ref seq)) => {
+                let mut inner_chunks = vec![];
+                for dt in seq {
+                    let inner_chunk = dt.to_serialized_chunk(meta_format);
+
+                    let inner_chunk = Self::indent_chunk(inner_chunk);
+
+                    inner_chunks.push(inner_chunk);
+                }
+
+                if inner_chunks.len() > 0 {
+                    format!("[\n{}\n]", inner_chunks.join(",\n"))
+                }
+                else {
+                    String::from("[]")
+                }
+            },
+            _ => String::new(),
+        }
+    }
 }
 
 pub(crate) struct TestUtil;
@@ -319,9 +377,25 @@ impl TestUtil {
 #[cfg(test)]
 mod tests {
     use super::TestUtil;
+    use super::DataType;
+
+    use config::meta_format::MetaFormat;
 
     #[test]
     fn test_create_meta_fanout_test_dir() {
         TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3);
+    }
+
+    #[test]
+    fn test_to_serialized_chunk() {
+        let dt_a = DataType::Sequence(vec![DataType::Integer(27), DataType::Text("string".into())]);
+
+        println!("{}", dt_a.to_serialized_chunk(MetaFormat::Json));
+
+        let a = dt_a.clone();
+        let b = dt_a.clone();
+        let dt_b = DataType::Sequence(vec![a, b]);
+
+        println!("{}", dt_b.to_serialized_chunk(MetaFormat::Json));
     }
 }

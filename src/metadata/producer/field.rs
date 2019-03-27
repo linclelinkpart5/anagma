@@ -43,7 +43,6 @@ impl<'k, 'p, 's> MetaFieldProducer<'k, 'p, 's> {
 
 impl<'k, 'p, 's> Iterator for MetaFieldProducer<'k, 'p, 's> {
     type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
-    // type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_producer.next() {
