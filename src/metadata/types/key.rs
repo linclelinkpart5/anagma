@@ -13,6 +13,14 @@ where
     }
 }
 
+impl std::fmt::Display for MetaKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::Str(ref s) => s.fmt(f),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::MetaKey;

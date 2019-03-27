@@ -173,18 +173,7 @@ pub fn create_temp_media_test_dir(name: &str) -> TempDir {
     create_temp_media_test_dir_helper(name, false)
 }
 
-#[derive(Clone)]
-enum DataType {
-    Null,
-    Text(String),
-    Sequence(Vec<DataType>),
-    Mapping(BTreeMap<String, DataType>),
-    Integer(i64),
-    Boolean(bool),
-    Decimal(BigDecimal),
-}
-
-impl DataType {
+trait TestSerialize {
     const INDENT: &'static str = "  ";
     const YAML_LIST_ITEM: &'static str = "- ";
 
@@ -199,8 +188,6 @@ impl DataType {
     }
 
     fn indent_yaml_list_chunk(s: String) -> String {
-        // use std::iter::enumerate;
-
         let mut to_join = vec![];
 
         for (i, line) in s.lines().enumerate() {
@@ -212,16 +199,20 @@ impl DataType {
         to_join.join("\n")
     }
 
+    fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String;
+}
+
+impl TestSerialize for MetaVal {
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
         match (meta_format, self) {
-            (MetaFormat::Json, &Self::Null) => "null".into(),
-            (MetaFormat::Yaml, &Self::Null) => "~".into(),
-            (MetaFormat::Json, &Self::Text(ref s)) => format!(r#""{}""#, s),
-            (MetaFormat::Yaml, &Self::Text(ref s)) => s.clone(),
-            (_, &Self::Integer(i)) => format!("{}", i),
-            (_, &Self::Decimal(ref d)) => format!("{}", d),
-            (_, &Self::Boolean(b)) => format!("{}", b),
-            (MetaFormat::Json, &Self::Sequence(ref seq)) => {
+            (MetaFormat::Json, &Self::Nil) => "null".into(),
+            (MetaFormat::Yaml, &Self::Nil) => "~".into(),
+            (MetaFormat::Json, &Self::Str(ref s)) => format!(r#""{}""#, s),
+            (MetaFormat::Yaml, &Self::Str(ref s)) => s.clone(),
+            (_, &Self::Int(i)) => format!("{}", i),
+            (_, &Self::Dec(ref d)) => format!("{}", d),
+            (_, &Self::Bul(b)) => format!("{}", b),
+            (MetaFormat::Json, &Self::Seq(ref seq)) => {
                 let mut val_chunks = vec![];
 
                 for val in seq {
@@ -239,7 +230,7 @@ impl DataType {
                     String::from("[]")
                 }
             },
-            (MetaFormat::Yaml, &Self::Sequence(ref seq)) => {
+            (MetaFormat::Yaml, &Self::Seq(ref seq)) => {
                 let mut val_chunks = vec![];
 
                 for val in seq {
@@ -257,7 +248,7 @@ impl DataType {
                     String::from("[]")
                 }
             },
-            (MetaFormat::Json, &Self::Mapping(ref map)) => {
+            (MetaFormat::Json, &Self::Map(ref map)) => {
                 let mut kv_pair_chunks = vec![];
 
                 for (key, val) in map {
@@ -277,7 +268,7 @@ impl DataType {
                     String::from("{}")
                 }
             },
-            (MetaFormat::Yaml, &Self::Mapping(ref map)) => {
+            (MetaFormat::Yaml, &Self::Map(ref map)) => {
                 let mut kv_pair_chunks = vec![];
 
                 for (key, val) in map {
@@ -285,12 +276,12 @@ impl DataType {
                         let val_chunk = val.to_serialized_chunk(meta_format);
 
                         match val {
-                            Self::Sequence(..) | Self::Mapping(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
-                            _ => val_chunk,
+                            Self::Seq(..) | Self::Map(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
+                            _ => format!(" {}", val_chunk),
                         }
                     };
 
-                    let kv_pair_chunk = format!("{}: {}", key, val_chunk);
+                    let kv_pair_chunk = format!("{}:{}", key, val_chunk);
 
                     kv_pair_chunks.push(kv_pair_chunk);
                 }
@@ -457,9 +448,10 @@ impl TestUtil {
 #[cfg(test)]
 mod tests {
     use super::TestUtil;
-    use super::DataType;
+    use super::TestSerialize;
 
     use config::meta_format::MetaFormat;
+    use metadata::types::MetaVal;
 
     #[test]
     fn test_create_meta_fanout_test_dir() {
@@ -468,23 +460,52 @@ mod tests {
 
     #[test]
     fn test_to_serialized_chunk() {
-        let dt_a = DataType::Sequence(vec![DataType::Integer(27), DataType::Text("string".into())]);
+        let dec = bigdecimal::BigDecimal::new(31415.into(), 4);
 
-        println!("{}", dt_a.to_serialized_chunk(MetaFormat::Json));
-        println!("{}", dt_a.to_serialized_chunk(MetaFormat::Yaml));
+        let seq_a = MetaVal::Seq(vec![MetaVal::Int(27), MetaVal::Str("string".into())]);
+        let seq_b = MetaVal::Seq(vec![MetaVal::Bul(false), MetaVal::Nil, MetaVal::Dec(dec)]);
 
-        let a = dt_a.clone();
-        let b = dt_a.clone();
-        let dt_b = DataType::Sequence(vec![a, b]);
+        let seq_seq = MetaVal::Seq(vec![seq_a.clone(), seq_b.clone()]);
 
-        println!("{}", dt_b.to_serialized_chunk(MetaFormat::Json));
+        let map = MetaVal::Map(btreemap![
+            "key_a".into() => seq_a.clone(),
+            "key_b".into() => seq_b.clone(),
+            "key_c".into() => seq_seq.clone(),
+        ]);
 
-        let a = dt_a.clone();
-        let b = dt_a.clone();
-        let c = dt_b.clone();
-        let dt_c = DataType::Mapping(btreemap!["key_a".into() => a, "key_b".into() => b, "key_c".into() => c]);
+        let inputs_and_expected = vec![
+            (
+                (seq_a.clone(), MetaFormat::Json),
+                "[\n  27,\n  \"string\"\n]",
+            ),
+            (
+                (seq_a.clone(), MetaFormat::Yaml),
+                "- 27\n- string",
+            ),
+            (
+                (seq_seq.clone(), MetaFormat::Json),
+                "[\n  [\n    27,\n    \"string\"\n  ],\n  [\n    false,\n    null,\n    3.1415\n  ]\n]",
+            ),
+            (
+                (seq_seq.clone(), MetaFormat::Yaml),
+                "- - 27\n  - string\n- - false\n  - ~\n  - 3.1415",
+            ),
+            (
+                (map.clone(), MetaFormat::Json),
+                "{\n  \"key_a\": [\n    27,\n    \"string\"\n  ],\n  \"key_b\": [\n    false,\n    null,\n    3.1415\n  ],\n  \"key_c\": [\n    [\n      27,\n      \"string\"\n    ],\n    [\n      false,\n      null,\n      3.1415\n    ]\n  ]\n}",
+            ),
+            (
+                (map.clone(), MetaFormat::Yaml),
+                "key_a:\n  - 27\n  - string\nkey_b:\n  - false\n  - ~\n  - 3.1415\nkey_c:\n  - - 27\n    - string\n  - - false\n    - ~\n    - 3.1415",
+            ),
+        ];
 
-        println!("{}", dt_c.to_serialized_chunk(MetaFormat::Json));
-        println!("{}", dt_c.to_serialized_chunk(MetaFormat::Yaml));
+        for (inputs, expected) in inputs_and_expected {
+            let (mv, meta_format) = inputs;
+
+            let produced = mv.to_serialized_chunk(meta_format);
+
+            assert_eq!(expected, produced);
+        }
     }
 }
