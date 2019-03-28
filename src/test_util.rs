@@ -5,13 +5,16 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
+use std::collections::BTreeMap;
 
 use tempfile::Builder;
 use tempfile::TempDir;
 
 use config::meta_format::MetaFormat;
+use metadata::location::MetaLocation;
 use metadata::types::MetaVal;
 use metadata::types::MetaKey;
+use metadata::types::MetaBlock;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -299,6 +302,109 @@ impl TestSerialize for MetaVal {
 pub(crate) struct TestUtil;
 
 impl TestUtil {
+    pub const STRING_KEY: &'static str = "string_key";
+    pub const INTEGER_KEY: &'static str = "integer_key";
+    pub const DECIMAL_KEY: &'static str = "decimal_key";
+    pub const BOOLEAN_KEY: &'static str = "boolean_key";
+    pub const NULL_KEY: &'static str = "null_key";
+    pub const SEQUENCE_KEY: &'static str = "sequence_key";
+    pub const MAPPING_KEY: &'static str = "mapping_key";
+
+    pub fn sample_string() -> MetaVal {
+        MetaVal::Str(String::from("string"))
+    }
+
+    pub fn sample_integer() -> MetaVal {
+        MetaVal::Int(27)
+    }
+
+    pub fn sample_decimal() -> MetaVal {
+        MetaVal::Dec(bigdecimal::BigDecimal::new(31415.into(), 4))
+    }
+
+    pub fn sample_boolean() -> MetaVal {
+        MetaVal::Bul(true)
+    }
+
+    pub fn sample_null() -> MetaVal {
+        MetaVal::Nil
+    }
+
+    fn core_flat_sequence() -> Vec<MetaVal> {
+        vec![
+            Self::sample_string(),
+            Self::sample_integer(),
+            Self::sample_decimal(),
+            Self::sample_boolean(),
+            Self::sample_null(),
+        ]
+    }
+
+    fn core_nested_sequence() -> Vec<MetaVal> {
+        let mut seq = Self::core_flat_sequence();
+
+        seq.push(Self::sample_flat_sequence());
+        seq.push(Self::sample_flat_mapping());
+
+        seq
+    }
+
+    fn core_flat_mapping() -> BTreeMap<MetaKey, MetaVal> {
+        btreemap![
+            MetaKey::from(Self::STRING_KEY) => Self::sample_string(),
+            MetaKey::from(Self::INTEGER_KEY) => Self::sample_integer(),
+            MetaKey::from(Self::DECIMAL_KEY) => Self::sample_decimal(),
+            MetaKey::from(Self::BOOLEAN_KEY) => Self::sample_boolean(),
+            MetaKey::from(Self::NULL_KEY) => Self::sample_null(),
+        ]
+    }
+
+    fn core_nested_mapping() -> BTreeMap<MetaKey, MetaVal> {
+        let mut map = Self::core_flat_mapping();
+
+        map.insert(MetaKey::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
+        map.insert(MetaKey::from(Self::MAPPING_KEY), Self::sample_flat_mapping());
+
+        map
+    }
+
+    pub fn sample_flat_sequence() -> MetaVal {
+        MetaVal::Seq(Self::core_flat_sequence())
+    }
+
+    pub fn sample_flat_mapping() -> MetaVal {
+        MetaVal::Map(Self::core_flat_mapping())
+    }
+
+    pub fn sample_nested_sequence() -> MetaVal {
+        MetaVal::Seq(Self::core_nested_sequence())
+    }
+
+    pub fn sample_nested_mapping() -> MetaVal {
+        MetaVal::Map(Self::core_nested_mapping())
+    }
+
+    pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str) -> MetaBlock {
+        let mut map = Self::core_nested_mapping();
+
+        map.insert(
+            MetaKey::Str(format!("{}_key", meta_location.default_file_name())),
+            MetaVal::Str(format!("{}_val", meta_location.default_file_name())),
+        );
+
+        map.insert(
+            MetaKey::Str(String::from("meta_location")),
+            MetaVal::Str(String::from(meta_location.default_file_name())),
+        );
+
+        map.insert(
+            MetaKey::Str(String::from("target_file_name")),
+            MetaVal::Str(String::from(target_name)),
+        );
+
+        map
+    }
+
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
