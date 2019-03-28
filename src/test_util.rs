@@ -474,36 +474,11 @@ impl TestUtil {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
-            let self_meta_val = MetaVal::Map(btreemap![
-                MetaKey::from("sample_string") => MetaVal::from("string"),
-                MetaKey::from("sample_integer") => MetaVal::from(27),
-                MetaKey::from("sample_decimal") => MetaVal::from(bigdecimal::BigDecimal::new(31415.into(), 4)),
-                MetaKey::from("sample_boolean") => MetaVal::from(true),
-                MetaKey::from("sample_null") => MetaVal::Nil,
-                MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
-                    MetaVal::from("string"),
-                    MetaVal::from(27),
-                ]),
-                MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
-                    MetaKey::from("sample_string") => MetaVal::from("string"),
-                    MetaKey::from("sample_boolean") => MetaVal::from(false),
-                    MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
-                        MetaVal::from("string"),
-                        MetaVal::from(27),
-                    ]),
-                    MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
-                        MetaKey::from("sample_string") => MetaVal::from("string"),
-                    ]),
-                ]),
-                MetaKey::from("self_key") => MetaVal::from("self_val"),
-                MetaKey::from("source_meta_file") => MetaVal::from("self"),
-                MetaKey::from("target_file_name") => MetaVal::from(parent_name),
-            ]);
-
-            let self_lines = self_meta_val.to_serialized_chunk(MetaFormat::Json);
+            let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(MetaLocation::Contains, &parent_name));
+            let self_lines = self_meta_struct.to_serialized_chunk(MetaFormat::Json);
             writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
 
-            let mut item_block_entries = vec![];
+            let mut item_meta_blocks = vec![];
 
             for i in 0..fanout {
                 let mut new_breadcrumbs = breadcrumbs.clone();
@@ -528,46 +503,15 @@ impl TestUtil {
                     fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth);
                 }
 
-                let item_meta_val = MetaVal::Map(btreemap![
-                    MetaKey::from("sample_string") => MetaVal::from("string"),
-                    MetaKey::from("sample_integer") => MetaVal::from(27),
-                    MetaKey::from("sample_decimal") => MetaVal::from(bigdecimal::BigDecimal::new(31415.into(), 4)),
-                    MetaKey::from("sample_boolean") => MetaVal::from(true),
-                    MetaKey::from("sample_null") => MetaVal::Nil,
-                    MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
-                        MetaVal::from("string"),
-                        MetaVal::from(27),
-                    ]),
-                    MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
-                        MetaKey::from("sample_string") => MetaVal::from("string"),
-                        MetaKey::from("sample_boolean") => MetaVal::from(false),
-                        MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
-                            MetaVal::from("string"),
-                            MetaVal::from(27),
-                        ]),
-                        MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
-                            MetaKey::from("sample_string") => MetaVal::from("string"),
-                        ]),
-                    ]),
-                    MetaKey::from("item_key") => MetaVal::from("item_val"),
-                    MetaKey::from("source_meta_file") => MetaVal::from("item"),
-                    MetaKey::from("target_file_name") => MetaVal::from(parent_name),
-                ]);
-
-                let item_block_lines = item_meta_val.to_serialized_chunk(MetaFormat::Json);
-
-                item_block_entries.push(item_block_lines);
+                let item_meta_block = TestUtil::sample_meta_block(MetaLocation::Siblings, &name);
+                item_meta_blocks.push(item_meta_block);
             }
 
             // Create item meta file.
             let mut item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
 
-            let item_lines = format!(
-                r#"[
-                    {}
-                ]"#,
-                item_block_entries.join(",\n"),
-            );
+            let item_meta_struct = MetaStructure::Seq(item_meta_blocks);
+            let item_lines = item_meta_struct.to_serialized_chunk(MetaFormat::Json);
             writeln!(item_meta_file, "{}", item_lines).expect("unable to write to item meta file");
         }
 
