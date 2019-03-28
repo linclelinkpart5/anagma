@@ -15,6 +15,7 @@ use metadata::location::MetaLocation;
 use metadata::types::MetaVal;
 use metadata::types::MetaKey;
 use metadata::types::MetaBlock;
+use metadata::types::MetaStructure;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -202,6 +203,30 @@ trait TestSerialize {
     }
 
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String;
+}
+
+impl TestSerialize for MetaStructure {
+    fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
+        match self {
+            &MetaStructure::One(ref mb) => MetaVal::Map(mb.clone()).to_serialized_chunk(meta_format),
+            &MetaStructure::Seq(ref mb_seq) => {
+                MetaVal::Seq(
+                    mb_seq
+                        .into_iter()
+                        .map(|v| MetaVal::Map(v.clone()))
+                        .collect()
+                ).to_serialized_chunk(meta_format)
+            },
+            &MetaStructure::Map(ref mb_map) => {
+                MetaVal::Map(
+                    mb_map
+                        .into_iter()
+                        .map(|(k, v)| (MetaKey::Str(k.clone()), MetaVal::Map(v.clone())))
+                        .collect()
+                ).to_serialized_chunk(meta_format)
+            },
+        }
+    }
 }
 
 impl TestSerialize for MetaVal {
