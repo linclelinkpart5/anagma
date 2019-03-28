@@ -71,3 +71,60 @@ impl<'k, 'p, 's> Iterator for MetaFieldProducer<'k, 'p, 's> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::MetaFieldProducer;
+
+    use std::borrow::Cow;
+    use std::path::Path;
+    use std::collections::VecDeque;
+    use test_util::TestUtil;
+
+    use metadata::producer::block::MetaBlockProducer;
+    use metadata::producer::block::FixedMetaBlockProducer;
+    use metadata::producer::block::FileMetaBlockProducer;
+    use metadata::types::MetaKey;
+    use metadata::types::MetaVal;
+    use config::selection::Selection;
+    use config::sort_order::SortOrder;
+    use config::meta_format::MetaFormat;
+    use util::file_walkers::FileWalker;
+    use util::file_walkers::ParentFileWalker;
+    use util::file_walkers::ChildFileWalker;
+
+    #[test]
+    fn test_meta_field_producer() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer", 3, 3);
+        let root_dir = temp_dir.path();
+
+        let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
+
+        let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+        let selection = Selection::default();
+
+        let block_producer = MetaBlockProducer::File(FileMetaBlockProducer::new(
+            file_walker,
+            MetaFormat::Json,
+            &selection,
+            SortOrder::Name,
+        ));
+
+        let mk_a = MetaKey::from("target_file_name");
+
+        let expected = vec![
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
+            (Cow::Owned(root_dir.join("0").join("0_1")), MetaVal::from("0_1")),
+            (Cow::Owned(root_dir.join("0")), MetaVal::from("0")),
+            (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
+        ];
+        let produced = {
+            MetaFieldProducer::new(vec![&mk_a], block_producer)
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(expected, produced);
+    }
+}

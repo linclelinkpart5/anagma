@@ -66,6 +66,15 @@ impl<'p, 's> MetaBlockProducer<'p, 's> {
 /// A meta block producer that yields from a fixed sequence, used for testing.
 pub struct FixedMetaBlockProducer<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
 
+impl<'p> FixedMetaBlockProducer<'p> {
+    pub fn new<II>(items: II) -> Self
+    where
+        II: IntoIterator<Item = (Cow<'p, Path>, MetaBlock)>,
+    {
+        FixedMetaBlockProducer(items.into_iter().collect())
+    }
+}
+
 impl<'p> Iterator for FixedMetaBlockProducer<'p> {
     type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
@@ -80,6 +89,23 @@ pub struct FileMetaBlockProducer<'p, 's> {
     meta_format: MetaFormat,
     selection: &'s Selection,
     sort_order: SortOrder,
+}
+
+impl<'p, 's> FileMetaBlockProducer<'p, 's> {
+    pub fn new(
+        file_walker: FileWalker<'p>,
+        meta_format: MetaFormat,
+        selection: &'s Selection,
+        sort_order: SortOrder,
+    ) -> Self
+    {
+        FileMetaBlockProducer {
+            file_walker,
+            meta_format,
+            selection,
+            sort_order,
+        }
+    }
 }
 
 impl<'p, 's> Iterator for FileMetaBlockProducer<'p, 's> {

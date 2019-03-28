@@ -409,7 +409,7 @@ impl TestUtil {
         MetaVal::Map(Self::core_nested_mapping())
     }
 
-    pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str) -> MetaBlock {
+    pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
@@ -426,6 +426,13 @@ impl TestUtil {
             MetaKey::Str(String::from("target_file_name")),
             MetaVal::Str(String::from(target_name)),
         );
+
+        if include_flag_key {
+            map.insert(
+                MetaKey::Str(String::from("flag_key")),
+                MetaVal::Str(String::from(target_name)),
+            );
+        }
 
         map
     }
@@ -474,7 +481,7 @@ impl TestUtil {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
-            let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(MetaLocation::Contains, &parent_name));
+            let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(MetaLocation::Contains, &parent_name, false));
             let self_lines = self_meta_struct.to_serialized_chunk(MetaFormat::Json);
             writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
 
@@ -503,7 +510,11 @@ impl TestUtil {
                     fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth);
                 }
 
-                let item_meta_block = TestUtil::sample_meta_block(MetaLocation::Siblings, &name);
+                let depth_left = max_depth - breadcrumbs.len();
+
+                let include_flag_key = (depth_left % 2 == 1) ^ (i % 2 == 1);
+
+                let item_meta_block = TestUtil::sample_meta_block(MetaLocation::Siblings, &name, include_flag_key);
                 item_meta_blocks.push(item_meta_block);
             }
 
