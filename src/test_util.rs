@@ -11,6 +11,7 @@ use tempfile::TempDir;
 
 use config::meta_format::MetaFormat;
 use metadata::types::MetaVal;
+use metadata::types::MetaKey;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -341,31 +342,34 @@ impl TestUtil {
         fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
-            let self_lines = format!(
-                r#"{{
-                    "sample_string": "string",
-                    "sample_integer": 27,
-                    "sample_decimal": 3.1415,
-                    "sample_boolean": true,
-                    "sample_null": null,
-                    "sample_sequence": [
-                        "string",
-                        27
-                    ],
-                    "sample_mapping": {{
-                        "sample_string": "string",
-                        "sample_boolean": false,
-                        "sample_sequence": ["string", 27],
-                        "sample_mapping": {{
-                            "sample_string": "string"
-                        }}
-                    }},
-                    "self_key": "self_val",
-                    "source_meta_file": "self",
-                    "target_file_name": "{}"
-                }}"#,
-                parent_name,
-            );
+
+            let self_meta_val = MetaVal::Map(btreemap![
+                MetaKey::from("sample_string") => MetaVal::from("string"),
+                MetaKey::from("sample_integer") => MetaVal::from(27),
+                MetaKey::from("sample_decimal") => MetaVal::from(bigdecimal::BigDecimal::new(31415.into(), 4)),
+                MetaKey::from("sample_boolean") => MetaVal::from(true),
+                MetaKey::from("sample_null") => MetaVal::Nil,
+                MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
+                    MetaVal::from("string"),
+                    MetaVal::from(27),
+                ]),
+                MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
+                    MetaKey::from("sample_string") => MetaVal::from("string"),
+                    MetaKey::from("sample_boolean") => MetaVal::from(false),
+                    MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
+                        MetaVal::from("string"),
+                        MetaVal::from(27),
+                    ]),
+                    MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
+                        MetaKey::from("sample_string") => MetaVal::from("string"),
+                    ]),
+                ]),
+                MetaKey::from("self_key") => MetaVal::from("self_val"),
+                MetaKey::from("source_meta_file") => MetaVal::from("self"),
+                MetaKey::from("target_file_name") => MetaVal::from(parent_name),
+            ]);
+
+            let self_lines = self_meta_val.to_serialized_chunk(MetaFormat::Json);
             writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
 
             let mut item_block_entries = vec![];
@@ -393,31 +397,33 @@ impl TestUtil {
                     fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth);
                 }
 
-                let item_block_lines = format!(
-                    r#"{{
-                        "sample_string": "string",
-                        "sample_integer": 27,
-                        "sample_decimal": 3.1415,
-                        "sample_boolean": true,
-                        "sample_null": null,
-                        "sample_sequence": [
-                            "string",
-                            27
-                        ],
-                        "sample_mapping": {{
-                            "sample_string": "string",
-                            "sample_boolean": false,
-                            "sample_sequence": ["string", 27],
-                            "sample_mapping": {{
-                                "sample_string": "string"
-                            }}
-                        }},
-                        "item_key": "item_val",
-                        "source_meta_file": "item",
-                        "target_file_name": "{}"
-                    }}"#,
-                    name,
-                );
+                let item_meta_val = MetaVal::Map(btreemap![
+                    MetaKey::from("sample_string") => MetaVal::from("string"),
+                    MetaKey::from("sample_integer") => MetaVal::from(27),
+                    MetaKey::from("sample_decimal") => MetaVal::from(bigdecimal::BigDecimal::new(31415.into(), 4)),
+                    MetaKey::from("sample_boolean") => MetaVal::from(true),
+                    MetaKey::from("sample_null") => MetaVal::Nil,
+                    MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
+                        MetaVal::from("string"),
+                        MetaVal::from(27),
+                    ]),
+                    MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
+                        MetaKey::from("sample_string") => MetaVal::from("string"),
+                        MetaKey::from("sample_boolean") => MetaVal::from(false),
+                        MetaKey::from("sample_sequence") => MetaVal::Seq(vec![
+                            MetaVal::from("string"),
+                            MetaVal::from(27),
+                        ]),
+                        MetaKey::from("sample_mapping") => MetaVal::Map(btreemap![
+                            MetaKey::from("sample_string") => MetaVal::from("string"),
+                        ]),
+                    ]),
+                    MetaKey::from("item_key") => MetaVal::from("item_val"),
+                    MetaKey::from("source_meta_file") => MetaVal::from("item"),
+                    MetaKey::from("target_file_name") => MetaVal::from(parent_name),
+                ]);
+
+                let item_block_lines = item_meta_val.to_serialized_chunk(MetaFormat::Json);
 
                 item_block_entries.push(item_block_lines);
             }
