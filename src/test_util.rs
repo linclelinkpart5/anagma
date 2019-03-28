@@ -5,11 +5,9 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
-use std::collections::BTreeMap;
 
 use tempfile::Builder;
 use tempfile::TempDir;
-use bigdecimal::BigDecimal;
 
 use config::meta_format::MetaFormat;
 use metadata::types::MetaVal;
