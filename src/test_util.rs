@@ -512,7 +512,7 @@ impl TestUtil {
 
                 let depth_left = max_depth - breadcrumbs.len();
 
-                let include_flag_key = (depth_left % 2 == 1) ^ (i % 2 == 1);
+                let include_flag_key = ((depth_left % 2 == 1) ^ (i % 2 == 1)) && depth_left <= 1;
 
                 let item_meta_block = TestUtil::sample_meta_block(MetaLocation::Siblings, &name, include_flag_key);
                 item_meta_blocks.push(item_meta_block);

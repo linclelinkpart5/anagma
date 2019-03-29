@@ -97,11 +97,13 @@ mod tests {
     fn test_meta_field_producer() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer", 3, 3);
         let root_dir = temp_dir.path();
+        let selection = Selection::default();
+
+        let target_file_name_key = MetaKey::from("target_file_name");
+        let flag_key = MetaKey::from("flag_key");
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
-
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
-        let selection = Selection::default();
 
         let block_producer = MetaBlockProducer::File(FileMetaBlockProducer::new(
             file_walker,
@@ -110,8 +112,6 @@ mod tests {
             SortOrder::Name,
         ));
 
-        let mk_a = MetaKey::from("target_file_name");
-
         let expected = vec![
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
             (Cow::Owned(root_dir.join("0").join("0_1")), MetaVal::from("0_1")),
@@ -119,7 +119,37 @@ mod tests {
             (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
         ];
         let produced = {
-            MetaFieldProducer::new(vec![&mk_a], block_producer)
+            MetaFieldProducer::new(vec![&target_file_name_key], block_producer)
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(expected, produced);
+
+        let origin_path = root_dir.join("0");
+        let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
+
+        let block_producer = MetaBlockProducer::File(FileMetaBlockProducer::new(
+            file_walker,
+            MetaFormat::Json,
+            &selection,
+            SortOrder::Name,
+        ));
+
+        let expected = vec![
+            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_0")), MetaVal::from("0_0_0")),
+            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_1").join("0_0_1_1")), MetaVal::from("0_0_1_1")),
+            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_2")), MetaVal::from("0_0_2")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_0")), MetaVal::from("0_1_0")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_1").join("0_1_1_1")), MetaVal::from("0_1_1_1")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
+            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_0")), MetaVal::from("0_2_0")),
+            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_1").join("0_2_1_1")), MetaVal::from("0_2_1_1")),
+            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
+        ];
+        let produced = {
+            MetaFieldProducer::new(vec![&flag_key], block_producer)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
