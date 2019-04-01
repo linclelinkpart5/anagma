@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_meta_field_producer() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer", 3, 3);
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer", 3, 3, TestUtil::default_flag_set_by);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 

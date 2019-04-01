@@ -474,10 +474,16 @@ impl TestUtil {
         root_dir
     }
 
-    pub fn create_meta_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
+    pub fn default_flag_set_by(depth_left: usize, fanout_index: usize) -> bool {
+        ((depth_left % 2 == 1) ^ (fanout_index % 2 == 1)) && depth_left <= 1
+    }
+
+    pub fn create_meta_fanout_test_dir(name: &str, fanout: usize, max_depth: usize, flag_set_by: fn(usize, usize) -> bool) -> TempDir
+    {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 
-        fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
+        fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize, flag_set_by: fn(usize, usize) -> bool)
+        {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
@@ -507,12 +513,10 @@ impl TestUtil {
                     // Create dirs and then recurse.
                     let new_path = p.join(&name);
                     db.create(&new_path).expect("unable to create item directory");
-                    fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth);
+                    fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth, flag_set_by);
                 }
 
-                let depth_left = max_depth - breadcrumbs.len();
-
-                let include_flag_key = ((depth_left % 2 == 1) ^ (i % 2 == 1)) && depth_left <= 1;
+                let include_flag_key = flag_set_by(max_depth - breadcrumbs.len(), i);
 
                 let item_meta_block = TestUtil::sample_meta_block(MetaLocation::Siblings, &name, include_flag_key);
                 item_meta_blocks.push(item_meta_block);
@@ -528,7 +532,7 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, "ROOT", fanout, vec![], max_depth);
+        fill_dir(root_dir.path(), &db, "ROOT", fanout, vec![], max_depth, flag_set_by);
 
         std::thread::sleep(Duration::from_millis(1));
         root_dir
@@ -545,7 +549,7 @@ mod tests {
 
     #[test]
     fn test_create_meta_fanout_test_dir() {
-        TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3);
+        TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3, |_, _| true);
     }
 
     #[test]
