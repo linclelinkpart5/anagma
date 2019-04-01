@@ -94,13 +94,12 @@ mod tests {
     use util::file_walkers::ChildFileWalker;
 
     #[test]
-    fn test_meta_field_producer() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer", 3, 3, TestUtil::default_flag_set_by);
+    fn test_meta_field_producer_all() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer_all", 3, 3, TestUtil::flag_set_by_all);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_file_name_key = MetaKey::from("target_file_name");
-        let flag_key = MetaKey::from("flag_key");
+        let target_key = MetaKey::from("flag_key");
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -116,10 +115,41 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
             (Cow::Owned(root_dir.join("0").join("0_1")), MetaVal::from("0_1")),
             (Cow::Owned(root_dir.join("0")), MetaVal::from("0")),
-            (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
+            // (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
         ];
         let produced = {
-            MetaFieldProducer::new(vec![&target_file_name_key], block_producer)
+            MetaFieldProducer::new(vec![&target_key], block_producer)
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn test_meta_field_producer_default() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer_default", 3, 3, TestUtil::flag_set_by_default);
+        let root_dir = temp_dir.path();
+        let selection = Selection::default();
+
+        let target_key = MetaKey::from("flag_key");
+
+        let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
+        let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let block_producer = MetaBlockProducer::File(FileMetaBlockProducer::new(
+            file_walker,
+            MetaFormat::Json,
+            &selection,
+            SortOrder::Name,
+        ));
+
+        let expected = vec![
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
+        ];
+        let produced = {
+            MetaFieldProducer::new(vec![&target_key], block_producer)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -149,7 +179,56 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
         ];
         let produced = {
-            MetaFieldProducer::new(vec![&flag_key], block_producer)
+            MetaFieldProducer::new(vec![&target_key], block_producer)
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn test_meta_field_producer_none() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_producer_none", 3, 3, TestUtil::flag_set_by_none);
+        let root_dir = temp_dir.path();
+        let selection = Selection::default();
+
+        let target_key = MetaKey::from("flag_key");
+
+        let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
+        let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let block_producer = MetaBlockProducer::File(FileMetaBlockProducer::new(
+            file_walker,
+            MetaFormat::Json,
+            &selection,
+            SortOrder::Name,
+        ));
+
+        let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
+        let produced = {
+            MetaFieldProducer::new(vec![&target_key], block_producer)
+                .into_iter()
+                .map(|res| res.unwrap())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(expected, produced);
+
+        let origin_path = root_dir.join("0");
+        let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
+
+        let block_producer = MetaBlockProducer::File(FileMetaBlockProducer::new(
+            file_walker,
+            MetaFormat::Json,
+            &selection,
+            SortOrder::Name,
+        ));
+
+        let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
+        let produced = {
+            MetaFieldProducer::new(vec![&target_key], block_producer)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()

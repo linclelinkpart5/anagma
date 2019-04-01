@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_file_meta_block_producer() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_file_meta_block_producer", 3, 3, TestUtil::default_flag_set_by);
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_file_meta_block_producer", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
         let test_path = root_dir.join("0").join("0_1").join("0_1_2");
