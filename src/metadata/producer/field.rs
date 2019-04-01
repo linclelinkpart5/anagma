@@ -72,14 +72,21 @@ impl<'k, 'p, 's> Iterator for MetaFieldProducer<'k, 'p, 's> {
     }
 }
 
-/// A convenience newtype that only yields the meta values, and drops the paths.
+/// A convenience newtype that only yields meta values, and logs and skips errors.
 pub struct SimpleMetaFieldProducer<'k, 'p, 's>(MetaFieldProducer<'k, 'p, 's>);
 
 impl<'k, 'p, 's> Iterator for SimpleMetaFieldProducer<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
+    type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|res| res.map(|(_, mv)| mv))
+        match self.0.next() {
+            None => None,
+            Some(Ok((_, mv))) => Some(mv),
+            Some(Err(err)) => {
+                warn!("{}", err);
+                self.next()
+            },
+        }
     }
 }
 
