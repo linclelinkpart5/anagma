@@ -1,3 +1,6 @@
+mod iterable_like;
+mod number_like;
+
 use metadata::types::MetaVal;
 use metadata::streams::value::SimpleMetaValueStream;
 use metadata::streams::value::Error as ValueStreamError;
@@ -29,6 +32,49 @@ impl From<ValueStreamError> for Error {
     fn from(err: ValueStreamError) -> Self {
         Self::FieldProducer(err)
     }
+}
+
+pub enum StackItem<'k, 'p, 's> {
+    Stream(SimpleMetaValueStream<'k, 'p, 's>),
+    Value(MetaVal),
+    // Predicate(fn(&MetaVal) -> bool),
+}
+
+pub struct ConsumerStack<'k, 'p, 's>(Vec<StackItem<'k, 'p, 's>>);
+
+#[derive(Copy, Clone, Debug)]
+pub enum NullaryOp {
+    Parents,
+    Children,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum UnaryOp {
+    // Input: Iterables
+    Collect,
+    Count,
+    First,
+    Last,
+    Enum,
+    Flatten,
+    Max,
+    Min,
+    Rev,
+    Sum,
+    Product,
+    Dedup,
+    Unique,
+    AllEqual,
+    Sort,
+
+    // Input: Numbers
+    Neg,
+
+    // Input: Strings
+    Upper,
+    Lower,
+    Title,
+    Caps,
 }
 
 /// Methods for processing and fetching useful data from field producers.
