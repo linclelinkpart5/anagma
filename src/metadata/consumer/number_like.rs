@@ -1,3 +1,5 @@
+///! Wrapper type for items on the consumer stack that behave as a logical numerical value.
+
 use bigdecimal::BigDecimal;
 
 use metadata::consumer::StackItem;

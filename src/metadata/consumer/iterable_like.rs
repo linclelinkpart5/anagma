@@ -1,3 +1,5 @@
+///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
+
 use metadata::consumer::StackItem;
 use metadata::types::MetaVal;
 use metadata::streams::value::SimpleMetaValueStream;
