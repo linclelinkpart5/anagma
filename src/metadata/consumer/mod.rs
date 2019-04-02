@@ -1,12 +1,12 @@
 use metadata::types::MetaVal;
-use metadata::producer::field::SimpleMetaFieldProducer;
-use metadata::producer::field::Error as FieldProducerError;
+use metadata::streams::value::SimpleMetaValueStream;
+use metadata::streams::value::Error as ValueStreamError;
 
 use itertools::Itertools;
 
 #[derive(Debug)]
 pub enum Error {
-    FieldProducer(FieldProducerError),
+    FieldProducer(ValueStreamError),
 }
 
 impl std::fmt::Display for Error {
@@ -25,8 +25,8 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<FieldProducerError> for Error {
-    fn from(err: FieldProducerError) -> Self {
+impl From<ValueStreamError> for Error {
+    fn from(err: ValueStreamError) -> Self {
         Self::FieldProducer(err)
     }
 }
@@ -53,7 +53,7 @@ pub enum FieldConsumer {
 }
 
 impl FieldConsumer {
-    pub fn process(&self, field_producer: &mut SimpleMetaFieldProducer) -> MetaVal {
+    pub fn process(&self, field_producer: &mut SimpleMetaValueStream) -> MetaVal {
         match self {
             &Self::Collect => MetaVal::Seq(field_producer.collect()),
             &Self::Count => MetaVal::Int(field_producer.count() as i64),

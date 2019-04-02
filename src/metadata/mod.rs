@@ -5,7 +5,7 @@ pub mod types;
 pub mod reader;
 pub mod plexer;
 pub mod processor;
-pub mod producer;
+pub mod streams;
 pub mod consumer;
 
 use std::path::Path;
