@@ -44,6 +44,8 @@ pub enum FieldConsumer {
     Last,
     /// Flattens any sequence values from the producer, leaving other meta values unchanged.
     Flatten,
+    /// Filters out duplicates from consecutive runs of values.
+    Dedup,
     /// Filters out values that have already been produced once.
     Unique,
     /// Equals true if all the values in the producer are equal to each other.
@@ -69,6 +71,7 @@ impl FieldConsumer {
 
                 MetaVal::Seq(flat)
             },
+            &Self::Dedup => MetaVal::Seq(field_producer.dedup().collect()),
             &Self::Unique => MetaVal::Seq(field_producer.unique().collect()),
             &Self::AllEqual => {
                 MetaVal::Bul(
