@@ -38,12 +38,12 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum MetaBlockProducer<'p, 's> {
-    Fixed(FixedMetaBlockProducer<'p>),
-    File(FileMetaBlockProducer<'p, 's>),
+pub enum MetaBlockStream<'p, 's> {
+    Fixed(FixedMetaBlockStream<'p>),
+    File(FileMetaBlockStream<'p, 's>),
 }
 
-impl<'p, 's> Iterator for MetaBlockProducer<'p, 's> {
+impl<'p, 's> Iterator for MetaBlockStream<'p, 's> {
     type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -54,28 +54,28 @@ impl<'p, 's> Iterator for MetaBlockProducer<'p, 's> {
     }
 }
 
-impl<'p, 's> MetaBlockProducer<'p, 's> {
+impl<'p, 's> MetaBlockStream<'p, 's> {
     pub fn delve(&mut self) -> Result<(), Error> {
         match self {
             &mut Self::Fixed(..) => Ok(()),
-            &mut Self::File(ref mut producer) => producer.delve(),
+            &mut Self::File(ref mut stream) => stream.delve(),
         }
     }
 }
 
-/// A meta block producer that yields from a fixed sequence, used for testing.
-pub struct FixedMetaBlockProducer<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
+/// A meta block stream that yields from a fixed sequence, used for testing.
+pub struct FixedMetaBlockStream<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
 
-impl<'p> FixedMetaBlockProducer<'p> {
+impl<'p> FixedMetaBlockStream<'p> {
     pub fn new<II>(items: II) -> Self
     where
         II: IntoIterator<Item = (Cow<'p, Path>, MetaBlock)>,
     {
-        FixedMetaBlockProducer(items.into_iter().collect())
+        FixedMetaBlockStream(items.into_iter().collect())
     }
 }
 
-impl<'p> Iterator for FixedMetaBlockProducer<'p> {
+impl<'p> Iterator for FixedMetaBlockStream<'p> {
     type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -83,15 +83,15 @@ impl<'p> Iterator for FixedMetaBlockProducer<'p> {
     }
 }
 
-/// A meta block producer that yields from files on disk, powered by a file walker.
-pub struct FileMetaBlockProducer<'p, 's> {
+/// A meta block stream that yields from files on disk, powered by a file walker.
+pub struct FileMetaBlockStream<'p, 's> {
     file_walker: FileWalker<'p>,
     meta_format: MetaFormat,
     selection: &'s Selection,
     sort_order: SortOrder,
 }
 
-impl<'p, 's> FileMetaBlockProducer<'p, 's> {
+impl<'p, 's> FileMetaBlockStream<'p, 's> {
     pub fn new(
         file_walker: FileWalker<'p>,
         meta_format: MetaFormat,
@@ -99,7 +99,7 @@ impl<'p, 's> FileMetaBlockProducer<'p, 's> {
         sort_order: SortOrder,
     ) -> Self
     {
-        FileMetaBlockProducer {
+        FileMetaBlockStream {
             file_walker,
             meta_format,
             selection,
@@ -108,7 +108,7 @@ impl<'p, 's> FileMetaBlockProducer<'p, 's> {
     }
 }
 
-impl<'p, 's> Iterator for FileMetaBlockProducer<'p, 's> {
+impl<'p, 's> Iterator for FileMetaBlockStream<'p, 's> {
     type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -135,7 +135,7 @@ impl<'p, 's> Iterator for FileMetaBlockProducer<'p, 's> {
     }
 }
 
-impl<'p, 's> FileMetaBlockProducer<'p, 's> {
+impl<'p, 's> FileMetaBlockStream<'p, 's> {
     pub fn delve(&mut self) -> Result<(), Error> {
         self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
     }
@@ -143,8 +143,8 @@ impl<'p, 's> FileMetaBlockProducer<'p, 's> {
 
 #[cfg(test)]
 mod tests {
-    use super::FixedMetaBlockProducer;
-    use super::FileMetaBlockProducer;
+    use super::FixedMetaBlockStream;
+    use super::FileMetaBlockStream;
 
     use std::borrow::Cow;
     use std::path::Path;
@@ -163,7 +163,7 @@ mod tests {
     use util::file_walkers::ChildFileWalker;
 
     #[test]
-    fn test_fixed_meta_block_producer() {
+    fn test_fixed_meta_block_stream() {
         let mb_a = btreemap![
             MetaKey::from("key_a") => MetaVal::Bul(true),
             MetaKey::from("key_b") => MetaVal::Dec(BigDecimal::from(3.1415)),
@@ -177,62 +177,62 @@ mod tests {
         vd.push_back((Cow::Borrowed(Path::new("dummy_a")), mb_a.clone()));
         vd.push_back((Cow::Borrowed(Path::new("dummy_b")), mb_b.clone()));
 
-        let mut producer = FixedMetaBlockProducer(vd);
+        let mut stream = FixedMetaBlockStream(vd);
 
         assert_eq!(
-            producer.next().unwrap().unwrap(),
+            stream.next().unwrap().unwrap(),
             (Cow::Borrowed(Path::new("dummy_a")), mb_a.clone()),
         );
         assert_eq!(
-            producer.next().unwrap().unwrap(),
+            stream.next().unwrap().unwrap(),
             (Cow::Borrowed(Path::new("dummy_b")), mb_b.clone()),
         );
-        assert!(producer.next().is_none());
+        assert!(stream.next().is_none());
     }
 
     #[test]
-    fn test_file_meta_block_producer() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_file_meta_block_producer", 3, 3, TestUtil::flag_set_by_default);
+    fn test_file_meta_block_stream() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_file_meta_block_stream", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
         let test_path = root_dir.join("0").join("0_1").join("0_1_2");
 
-        let mut producer = FileMetaBlockProducer {
+        let mut stream = FileMetaBlockStream {
             file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
             meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sort_order: SortOrder::Name,
         };
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1_2")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1_2")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));
 
         let test_path = root_dir.clone();
 
-        let mut producer = FileMetaBlockProducer {
+        let mut stream = FileMetaBlockStream {
             file_walker: FileWalker::Child(ChildFileWalker::new(&test_path)),
             meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sort_order: SortOrder::Name,
         };
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));
-        assert!(producer.next().is_none());
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));
+        assert!(stream.next().is_none());
 
-        producer.delve().unwrap();
+        stream.delve().unwrap();
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2")));
-        assert!(producer.next().is_none());
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("1")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2")));
+        assert!(stream.next().is_none());
 
-        producer.delve().unwrap();
+        stream.delve().unwrap();
 
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_0")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_1")));
-        assert_eq!(producer.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_2")));
-        assert!(producer.next().is_none());
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_0")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_1")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("2_2")));
+        assert!(stream.next().is_none());
     }
 }

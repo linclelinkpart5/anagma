@@ -2,10 +2,10 @@
 
 use metadata::consumer::Operand;
 use metadata::types::MetaVal;
-use metadata::producer::value::SimpleMetaValueProducer;
+use metadata::stream::value::SimpleMetaValueStream;
 
 pub enum IterableLike<'k, 'p, 's> {
-    Stream(SimpleMetaValueProducer<'k, 'p, 's>),
+    Stream(SimpleMetaValueStream<'k, 'p, 's>),
     Sequence(Vec<MetaVal>),
 }
 
@@ -31,7 +31,7 @@ impl<'k, 'p, 's> IntoIterator for IterableLike<'k, 'p, 's> {
 }
 
 pub enum IterLike<'k, 'p, 's> {
-    Stream(SimpleMetaValueProducer<'k, 'p, 's>),
+    Stream(SimpleMetaValueStream<'k, 'p, 's>),
     Sequence(std::vec::IntoIter<MetaVal>),
 }
 
