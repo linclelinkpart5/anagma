@@ -4,14 +4,17 @@ use metadata::types::MetaVal;
 use metadata::producer::value::SimpleMetaValueProducer;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
-pub enum Stream<'k, 'p, 's> {
-    Raw(SimpleMetaValueProducer<'k, 'p, 's>),
-    Flatten(FlattenStream<'k, 'p, 's>),
-    Dedup(DedupStream<'k, 'p, 's>),
+pub enum Stream<I: Iterator<Item = MetaVal>> {
+    Raw(I),
+    Flatten(FlattenStream<I>),
+    Dedup(DedupStream<I>),
     Unique,
 }
 
-impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
+impl<I> Iterator for Stream<I>
+where
+    I: Iterator<Item = MetaVal>,
+{
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -24,9 +27,12 @@ impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
     }
 }
 
-pub struct FlattenStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, VecDeque<MetaVal>);
+pub struct FlattenStream<I: Iterator<Item = MetaVal>>(I, VecDeque<MetaVal>);
 
-impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
+impl<I> Iterator for FlattenStream<I>
+where
+    I: Iterator<Item = MetaVal>,
+{
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -53,9 +59,12 @@ impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
     }
 }
 
-pub struct DedupStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, Option<MetaVal>);
+pub struct DedupStream<I: Iterator<Item = MetaVal>>(I, Option<MetaVal>);
 
-impl<'k, 'p, 's> Iterator for DedupStream<'k, 'p, 's> {
+impl<I> Iterator for DedupStream<I>
+where
+    I: Iterator<Item = MetaVal>,
+{
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
