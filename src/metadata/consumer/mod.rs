@@ -35,13 +35,13 @@ impl From<ValueProducerError> for Error {
     }
 }
 
-pub enum StackItem<'k, 'p, 's> {
+pub enum Operand<'k, 'p, 's> {
     Stream(SimpleMetaValueProducer<'k, 'p, 's>),
     Value(MetaVal),
     // Predicate(fn(&MetaVal) -> bool),
 }
 
-pub struct ConsumerStack<'k, 'p, 's>(Vec<StackItem<'k, 'p, 's>>);
+pub struct OperandStack<'k, 'p, 's>(Vec<Operand<'k, 'p, 's>>);
 
 #[derive(Copy, Clone, Debug)]
 pub enum NullaryOp {

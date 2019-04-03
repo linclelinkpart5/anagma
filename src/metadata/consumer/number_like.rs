@@ -2,7 +2,7 @@
 
 use bigdecimal::BigDecimal;
 
-use metadata::consumer::StackItem;
+use metadata::consumer::Operand;
 use metadata::types::MetaVal;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -40,7 +40,7 @@ impl From<BigDecimal> for NumberLike {
     }
 }
 
-impl<'k, 'p, 's> From<NumberLike> for StackItem<'k, 'p, 's> {
+impl<'k, 'p, 's> From<NumberLike> for Operand<'k, 'p, 's> {
     fn from(il: NumberLike) -> Self {
         match il {
             NumberLike::Integer(i) => Self::Value(MetaVal::Int(i)),
