@@ -2,14 +2,14 @@ mod iterable_like;
 mod number_like;
 
 use metadata::types::MetaVal;
-use metadata::streams::value::SimpleMetaValueStream;
-use metadata::streams::value::Error as ValueStreamError;
+use metadata::producer::value::SimpleMetaValueProducer;
+use metadata::producer::value::Error as ValueProducerError;
 
 use itertools::Itertools;
 
 #[derive(Debug)]
 pub enum Error {
-    FieldProducer(ValueStreamError),
+    FieldProducer(ValueProducerError),
 }
 
 impl std::fmt::Display for Error {
@@ -28,14 +28,14 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<ValueStreamError> for Error {
-    fn from(err: ValueStreamError) -> Self {
+impl From<ValueProducerError> for Error {
+    fn from(err: ValueProducerError) -> Self {
         Self::FieldProducer(err)
     }
 }
 
 pub enum StackItem<'k, 'p, 's> {
-    Stream(SimpleMetaValueStream<'k, 'p, 's>),
+    Stream(SimpleMetaValueProducer<'k, 'p, 's>),
     Value(MetaVal),
     // Predicate(fn(&MetaVal) -> bool),
 }
@@ -99,7 +99,7 @@ pub enum FieldConsumer {
 }
 
 impl FieldConsumer {
-    pub fn process(&self, field_producer: &mut SimpleMetaValueStream) -> MetaVal {
+    pub fn process(&self, field_producer: &mut SimpleMetaValueProducer) -> MetaVal {
         match self {
             &Self::Collect => MetaVal::Seq(field_producer.collect()),
             &Self::Count => MetaVal::Int(field_producer.count() as i64),
