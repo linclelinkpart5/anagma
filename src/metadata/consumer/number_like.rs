@@ -2,7 +2,7 @@
 
 use bigdecimal::BigDecimal;
 
-use metadata::consumer::operand::Operand;
+use metadata::consumer::ops::Operand;
 use metadata::types::MetaVal;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 ///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
 
-use metadata::consumer::operand::Operand;
+use metadata::consumer::ops::Operand;
 use metadata::consumer::streams::Stream;
 use metadata::types::MetaVal;
 
