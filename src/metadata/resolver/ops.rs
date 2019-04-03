@@ -1,4 +1,4 @@
-use metadata::consumer::streams::Stream;
+use metadata::resolver::streams::Stream;
 use metadata::types::MetaVal;
 
 pub enum Operand<'k, 'p, 's> {

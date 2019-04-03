@@ -1,7 +1,7 @@
 ///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
 
-use metadata::consumer::ops::Operand;
-use metadata::consumer::streams::Stream;
+use metadata::resolver::ops::Operand;
+use metadata::resolver::streams::Stream;
 use metadata::types::MetaVal;
 
 pub enum IterableLike<'k, 'p, 's> {

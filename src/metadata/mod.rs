@@ -6,7 +6,7 @@ pub mod reader;
 pub mod plexer;
 pub mod processor;
 pub mod stream;
-pub mod consumer;
+pub mod resolver;
 
 use std::path::Path;
 
