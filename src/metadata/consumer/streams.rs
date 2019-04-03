@@ -1,23 +1,23 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
 
+use metadata::stream::value::SimpleMetaValueStream as RawStream;
 use metadata::types::MetaVal;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
-pub enum Stream<I: Iterator<Item = MetaVal>> {
-    Flatten(FlattenStream<I>),
-    Dedup(DedupStream<I>),
-    Unique(UniqueStream<I>),
+pub enum Stream<'k, 'p, 's> {
+    Raw(RawStream<'k, 'p, 's>),
+    Flatten(FlattenStream<'k, 'p, 's>),
+    Dedup(DedupStream<'k, 'p, 's>),
+    Unique(UniqueStream<'k, 'p, 's>),
 }
 
-impl<I> Iterator for Stream<I>
-where
-    I: Iterator<Item = MetaVal>,
-{
+impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
+            &mut Self::Raw(ref mut it) => it.next(),
             &mut Self::Flatten(ref mut it) => it.next(),
             &mut Self::Dedup(ref mut it) => it.next(),
             &mut Self::Unique(ref mut it) => it.next(),
@@ -25,12 +25,9 @@ where
     }
 }
 
-pub struct FlattenStream<I: Iterator<Item = MetaVal>>(I, VecDeque<MetaVal>);
+pub struct FlattenStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, VecDeque<MetaVal>);
 
-impl<I> Iterator for FlattenStream<I>
-where
-    I: Iterator<Item = MetaVal>,
-{
+impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -57,12 +54,9 @@ where
     }
 }
 
-pub struct DedupStream<I: Iterator<Item = MetaVal>>(I, Option<MetaVal>);
+pub struct DedupStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, Option<MetaVal>);
 
-impl<I> Iterator for DedupStream<I>
-where
-    I: Iterator<Item = MetaVal>,
-{
+impl<'k, 'p, 's> Iterator for DedupStream<'k, 'p, 's> {
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -80,12 +74,9 @@ where
     }
 }
 
-pub struct UniqueStream<I: Iterator<Item = MetaVal>>(I, HashSet<MetaVal>);
+pub struct UniqueStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, HashSet<MetaVal>);
 
-impl<I> Iterator for UniqueStream<I>
-where
-    I: Iterator<Item = MetaVal>,
-{
+impl<'k, 'p, 's> Iterator for UniqueStream<'k, 'p, 's> {
     type Item = MetaVal;
 
     fn next(&mut self) -> Option<Self::Item> {
