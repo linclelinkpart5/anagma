@@ -1,5 +1,6 @@
 mod iterable_like;
 mod number_like;
+mod streams;
 
 use metadata::types::MetaVal;
 use metadata::producer::value::SimpleMetaValueProducer;
