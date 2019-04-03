@@ -17,3 +17,31 @@ impl<'k, 'p, 's> From<IterableLike<'k, 'p, 's>> for StackItem<'k, 'p, 's> {
         }
     }
 }
+
+impl<'k, 'p, 's> IntoIterator for IterableLike<'k, 'p, 's> {
+    type Item = MetaVal;
+    type IntoIter = IterLike<'k, 'p, 's>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Stream(s) => IterLike::Stream(s),
+            Self::Sequence(s) => IterLike::Sequence(s.into_iter()),
+        }
+    }
+}
+
+pub enum IterLike<'k, 'p, 's> {
+    Stream(SimpleMetaValueStream<'k, 'p, 's>),
+    Sequence(std::vec::IntoIter<MetaVal>),
+}
+
+impl<'k, 'p, 's> Iterator for IterLike<'k, 'p, 's> {
+    type Item = MetaVal;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            &mut Self::Stream(ref mut s) => s.next(),
+            &mut Self::Sequence(ref mut s) => s.next(),
+        }
+    }
+}
