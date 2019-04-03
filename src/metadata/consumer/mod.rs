@@ -12,13 +12,13 @@ use itertools::Itertools;
 
 #[derive(Debug)]
 pub enum Error {
-    FieldStream(ValueStreamError),
+    ValueStream(ValueStreamError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::FieldStream(ref err) => write!(f, "field stream error: {}", err),
+            Self::ValueStream(ref err) => write!(f, "field stream error: {}", err),
         }
     }
 }
@@ -26,14 +26,14 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Self::FieldStream(ref err) => Some(err),
+            Self::ValueStream(ref err) => Some(err),
         }
     }
 }
 
 impl From<ValueStreamError> for Error {
     fn from(err: ValueStreamError) -> Self {
-        Self::FieldStream(err)
+        Self::ValueStream(err)
     }
 }
 
