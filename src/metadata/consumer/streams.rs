@@ -1,14 +1,13 @@
 use std::collections::VecDeque;
+use std::collections::HashSet;
 
 use metadata::types::MetaVal;
-use metadata::producer::value::SimpleMetaValueProducer;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
 pub enum Stream<I: Iterator<Item = MetaVal>> {
-    Raw(I),
     Flatten(FlattenStream<I>),
     Dedup(DedupStream<I>),
-    Unique,
+    Unique(UniqueStream<I>),
 }
 
 impl<I> Iterator for Stream<I>
@@ -19,10 +18,9 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::Raw(ref mut it) => it.next(),
             &mut Self::Flatten(ref mut it) => it.next(),
             &mut Self::Dedup(ref mut it) => it.next(),
-            &mut Self::Unique => None,
+            &mut Self::Unique(ref mut it) => it.next(),
         }
     }
 }
@@ -78,6 +76,28 @@ where
         else {
             // Delegate to the next call.
             self.next()
+        }
+    }
+}
+
+pub struct UniqueStream<I: Iterator<Item = MetaVal>>(I, HashSet<MetaVal>);
+
+impl<I> Iterator for UniqueStream<I>
+where
+    I: Iterator<Item = MetaVal>,
+{
+    type Item = MetaVal;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let curr_val = self.0.next()?;
+
+        if self.1.contains(&curr_val) {
+            // Skip and delegate to the next call.
+            self.next()
+        }
+        else {
+            self.1.insert(curr_val.clone());
+            Some(curr_val)
         }
     }
 }
