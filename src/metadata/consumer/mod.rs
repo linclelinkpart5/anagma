@@ -1,6 +1,8 @@
-mod iterable_like;
-mod number_like;
-mod streams;
+pub mod iterable_like;
+pub mod number_like;
+pub mod streams;
+pub mod operand;
+pub mod operand_stack;
 
 use metadata::types::MetaVal;
 use metadata::stream::value::SimpleMetaValueStream;
@@ -34,14 +36,6 @@ impl From<ValueStreamError> for Error {
         Self::FieldStream(err)
     }
 }
-
-pub enum Operand<'k, 'p, 's> {
-    Stream(SimpleMetaValueStream<'k, 'p, 's>),
-    Value(MetaVal),
-    // Predicate(fn(&MetaVal) -> bool),
-}
-
-pub struct OperandStack<'k, 'p, 's>(Vec<Operand<'k, 'p, 's>>);
 
 #[derive(Copy, Clone, Debug)]
 pub enum NullaryOp {

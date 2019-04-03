@@ -1,11 +1,11 @@
 ///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
 
-use metadata::consumer::Operand;
+use metadata::consumer::operand::Operand;
+use metadata::consumer::streams::Stream;
 use metadata::types::MetaVal;
-use metadata::stream::value::SimpleMetaValueStream;
 
 pub enum IterableLike<'k, 'p, 's> {
-    Stream(SimpleMetaValueStream<'k, 'p, 's>),
+    Stream(Stream<'k, 'p, 's>),
     Sequence(Vec<MetaVal>),
 }
 
@@ -31,7 +31,7 @@ impl<'k, 'p, 's> IntoIterator for IterableLike<'k, 'p, 's> {
 }
 
 pub enum IterLike<'k, 'p, 's> {
-    Stream(SimpleMetaValueStream<'k, 'p, 's>),
+    Stream(Stream<'k, 'p, 's>),
     Sequence(std::vec::IntoIter<MetaVal>),
 }
 
