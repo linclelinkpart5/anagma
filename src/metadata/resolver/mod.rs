@@ -2,6 +2,7 @@ pub mod iterable_like;
 pub mod number_like;
 pub mod streams;
 pub mod ops;
+pub mod context;
 
 use metadata::types::MetaVal;
 use metadata::stream::value::SimpleMetaValueStream;
