@@ -3,6 +3,7 @@
 use metadata::resolver::ops::Operand;
 use metadata::resolver::streams::Stream;
 use metadata::types::MetaVal;
+use metadata::resolver::Error;
 
 pub enum IterableLike<'k, 'p, 's> {
     Stream(Stream<'k, 'p, 's>),
@@ -19,7 +20,7 @@ impl<'k, 'p, 's> From<IterableLike<'k, 'p, 's>> for Operand<'k, 'p, 's> {
 }
 
 impl<'k, 'p, 's> IntoIterator for IterableLike<'k, 'p, 's> {
-    type Item = MetaVal;
+    type Item = Result<MetaVal, Error>;
     type IntoIter = IterLike<'k, 'p, 's>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -36,12 +37,12 @@ pub enum IterLike<'k, 'p, 's> {
 }
 
 impl<'k, 'p, 's> Iterator for IterLike<'k, 'p, 's> {
-    type Item = MetaVal;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             &mut Self::Stream(ref mut s) => s.next(),
-            &mut Self::Sequence(ref mut s) => s.next(),
+            &mut Self::Sequence(ref mut s) => s.next().map(Result::Ok),
         }
     }
 }

@@ -36,99 +36,99 @@ impl From<ValueStreamError> for Error {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum NullaryOp {
-    Parents,
-    Children,
-}
+// #[derive(Copy, Clone, Debug)]
+// pub enum NullaryOp {
+//     Parents,
+//     Children,
+// }
 
-#[derive(Copy, Clone, Debug)]
-pub enum UnaryOp {
-    // Input: Iterables
-    Collect,
-    Count,
-    First,
-    Last,
-    Enum,
-    Flatten,
-    Max,
-    Min,
-    Rev,
-    Sum,
-    Product,
-    Dedup,
-    Unique,
-    AllEqual,
-    Sort,
+// #[derive(Copy, Clone, Debug)]
+// pub enum UnaryOp {
+//     // Input: Iterables
+//     Collect,
+//     Count,
+//     First,
+//     Last,
+//     Enum,
+//     Flatten,
+//     Max,
+//     Min,
+//     Rev,
+//     Sum,
+//     Product,
+//     Dedup,
+//     Unique,
+//     AllEqual,
+//     Sort,
 
-    // Input: Numbers
-    Neg,
+//     // Input: Numbers
+//     Neg,
 
-    // Input: Strings
-    Upper,
-    Lower,
-    Title,
-    Caps,
-}
+//     // Input: Strings
+//     Upper,
+//     Lower,
+//     Title,
+//     Caps,
+// }
 
-/// Methods for processing and fetching useful data from field streams.
-/// Unless specified, all methods only operate on valid values, and ignore errors.
-pub enum FieldConsumer {
-    /// Return all values from the stream.
-    Collect,
-    /// Count the number of values from the stream.
-    Count,
-    /// Return the first found value from the stream.
-    First,
-    /// Return the last found value from the stream.
-    Last,
-    /// Flattens any sequence values from the stream, leaving other meta values unchanged.
-    Flatten,
-    /// Filters out duplicates from consecutive runs of values.
-    Dedup,
-    /// Filters out values that have already been produced once.
-    Unique,
-    /// Equals true if all the values in the stream are equal to each other.
-    AllEqual,
-}
+// /// Methods for processing and fetching useful data from field streams.
+// /// Unless specified, all methods only operate on valid values, and ignore errors.
+// pub enum FieldConsumer {
+//     /// Return all values from the stream.
+//     Collect,
+//     /// Count the number of values from the stream.
+//     Count,
+//     /// Return the first found value from the stream.
+//     First,
+//     /// Return the last found value from the stream.
+//     Last,
+//     /// Flattens any sequence values from the stream, leaving other meta values unchanged.
+//     Flatten,
+//     /// Filters out duplicates from consecutive runs of values.
+//     Dedup,
+//     /// Filters out values that have already been produced once.
+//     Unique,
+//     /// Equals true if all the values in the stream are equal to each other.
+//     AllEqual,
+// }
 
-impl FieldConsumer {
-    pub fn process(&self, field_stream: &mut SimpleMetaValueStream) -> MetaVal {
-        match self {
-            &Self::Collect => MetaVal::Seq(field_stream.collect()),
-            &Self::Count => MetaVal::Int(field_stream.count() as i64),
-            &Self::First => field_stream.next().unwrap_or_else(|| MetaVal::Nil),
-            &Self::Last => field_stream.last().unwrap_or_else(|| MetaVal::Nil),
-            &Self::Flatten => {
-                let mut flat = vec![];
+// impl FieldConsumer {
+//     pub fn process(&self, field_stream: &mut SimpleMetaValueStream) -> MetaVal {
+//         match self {
+//             &Self::Collect => MetaVal::Seq(field_stream.collect()),
+//             &Self::Count => MetaVal::Int(field_stream.count() as i64),
+//             &Self::First => field_stream.next().unwrap_or_else(|| MetaVal::Nil),
+//             &Self::Last => field_stream.last().unwrap_or_else(|| MetaVal::Nil),
+//             &Self::Flatten => {
+//                 let mut flat = vec![];
 
-                for mv in field_stream {
-                    match mv {
-                        MetaVal::Seq(seq) => flat.extend(seq.into_iter()),
-                        o => flat.push(o),
-                    }
-                }
+//                 for mv in field_stream {
+//                     match mv {
+//                         MetaVal::Seq(seq) => flat.extend(seq.into_iter()),
+//                         o => flat.push(o),
+//                     }
+//                 }
 
-                MetaVal::Seq(flat)
-            },
-            &Self::Dedup => MetaVal::Seq(field_stream.dedup().collect()),
-            &Self::Unique => MetaVal::Seq(field_stream.unique().collect()),
-            &Self::AllEqual => {
-                MetaVal::Bul(
-                    match field_stream.next() {
-                        None => true,
-                        Some(first_val) => {
-                            while let Some(next_val) = field_stream.next() {
-                                if first_val != next_val {
-                                    return MetaVal::Bul(false);
-                                }
-                            }
+//                 MetaVal::Seq(flat)
+//             },
+//             &Self::Dedup => MetaVal::Seq(field_stream.dedup().collect()),
+//             &Self::Unique => MetaVal::Seq(field_stream.unique().collect()),
+//             &Self::AllEqual => {
+//                 MetaVal::Bul(
+//                     match field_stream.next() {
+//                         None => true,
+//                         Some(first_val) => {
+//                             while let Some(next_val) = field_stream.next() {
+//                                 if first_val != next_val {
+//                                     return MetaVal::Bul(false);
+//                                 }
+//                             }
 
-                            true
-                        }
-                    }
-                )
-            }
-        }
-    }
-}
+//                             true
+//                         }
+//                     }
+//                 )
+//             }
+//         }
+//     }
+// }

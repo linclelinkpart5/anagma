@@ -72,23 +72,34 @@ impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
     }
 }
 
-/// A convenience newtype that only yields meta values, and logs and skips errors.
+/// A convenience newtype that only yields meta values.
 pub struct SimpleMetaValueStream<'k, 'p, 's>(MetaValueStream<'k, 'p, 's>);
 
 impl<'k, 'p, 's> Iterator for SimpleMetaValueStream<'k, 'p, 's> {
-    type Item = MetaVal;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next() {
-            None => None,
-            Some(Ok((_, mv))) => Some(mv),
-            Some(Err(err)) => {
-                warn!("{}", err);
-                self.next()
-            },
-        }
+        self.0.next().map(|res| res.map(|(_, mv)| mv))
     }
 }
+
+// /// A convenience newtype that only yields meta values, and logs and skips errors.
+// pub struct SimpleMetaValueStream<'k, 'p, 's>(MetaValueStream<'k, 'p, 's>);
+
+// impl<'k, 'p, 's> Iterator for SimpleMetaValueStream<'k, 'p, 's> {
+//     type Item = MetaVal;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self.0.next() {
+//             None => None,
+//             Some(Ok((_, mv))) => Some(mv),
+//             Some(Err(err)) => {
+//                 warn!("{}", err);
+//                 self.next()
+//             },
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
