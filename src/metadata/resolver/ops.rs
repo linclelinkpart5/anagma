@@ -63,6 +63,62 @@ pub struct Expression<'k, 'p, 's> {
 
 pub enum Token<'k, 'p, 's> {
     Operand(Operand<'k, 'p, 's>),
+    NullaryOp,
     UnaryOp,
     BinaryOp,
+}
+
+pub trait Op {
+    fn process<'k, 'p, 's>(&self, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error>;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum NullaryOp {
+    // () -> Stream<V>
+    Parents,
+    // () -> Stream<V>
+    Children,
+}
+
+impl Op for NullaryOp {
+    fn process<'k, 'p, 's>(&self, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum UnaryOp {
+    // (Stream<V>) -> Sequence<V>
+    // (Sequence<V>) -> Sequence<V>
+    Collect,
+    // (Stream<V>) -> Integer
+    // (Sequence<V>) -> Integer
+    Count,
+    // (Stream<V>) -> V
+    // (Sequence<V>) -> V
+    First,
+    // (Stream<V>) -> V
+    // (Sequence<V>) -> V
+    Last,
+    // (Stream<Number>) -> Number
+    // (Sequence<Number>) -> Number
+    Max,
+    // (Stream<Number>) -> Number
+    // (Sequence<Number>) -> Number
+    Min,
+    // (Stream<V>) -> Sequence<V>
+    // (Sequence<V>) -> Sequence<V>
+    Rev,
+    // (Stream<Number>) -> Number
+    // (Sequence<Number>) -> Number
+    Sum,
+    // (Stream<Number>) -> Number
+    // (Sequence<Number>) -> Number
+    Product,
+    // (Stream<V>) -> Boolean
+    // (Sequence<V>) -> Boolean
+    AllEqual,
+    // (Stream<V>) -> Sequence<V>
+    // (Sequence<V>) -> Sequence<V>
+    Sort,
 }
