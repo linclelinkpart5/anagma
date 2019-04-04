@@ -55,3 +55,14 @@ impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
         }
     }
 }
+
+pub struct Expression<'k, 'p, 's> {
+    source_stream: Stream<'k, 'p, 's>,
+    tokens: Vec<Token<'k, 'p, 's>>,
+}
+
+pub enum Token<'k, 'p, 's> {
+    Operand(Operand<'k, 'p, 's>),
+    UnaryOp,
+    BinaryOp,
+}
