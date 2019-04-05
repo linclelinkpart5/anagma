@@ -14,6 +14,8 @@ pub enum Error {
     ValueStream(ValueStreamError),
     UnexpectedOperand,
     EmptyStack,
+    NotNumeric,
+    EmptyIterable,
 }
 
 impl std::fmt::Display for Error {
@@ -22,6 +24,8 @@ impl std::fmt::Display for Error {
             Self::ValueStream(ref err) => write!(f, "value stream error: {}", err),
             Self::UnexpectedOperand => write!(f, "unexpected operand on stack"),
             Self::EmptyStack => write!(f, "empty operand stack"),
+            Self::NotNumeric => write!(f, "non numeric value was found"),
+            Self::EmptyIterable => write!(f, "empty iterable"),
         }
     }
 }
@@ -32,6 +36,8 @@ impl std::error::Error for Error {
             Self::ValueStream(ref err) => Some(err),
             Self::UnexpectedOperand => None,
             Self::EmptyStack => None,
+            Self::NotNumeric => None,
+            Self::EmptyIterable => None,
         }
     }
 }

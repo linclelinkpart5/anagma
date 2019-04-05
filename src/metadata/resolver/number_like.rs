@@ -1,7 +1,10 @@
 ///! Wrapper type for items on the consumer stack that behave as a logical numerical value.
 
+use std::convert::TryFrom;
+
 use bigdecimal::BigDecimal;
 
+use metadata::resolver::Error;
 use metadata::resolver::ops::Operand;
 use metadata::types::MetaVal;
 
@@ -24,6 +27,27 @@ impl Ord for NumberLike {
             (Self::Integer(l), Self::Decimal(r)) => BigDecimal::from(*l).cmp(r),
             (Self::Decimal(l), Self::Integer(r)) => l.cmp(&BigDecimal::from(*r)),
             (Self::Decimal(l), Self::Decimal(r)) => l.cmp(r),
+        }
+    }
+}
+
+impl Into<MetaVal> for NumberLike {
+    fn into(self) -> MetaVal {
+        match self {
+            Self::Integer(i) => MetaVal::Int(i),
+            Self::Decimal(d) => MetaVal::Dec(d),
+        }
+    }
+}
+
+impl TryFrom<MetaVal> for NumberLike {
+    type Error = Error;
+
+    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Int(i) => Ok(Self::Integer(i)),
+            MetaVal::Dec(d) => Ok(Self::Decimal(d)),
+            _ => Err(Error::NotNumeric),
         }
     }
 }

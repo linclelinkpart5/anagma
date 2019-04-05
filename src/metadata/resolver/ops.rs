@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use metadata::resolver::streams::Stream;
 use metadata::types::MetaVal;
 use metadata::resolver::iterable_like::IterableLike;
@@ -157,6 +159,38 @@ impl Op for UnaryOp {
                 }.unwrap_or(MetaVal::Nil);
 
                 Operand::Value(mv)
+            },
+            &Self::Max => {
+                let mut m: Option<NumberLike> = None;
+
+                for mv in stack.pop_iterable_like()? {
+                    let num: NumberLike = mv?.try_into()?;
+
+                    m = Some(
+                        match m {
+                            None => num,
+                            Some(curr_m) => curr_m.max(num),
+                        }
+                    );
+                }
+
+                Operand::Value(m.ok_or(Error::EmptyIterable)?.into())
+            },
+            &Self::Min => {
+                let mut m: Option<NumberLike> = None;
+
+                for mv in stack.pop_iterable_like()? {
+                    let num: NumberLike = mv?.try_into()?;
+
+                    m = Some(
+                        match m {
+                            None => num,
+                            Some(curr_m) => curr_m.min(num),
+                        }
+                    );
+                }
+
+                Operand::Value(m.ok_or(Error::EmptyIterable)?.into())
             },
             _ => Operand::Value(MetaVal::Nil),
         };
