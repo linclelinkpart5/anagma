@@ -12,12 +12,16 @@ use itertools::Itertools;
 #[derive(Debug)]
 pub enum Error {
     ValueStream(ValueStreamError),
+    UnexpectedOperand,
+    EmptyStack,
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::ValueStream(ref err) => write!(f, "field stream error: {}", err),
+            Self::ValueStream(ref err) => write!(f, "value stream error: {}", err),
+            Self::UnexpectedOperand => write!(f, "unexpected operand on stack"),
+            Self::EmptyStack => write!(f, "empty operand stack"),
         }
     }
 }
@@ -26,6 +30,8 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Self::ValueStream(ref err) => Some(err),
+            Self::UnexpectedOperand => None,
+            Self::EmptyStack => None,
         }
     }
 }
