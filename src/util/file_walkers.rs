@@ -53,6 +53,26 @@ impl<'p> FileWalker<'p> {
             &mut Self::Child(ref mut fw) => fw.delve(selection, sort_order),
         }
     }
+
+    pub fn new_parent_walker(origin_item_path: &'p Path) -> Self {
+        ParentFileWalker::new(origin_item_path).into()
+    }
+
+    pub fn new_child_walker(origin_item_path: &'p Path) -> Self {
+        ChildFileWalker::new(origin_item_path).into()
+    }
+}
+
+impl<'p> From<ParentFileWalker<'p>> for FileWalker<'p> {
+    fn from(fw: ParentFileWalker<'p>) -> Self {
+        Self::Parent(fw)
+    }
+}
+
+impl<'p> From<ChildFileWalker<'p>> for FileWalker<'p> {
+    fn from(fw: ChildFileWalker<'p>) -> Self {
+        Self::Child(fw)
+    }
 }
 
 pub struct ParentFileWalker<'p>(Option<&'p Path>);

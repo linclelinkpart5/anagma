@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
 
-use metadata::stream::value::SimpleMetaValueStream as RawStream;
+use metadata::stream::value::MetaValueStream as RawStream;
 use metadata::types::MetaVal;
 use metadata::resolver::Error;
 
@@ -18,7 +18,7 @@ impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::Raw(ref mut it) => it.next().map(|res| res.map_err(Error::ValueStream)),
+            &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv)).map(|res| res.map_err(Error::ValueStream)),
             &mut Self::Flatten(ref mut it) => it.next(),
             &mut Self::Dedup(ref mut it) => it.next(),
             &mut Self::Unique(ref mut it) => it.next(),

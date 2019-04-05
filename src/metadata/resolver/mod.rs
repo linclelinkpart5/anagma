@@ -5,7 +5,6 @@ pub mod ops;
 pub mod context;
 
 use metadata::types::MetaVal;
-use metadata::stream::value::SimpleMetaValueStream;
 use metadata::stream::value::Error as ValueStreamError;
 
 use itertools::Itertools;

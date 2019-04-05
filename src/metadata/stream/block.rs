@@ -61,6 +61,16 @@ impl<'p, 's> MetaBlockStream<'p, 's> {
             &mut Self::File(ref mut stream) => stream.delve(),
         }
     }
+
+    pub fn new_file_stream(
+        file_walker: FileWalker<'p>,
+        meta_format: MetaFormat,
+        selection: &'s Selection,
+        sort_order: SortOrder,
+    ) -> Self
+    {
+        Self::File(FileMetaBlockStream::new(file_walker, meta_format, selection, sort_order))
+    }
 }
 
 /// A meta block stream that yields from a fixed sequence, used for testing.
