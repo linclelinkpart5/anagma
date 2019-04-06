@@ -6,7 +6,7 @@ use metadata::resolver::iterable_like::IterableLike;
 use metadata::resolver::number_like::NumberLike;
 use metadata::resolver::context::ResolverContext;
 use metadata::resolver::Error;
-use metadata::stream::block::MetaBlockStream;
+use metadata::stream::block::FileMetaBlockStream;
 use metadata::stream::value::MetaValueStream;
 use util::file_walkers::FileWalker;
 
@@ -69,9 +69,9 @@ impl Op for NullaryOp {
             &Self::Children => FileWalker::new_child_walker(rc.current_item_file_path),
         };
 
-        let mb_stream = MetaBlockStream::new_file_stream(fw, rc.meta_format, rc.selection, rc.sort_order);
+        let mb_stream = FileMetaBlockStream::new(fw, rc.meta_format, rc.selection, rc.sort_order);
 
-        let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream));
+        let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream.into()));
 
         stack.push(Operand::Stream(stream));
 

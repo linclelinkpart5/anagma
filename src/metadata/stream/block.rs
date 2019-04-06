@@ -38,10 +38,6 @@ impl std::error::Error for Error {
     }
 }
 
-pub trait MBS<'p>: Iterator<Item = Result<(Cow<'p, Path>, MetaBlock), Error>> {
-    fn spelunk(&mut self) -> Result<(), Error>;
-}
-
 /// A meta block stream that yields from a fixed sequence, used for testing.
 pub struct FixedMetaBlockStream<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
 
@@ -59,12 +55,6 @@ impl<'p> Iterator for FixedMetaBlockStream<'p> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
-    }
-}
-
-impl<'p> MBS<'p> for FixedMetaBlockStream<'p> {
-    fn spelunk(&mut self) -> Result<(), Error> {
-        Ok(())
     }
 }
 
@@ -126,12 +116,7 @@ impl<'p, 's> FileMetaBlockStream<'p, 's> {
     }
 }
 
-impl<'p, 's> MBS<'p> for FileMetaBlockStream<'p, 's> {
-    fn spelunk(&mut self) -> Result<(), Error> {
-        self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
-    }
-}
-
+/// Generic meta block stream, that can be fed in a variety of ways.
 pub enum MetaBlockStream<'p, 's> {
     Fixed(FixedMetaBlockStream<'p>),
     File(FileMetaBlockStream<'p, 's>),
@@ -155,15 +140,17 @@ impl<'p, 's> MetaBlockStream<'p, 's> {
             &mut Self::File(ref mut stream) => stream.delve(),
         }
     }
+}
 
-    pub fn new_file_stream(
-        file_walker: FileWalker<'p>,
-        meta_format: MetaFormat,
-        selection: &'s Selection,
-        sort_order: SortOrder,
-    ) -> Self
-    {
-        Self::File(FileMetaBlockStream::new(file_walker, meta_format, selection, sort_order))
+impl<'p, 's> From<FixedMetaBlockStream<'p>> for MetaBlockStream<'p, 's> {
+    fn from(other: FixedMetaBlockStream<'p>) -> Self {
+        Self::Fixed(other)
+    }
+}
+
+impl<'p, 's> From<FileMetaBlockStream<'p, 's>> for MetaBlockStream<'p, 's> {
+    fn from(other: FileMetaBlockStream<'p, 's>) -> Self {
+        Self::File(other)
     }
 }
 
