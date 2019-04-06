@@ -124,11 +124,16 @@ pub enum UnaryOp {
 impl Op for UnaryOp {
     fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
         let output_operand = match self {
-            &Self::Collect => {
-                let coll = match stack.pop_iterable_like()? {
+            &Self::Collect | &Self::Rev => {
+                let mut coll = match stack.pop_iterable_like()? {
                     IterableLike::Stream(st) => st.collect::<Result<Vec<_>, _>>()?,
                     IterableLike::Sequence(sq) => sq,
                 };
+
+                match self {
+                    &Self::Rev => { coll.reverse(); },
+                    _ => {},
+                }
 
                 Operand::Value(MetaVal::Seq(coll))
             },
