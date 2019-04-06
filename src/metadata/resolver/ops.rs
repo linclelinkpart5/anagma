@@ -197,6 +197,26 @@ impl Op for UnaryOp {
 
                 Operand::Value(m.ok_or(Error::EmptyIterable)?.into())
             },
+            &Self::Sum => {
+                let mut total = NumberLike::Integer(0);
+
+                for mv in stack.pop_iterable_like()? {
+                    let num: NumberLike = mv?.try_into()?;
+                    total += num;
+                }
+
+                Operand::Value(total.into())
+            },
+            &Self::Product => {
+                let mut total = NumberLike::Integer(1);
+
+                for mv in stack.pop_iterable_like()? {
+                    let num: NumberLike = mv?.try_into()?;
+                    total *= num;
+                }
+
+                Operand::Value(total.into())
+            },
             _ => Operand::Value(MetaVal::Nil),
         };
 

@@ -1,6 +1,8 @@
 ///! Wrapper type for items on the consumer stack that behave as a logical numerical value.
 
 use std::convert::TryFrom;
+use std::ops::AddAssign;
+use std::ops::MulAssign;
 
 use bigdecimal::BigDecimal;
 
@@ -70,5 +72,27 @@ impl<'k, 'p, 's> From<NumberLike> for Operand<'k, 'p, 's> {
             NumberLike::Integer(i) => Self::Value(MetaVal::Int(i)),
             NumberLike::Decimal(d) => Self::Value(MetaVal::Dec(d)),
         }
+    }
+}
+
+impl AddAssign for NumberLike {
+    fn add_assign(&mut self, other: Self) {
+        *self = match (&self, other) {
+            (&Self::Integer(ref l), Self::Integer(r)) => Self::Integer(l + r),
+            (&Self::Integer(ref l), Self::Decimal(ref r)) => Self::Decimal(BigDecimal::from(*l) + r),
+            (&Self::Decimal(ref l), Self::Integer(r)) => Self::Decimal(l + BigDecimal::from(r)),
+            (&Self::Decimal(ref l), Self::Decimal(ref r)) => Self::Decimal(l + r),
+        };
+    }
+}
+
+impl MulAssign for NumberLike {
+    fn mul_assign(&mut self, other: Self) {
+        *self = match (&self, other) {
+            (&Self::Integer(ref l), Self::Integer(r)) => Self::Integer(l * r),
+            (&Self::Integer(ref l), Self::Decimal(ref r)) => Self::Decimal(BigDecimal::from(*l) * r),
+            (&Self::Decimal(ref l), Self::Integer(r)) => Self::Decimal(l * BigDecimal::from(r)),
+            (&Self::Decimal(ref l), Self::Decimal(ref r)) => Self::Decimal(l * r),
+        };
     }
 }
