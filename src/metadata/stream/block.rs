@@ -38,39 +38,8 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum MetaBlockStream<'p, 's> {
-    Fixed(FixedMetaBlockStream<'p>),
-    File(FileMetaBlockStream<'p, 's>),
-}
-
-impl<'p, 's> Iterator for MetaBlockStream<'p, 's> {
-    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            &mut Self::Fixed(ref mut it) => it.next(),
-            &mut Self::File(ref mut it) => it.next(),
-        }
-    }
-}
-
-impl<'p, 's> MetaBlockStream<'p, 's> {
-    pub fn delve(&mut self) -> Result<(), Error> {
-        match self {
-            &mut Self::Fixed(..) => Ok(()),
-            &mut Self::File(ref mut stream) => stream.delve(),
-        }
-    }
-
-    pub fn new_file_stream(
-        file_walker: FileWalker<'p>,
-        meta_format: MetaFormat,
-        selection: &'s Selection,
-        sort_order: SortOrder,
-    ) -> Self
-    {
-        Self::File(FileMetaBlockStream::new(file_walker, meta_format, selection, sort_order))
-    }
+pub trait MBS<'p>: Iterator<Item = Result<(Cow<'p, Path>, MetaBlock), Error>> {
+    fn spelunk(&mut self) -> Result<(), Error>;
 }
 
 /// A meta block stream that yields from a fixed sequence, used for testing.
@@ -90,6 +59,12 @@ impl<'p> Iterator for FixedMetaBlockStream<'p> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
+    }
+}
+
+impl<'p> MBS<'p> for FixedMetaBlockStream<'p> {
+    fn spelunk(&mut self) -> Result<(), Error> {
+        Ok(())
     }
 }
 
@@ -148,6 +123,47 @@ impl<'p, 's> Iterator for FileMetaBlockStream<'p, 's> {
 impl<'p, 's> FileMetaBlockStream<'p, 's> {
     pub fn delve(&mut self) -> Result<(), Error> {
         self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
+    }
+}
+
+impl<'p, 's> MBS<'p> for FileMetaBlockStream<'p, 's> {
+    fn spelunk(&mut self) -> Result<(), Error> {
+        self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
+    }
+}
+
+pub enum MetaBlockStream<'p, 's> {
+    Fixed(FixedMetaBlockStream<'p>),
+    File(FileMetaBlockStream<'p, 's>),
+}
+
+impl<'p, 's> Iterator for MetaBlockStream<'p, 's> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            &mut Self::Fixed(ref mut it) => it.next(),
+            &mut Self::File(ref mut it) => it.next(),
+        }
+    }
+}
+
+impl<'p, 's> MetaBlockStream<'p, 's> {
+    pub fn delve(&mut self) -> Result<(), Error> {
+        match self {
+            &mut Self::Fixed(..) => Ok(()),
+            &mut Self::File(ref mut stream) => stream.delve(),
+        }
+    }
+
+    pub fn new_file_stream(
+        file_walker: FileWalker<'p>,
+        meta_format: MetaFormat,
+        selection: &'s Selection,
+        sort_order: SortOrder,
+    ) -> Self
+    {
+        Self::File(FileMetaBlockStream::new(file_walker, meta_format, selection, sort_order))
     }
 }
 
