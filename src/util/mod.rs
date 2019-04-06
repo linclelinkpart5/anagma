@@ -29,7 +29,7 @@ impl GenConverter {
     }
 }
 
-pub fn is_valid_item_name<S: AsRef<str>>(s: S) -> bool {
+pub fn _is_valid_item_name<S: AsRef<str>>(s: S) -> bool {
     let s = s.as_ref();
     let s_path = Path::new(s);
     let components: Vec<_> = s_path.components().collect();

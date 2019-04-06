@@ -88,12 +88,9 @@ mod tests {
     use super::MetaValueStream;
 
     use std::borrow::Cow;
-    use std::path::Path;
-    use std::collections::VecDeque;
     use test_util::TestUtil;
 
     use metadata::stream::block::MetaBlockStream;
-    use metadata::stream::block::FixedMetaBlockStream;
     use metadata::stream::block::FileMetaBlockStream;
     use metadata::types::MetaKey;
     use metadata::types::MetaVal;
