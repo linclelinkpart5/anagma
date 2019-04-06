@@ -6,7 +6,7 @@ use bigdecimal::BigDecimal;
 
 use metadata::types::key::MetaKey;
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize)]
 #[serde(untagged)]
 pub enum MetaVal {
     Nil,

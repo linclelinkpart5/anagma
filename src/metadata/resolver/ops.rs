@@ -122,9 +122,9 @@ pub enum UnaryOp {
 }
 
 impl Op for UnaryOp {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+    fn process<'k, 'p, 's>(&self, _rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
         let output_operand = match self {
-            &Self::Collect | &Self::Rev => {
+            &Self::Collect | &Self::Rev | &Self::Sort => {
                 let mut coll = match stack.pop_iterable_like()? {
                     IterableLike::Stream(st) => st.collect::<Result<Vec<_>, _>>()?,
                     IterableLike::Sequence(sq) => sq,
@@ -132,6 +132,8 @@ impl Op for UnaryOp {
 
                 match self {
                     &Self::Rev => { coll.reverse(); },
+                    // TODO: How do sorting maps work?
+                    &Self::Sort => { coll.sort(); },
                     _ => {},
                 }
 
@@ -217,7 +219,29 @@ impl Op for UnaryOp {
 
                 Operand::Value(total.into())
             },
-            _ => Operand::Value(MetaVal::Nil),
+            &Self::AllEqual => {
+                let mut it = stack.pop_iterable_like()?.into_iter();
+
+                let res = match it.next() {
+                    None => true,
+                    Some(res_first) => {
+                        let first = res_first?;
+                        let mut eq_so_far = true;
+
+                        for res_mv in it {
+                            let mv = res_mv?;
+                            if mv != first {
+                                eq_so_far = false;
+                                break;
+                            }
+                        }
+
+                        eq_so_far
+                    }
+                };
+
+                Operand::Value(MetaVal::Bul(res))
+            },
         };
 
         stack.push(output_operand);
