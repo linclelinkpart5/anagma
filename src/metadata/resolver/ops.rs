@@ -71,7 +71,7 @@ impl Op for NullaryOp {
 
         let mb_stream = FileMetaBlockStream::new(fw, rc.meta_format, rc.selection, rc.sort_order);
 
-        let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream.into()));
+        let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream));
 
         stack.push(Operand::Stream(stream));
 

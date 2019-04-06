@@ -33,10 +33,13 @@ pub struct MetaValueStream<'k, 'p, 's> {
 }
 
 impl<'k, 'p, 's> MetaValueStream<'k, 'p, 's> {
-    pub fn new(target_key_path: Vec<&'k MetaKey>, meta_block_stream: MetaBlockStream<'p, 's>) -> Self {
+    pub fn new<MBS>(target_key_path: Vec<&'k MetaKey>, meta_block_stream: MBS) -> Self
+    where
+        MBS: Into<MetaBlockStream<'p, 's>>,
+    {
         Self {
             target_key_path,
-            meta_block_stream,
+            meta_block_stream: meta_block_stream.into(),
         }
     }
 }
