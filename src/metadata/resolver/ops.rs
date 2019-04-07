@@ -8,8 +8,11 @@ use metadata::resolver::context::ResolverContext;
 use metadata::resolver::Error;
 use metadata::stream::block::FileMetaBlockStream;
 use metadata::stream::value::MetaValueStream;
-use util::file_walkers::FileWalker;
+use util::file_walkers::ParentFileWalker;
+use util::file_walkers::ChildFileWalker;
 
+/// Values that are pushed onto an operand stack.
+/// In order for a stack to be valid, it must result in exactly one value operand after processing.
 pub enum Operand<'k, 'p, 's> {
     Stream(Stream<'k, 'p, 's>),
     Value(MetaVal),
@@ -64,12 +67,10 @@ pub enum NullaryOp {
 
 impl Op for NullaryOp {
     fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
-        let fw = match self {
-            &Self::Parents => FileWalker::new_parent_walker(rc.current_item_file_path),
-            &Self::Children => FileWalker::new_child_walker(rc.current_item_file_path),
+        let mb_stream = match self {
+            &Self::Parents => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
+            &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
         };
-
-        let mb_stream = FileMetaBlockStream::new(fw, rc.meta_format, rc.selection, rc.sort_order);
 
         let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream));
 
@@ -81,38 +82,27 @@ impl Op for NullaryOp {
 
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
-    // (Stream<V>) -> Sequence<V>
-    // (Sequence<V>) -> Sequence<V>
+    // (Iterable<V>) -> Sequence<V>
     Collect,
-    // (Stream<V>) -> Integer
-    // (Sequence<V>) -> Integer
+    // (Iterable<V>) -> Integer
     Count,
-    // (Stream<V>) -> V
-    // (Sequence<V>) -> V
+    // (Iterable<V>) -> V
     First,
-    // (Stream<V>) -> V
-    // (Sequence<V>) -> V
+    // (Iterable<V>) -> V
     Last,
-    // (Stream<Number>) -> Number
-    // (Sequence<Number>) -> Number
+    // (Iterable<Number>) -> Number
     Max,
-    // (Stream<Number>) -> Number
-    // (Sequence<Number>) -> Number
+    // (Iterable<Number>) -> Number
     Min,
-    // (Stream<V>) -> Sequence<V>
-    // (Sequence<V>) -> Sequence<V>
+    // (Iterable<V>) -> Sequence<V>
     Rev,
-    // (Stream<Number>) -> Number
-    // (Sequence<Number>) -> Number
+    // (Iterable<Number>) -> Number
     Sum,
-    // (Stream<Number>) -> Number
-    // (Sequence<Number>) -> Number
+    // (Iterable<Number>) -> Number
     Product,
-    // (Stream<V>) -> Boolean
-    // (Sequence<V>) -> Boolean
+    // (Iterable<V>) -> Boolean
     AllEqual,
-    // (Stream<V>) -> Sequence<V>
-    // (Sequence<V>) -> Sequence<V>
+    // (Iterable<V>) -> Sequence<V>
     Sort,
 }
 
@@ -247,21 +237,18 @@ impl Op for UnaryOp {
 
 #[derive(Clone, Copy, Debug)]
 pub enum BinaryOp {
-    // (Stream<V>, Usize) -> V
-    // (Sequence<V>, Usize) -> V
+    // (Iterable<V>, Usize) -> V
     Nth,
     // (Stream<V>, Usize) -> Stream<V>
     // (Sequence<V>, Usize) -> Sequence<V>
     StepBy,
-    // (Stream<V>, Stream<V>) -> Stream<V>
-    // (Sequence<V>, Stream<V>) -> Stream<V>
-    // (Stream<V>, Sequence<V>) -> Stream<V>
     // (Sequence<V>, Sequence<V>) -> Sequence<V>
+    // (Stream<V>, Iterable<V>) -> Stream<V>
+    // (Iterable<V>, Stream<V>) -> Stream<V>
     Chain,
-    // (Stream<V>, Stream<V>) -> Stream<Sequence<V>>
-    // (Sequence<V>, Stream<V>) -> Stream<Sequence<V>>
-    // (Stream<V>, Sequence<V>) -> Stream<Sequence<V>>
     // (Sequence<V>, Sequence<V>) -> Sequence<Sequence<V>>
+    // (Stream<V>, Iterable<V>) -> Stream<Sequence<V>>
+    // (Iterable<V>, Stream<V>) -> Stream<Sequence<V>>
     Zip,
     // (Stream<V>, UnaryOp) -> Stream<V>
     // (Sequence<V>, UnaryOp) -> Sequence<V>
@@ -281,25 +268,20 @@ pub enum BinaryOp {
     // (Stream<V>, Usize) -> Stream<V>
     // (Sequence<V>, Usize) -> Sequence<V>
     Take,
-    // (Stream<V>, Predicate) -> Boolean
-    // (Sequence<V>, Predicate) -> Boolean
+    // (Iterable<V>, Predicate) -> Boolean
     All,
-    // (Stream<V>, Predicate) -> Boolean
-    // (Sequence<V>, Predicate) -> Boolean
+    // (Iterable<V>, Predicate) -> Boolean
     Any,
-    // (Stream<V>, Predicate) -> V
-    // (Sequence<V>, Predicate) -> V
+    // (Iterable<V>, Predicate) -> V
     Find,
-    // (Stream<V>, Predicate) -> Usize
-    // (Sequence<V>, Predicate) -> Usize
+    // (Iterable<V>, Predicate) -> Usize
     Position,
-    // (Stream<V>, Stream<V>) -> Stream<V>
-    // (Sequence<V>, Stream<V>) -> Stream<V>
-    // (Stream<V>, Sequence<V>) -> Stream<V>
     // (Sequence<V>, Sequence<V>) -> Sequence<V>
+    // (Stream<V>, Iterable<V>) -> Stream<V>
+    // (Iterable<V>, Stream<V>) -> Stream<V>
     Interleave,
     // (Stream<V>, V) -> Stream<V>
-    // (Sequence<V>, V) -> Stream<V>
+    // (Sequence<V>, V) -> Sequence<V>
     Intersperse,
     // (Stream<V>, Usize) -> Stream<Sequence<V>>
     // (Sequence<V>, Usize) -> Sequence<Sequence<V>>
