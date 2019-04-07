@@ -13,6 +13,7 @@ pub enum Error {
     EmptyStack,
     NotNumeric,
     EmptyIterable,
+    NotString,
 }
 
 impl std::fmt::Display for Error {
@@ -23,6 +24,7 @@ impl std::fmt::Display for Error {
             Self::EmptyStack => write!(f, "empty operand stack"),
             Self::NotNumeric => write!(f, "non numeric value was found"),
             Self::EmptyIterable => write!(f, "empty iterable"),
+            Self::NotString => write!(f, "non string value was found"),
         }
     }
 }
@@ -35,6 +37,7 @@ impl std::error::Error for Error {
             Self::EmptyStack => None,
             Self::NotNumeric => None,
             Self::EmptyIterable => None,
+            Self::NotString => None,
         }
     }
 }

@@ -21,6 +21,40 @@ impl std::fmt::Display for MetaKey {
     }
 }
 
+pub struct MetaKeyPath(Vec<MetaKey>);
+
+impl From<MetaKey> for MetaKeyPath {
+    fn from(mk: MetaKey) -> Self {
+        Self(vec![mk])
+    }
+}
+
+impl From<Vec<MetaKey>> for MetaKeyPath {
+    fn from(mks: Vec<MetaKey>) -> Self {
+        Self(mks)
+    }
+}
+
+impl From<String> for MetaKeyPath {
+    fn from(s: String) -> Self {
+        let mk: MetaKey = s.into();
+        mk.into()
+    }
+}
+
+impl From<Vec<String>> for MetaKeyPath {
+    fn from(ss: Vec<String>) -> Self {
+        let mut mks = vec![];
+
+        for s in ss {
+            let mk: MetaKey = s.into();
+            mks.push(mk);
+        }
+
+        Self(mks)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::MetaKey;

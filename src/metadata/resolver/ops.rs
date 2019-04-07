@@ -2,6 +2,8 @@ use std::convert::TryInto;
 
 use metadata::resolver::streams::Stream;
 use metadata::types::MetaVal;
+use metadata::types::MetaKey;
+use metadata::types::MetaKeyPath;
 use metadata::resolver::iterable_like::IterableLike;
 use metadata::resolver::number_like::NumberLike;
 use metadata::resolver::context::ResolverContext;
@@ -43,6 +45,33 @@ impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
             Operand::Value(MetaVal::Dec(d)) => Ok(NumberLike::Decimal(d)),
             _ => Err(Error::UnexpectedOperand),
         }
+    }
+
+    pub fn pop_key_path_like(&mut self) -> Result<MetaKeyPath, Error> {
+        let it_like = match self.pop()? {
+            Operand::Stream(s) => IterableLike::Stream(s),
+            Operand::Value(MetaVal::Seq(s)) => IterableLike::Sequence(s),
+            Operand::Value(MetaVal::Str(s)) => {
+                // Special case, handle and return.
+                return Ok(s.into());
+            },
+            _ => {
+                return Err(Error::UnexpectedOperand);
+            }
+        };
+
+        let mut mks: Vec<MetaKey> = vec![];
+
+        for mv in it_like.into_iter() {
+            match mv? {
+                MetaVal::Str(s) => {
+                    mks.push(s.into());
+                },
+                _ => return Err(Error::NotString),
+            }
+        }
+
+        Ok(mks.into())
     }
 }
 

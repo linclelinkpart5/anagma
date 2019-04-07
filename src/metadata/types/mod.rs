@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 pub use metadata::types::val::MetaVal;
 pub use metadata::types::key::MetaKey;
+pub use metadata::types::key::MetaKeyPath;
 
 pub type MetaBlock = BTreeMap<MetaKey, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
