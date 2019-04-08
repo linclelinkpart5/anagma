@@ -6,6 +6,7 @@ use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
 use std::collections::BTreeMap;
+use std::collections::VecDeque;
 
 use tempfile::Builder;
 use tempfile::TempDir;
@@ -16,6 +17,8 @@ use metadata::types::MetaVal;
 use metadata::types::MetaKey;
 use metadata::types::MetaBlock;
 use metadata::types::MetaStructure;
+use metadata::stream::block::FixedMetaBlockStream;
+use metadata::stream::value::MetaValueStream;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -436,6 +439,43 @@ impl TestUtil {
 
         map
     }
+
+    /// Used for test scenarios where a target is not needed.
+    pub fn sample_naive_meta_block(target_name: &str, include_flag_key: bool) -> MetaBlock {
+        let mut map = Self::core_nested_mapping();
+
+        map.insert(
+            MetaKey::Str(String::from("target_file_name")),
+            MetaVal::Str(String::from(target_name)),
+        );
+
+        if include_flag_key {
+            map.insert(
+                MetaKey::Str(String::from("flag_key")),
+                MetaVal::Str(String::from(target_name)),
+            );
+        }
+
+        map
+    }
+
+    pub fn create_sample_fixed_block_stream() -> FixedMetaBlockStream<'static> {
+        let mut vd: VecDeque<_> = VecDeque::new();
+
+        vd.push_back((Path::new("dummy_0").into(), Self::sample_naive_meta_block("meta_block_0", false)));
+        vd.push_back((Path::new("dummy_1").into(), Self::sample_naive_meta_block("meta_block_1", false)));
+        vd.push_back((Path::new("dummy_2").into(), Self::sample_naive_meta_block("meta_block_2", false)));
+        vd.push_back((Path::new("dummy_3").into(), Self::sample_naive_meta_block("meta_block_3", false)));
+        vd.push_back((Path::new("dummy_4").into(), Self::sample_naive_meta_block("meta_block_4", false)));
+
+        FixedMetaBlockStream::new(vd)
+    }
+
+    // pub fn create_sample_fixed_value_stream() -> MetaValueStream<'static, 'static, 'static> {
+    //     let b_stream = Self::create_sample_fixed_block_stream();
+
+    //     MetaValueStream::new(vec!["target_file_path".into()], b_stream)
+    // }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");

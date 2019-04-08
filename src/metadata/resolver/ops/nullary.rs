@@ -96,7 +96,5 @@ mod tests {
             Operand::Stream(_) => {},
             _ => { panic!("unexpected operand found on stack"); }
         }
-
-        println!("{:#?}", stack);
     }
 }
