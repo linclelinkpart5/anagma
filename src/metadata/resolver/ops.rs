@@ -133,10 +133,15 @@ pub enum UnaryOp {
     AllEqual,
     // (Iterable<V>) -> Sequence<V>
     Sort,
+
+    // (KeyPath) -> Stream<V>
+    ParentsRef,
+    // (KeyPath) -> Stream<V>
+    ChildrenRef,
 }
 
 impl Op for UnaryOp {
-    fn process<'k, 'p, 's>(&self, _rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
         let output_operand = match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {
                 let mut coll = match stack.pop_iterable_like()? {
@@ -255,6 +260,20 @@ impl Op for UnaryOp {
                 };
 
                 Operand::Value(MetaVal::Bul(res))
+            },
+            &Self::ParentsRef | &Self::ChildrenRef => {
+                // let kp = stack.pop_key_path_like()?;
+
+                // let mb_stream = match self {
+                //     &Self::ParentsRef => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
+                //     &Self::ChildrenRef => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
+                //     _ => unreachable!(),
+                // };
+
+                // let stream = Stream::Raw(MetaValueStream::new(kp, mb_stream));
+
+                // Operand::Stream(stream)
+                Operand::Value(MetaVal::Nil)
             },
         };
 
