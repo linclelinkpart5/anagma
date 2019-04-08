@@ -1,113 +1,18 @@
 use std::convert::TryInto;
 
-use metadata::resolver::streams::Stream;
 use metadata::types::MetaVal;
-use metadata::types::MetaKey;
-use metadata::types::MetaKeyPath;
-use metadata::resolver::iterable_like::IterableLike;
-use metadata::resolver::number_like::NumberLike;
-use metadata::resolver::context::ResolverContext;
 use metadata::resolver::Error;
+use metadata::resolver::ops::Op;
+use metadata::resolver::ops::Operand;
+use metadata::resolver::ops::OperandStack;
+use metadata::resolver::context::ResolverContext;
+use metadata::resolver::streams::Stream;
+use metadata::resolver::number_like::NumberLike;
+use metadata::resolver::iterable_like::IterableLike;
 use metadata::stream::block::FileMetaBlockStream;
 use metadata::stream::value::MetaValueStream;
 use util::file_walkers::ParentFileWalker;
 use util::file_walkers::ChildFileWalker;
-
-/// Values that are pushed onto an operand stack.
-/// In order for a stack to be valid, it must result in exactly one value operand after processing.
-pub enum Operand<'k, 'p, 's> {
-    Stream(Stream<'k, 'p, 's>),
-    Value(MetaVal),
-}
-
-pub struct OperandStack<'k, 'p, 's>(Vec<Operand<'k, 'p, 's>>);
-
-impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
-    pub fn pop(&mut self) -> Result<Operand, Error> {
-        self.0.pop().ok_or_else(|| Error::EmptyStack)
-    }
-
-    pub fn push(&mut self, op: Operand<'k, 'p, 's>) -> () {
-        self.0.push(op)
-    }
-
-    pub fn pop_iterable_like(&mut self) -> Result<IterableLike, Error> {
-        match self.pop()? {
-            Operand::Stream(s) => Ok(IterableLike::Stream(s)),
-            Operand::Value(MetaVal::Seq(s)) => Ok(IterableLike::Sequence(s)),
-            _ => Err(Error::UnexpectedOperand),
-        }
-    }
-
-    pub fn pop_number_like(&mut self) -> Result<NumberLike, Error> {
-        match self.pop()? {
-            Operand::Value(MetaVal::Int(i)) => Ok(NumberLike::Integer(i)),
-            Operand::Value(MetaVal::Dec(d)) => Ok(NumberLike::Decimal(d)),
-            _ => Err(Error::UnexpectedOperand),
-        }
-    }
-
-    pub fn pop_key_path_like(&mut self) -> Result<MetaKeyPath, Error> {
-        let it_like = match self.pop()? {
-            Operand::Stream(s) => IterableLike::Stream(s),
-            Operand::Value(MetaVal::Seq(s)) => IterableLike::Sequence(s),
-            Operand::Value(MetaVal::Str(s)) => {
-                // Special case, handle and return.
-                return Ok(s.into());
-            },
-            _ => {
-                return Err(Error::UnexpectedOperand);
-            }
-        };
-
-        let mut mks: Vec<MetaKey> = vec![];
-
-        for mv in it_like.into_iter() {
-            match mv? {
-                MetaVal::Str(s) => {
-                    mks.push(s.into());
-                },
-                _ => return Err(Error::NotString),
-            }
-        }
-
-        Ok(mks.into())
-    }
-}
-
-pub enum Token<'k, 'p, 's> {
-    Operand(Operand<'k, 'p, 's>),
-    NullaryOp(NullaryOp),
-    UnaryOp(UnaryOp),
-    BinaryOp,
-}
-
-pub trait Op {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error>;
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum NullaryOp {
-    // () -> Stream<V>
-    Parents,
-    // () -> Stream<V>
-    Children,
-}
-
-impl Op for NullaryOp {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
-        let mb_stream = match self {
-            &Self::Parents => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
-            &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
-        };
-
-        let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream));
-
-        stack.push(Operand::Stream(stream));
-
-        Ok(())
-    }
-}
 
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
@@ -281,60 +186,4 @@ impl Op for UnaryOp {
 
         Ok(())
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum BinaryOp {
-    // (Iterable<V>, Usize) -> V
-    Nth,
-    // (Stream<V>, Usize) -> Stream<V>
-    // (Sequence<V>, Usize) -> Sequence<V>
-    StepBy,
-    // (Sequence<V>, Sequence<V>) -> Sequence<V>
-    // (Stream<V>, Iterable<V>) -> Stream<V>
-    // (Iterable<V>, Stream<V>) -> Stream<V>
-    Chain,
-    // (Sequence<V>, Sequence<V>) -> Sequence<Sequence<V>>
-    // (Stream<V>, Iterable<V>) -> Stream<Sequence<V>>
-    // (Iterable<V>, Stream<V>) -> Stream<Sequence<V>>
-    Zip,
-    // (Stream<V>, UnaryOp) -> Stream<V>
-    // (Sequence<V>, UnaryOp) -> Sequence<V>
-    Map,
-    // (Stream<V>, Predicate) -> Stream<V>
-    // (Sequence<V>, Predicate) -> Sequence<V>
-    Filter,
-    // (Stream<V>, Predicate) -> Stream<V>
-    // (Sequence<V>, Predicate) -> Sequence<V>
-    SkipWhile,
-    // (Stream<V>, Predicate) -> Stream<V>
-    // (Sequence<V>, Predicate) -> Sequence<V>
-    TakeWhile,
-    // (Stream<V>, Usize) -> Stream<V>
-    // (Sequence<V>, Usize) -> Sequence<V>
-    Skip,
-    // (Stream<V>, Usize) -> Stream<V>
-    // (Sequence<V>, Usize) -> Sequence<V>
-    Take,
-    // (Iterable<V>, Predicate) -> Boolean
-    All,
-    // (Iterable<V>, Predicate) -> Boolean
-    Any,
-    // (Iterable<V>, Predicate) -> V
-    Find,
-    // (Iterable<V>, Predicate) -> Usize
-    Position,
-    // (Sequence<V>, Sequence<V>) -> Sequence<V>
-    // (Stream<V>, Iterable<V>) -> Stream<V>
-    // (Iterable<V>, Stream<V>) -> Stream<V>
-    Interleave,
-    // (Stream<V>, V) -> Stream<V>
-    // (Sequence<V>, V) -> Sequence<V>
-    Intersperse,
-    // (Stream<V>, Usize) -> Stream<Sequence<V>>
-    // (Sequence<V>, Usize) -> Sequence<Sequence<V>>
-    Chunks,
-    // (Stream<V>, Usize) -> Stream<Sequence<V>>
-    // (Sequence<V>, Usize) -> Sequence<Sequence<V>>
-    Windows,
 }
