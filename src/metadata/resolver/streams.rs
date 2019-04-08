@@ -6,6 +6,7 @@ use metadata::types::MetaVal;
 use metadata::resolver::Error;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
+#[derive(Debug)]
 pub enum Stream<'k, 'p, 's> {
     Raw(RawStream<'k, 'p, 's>),
     Flatten(FlattenStream<'k, 'p, 's>),
@@ -26,6 +27,7 @@ impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
     }
 }
 
+#[derive(Debug)]
 pub struct FlattenStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, VecDeque<MetaVal>);
 
 impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
@@ -49,6 +51,7 @@ impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
     }
 }
 
+#[derive(Debug)]
 pub struct DedupStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, Option<MetaVal>);
 
 impl<'k, 'p, 's> Iterator for DedupStream<'k, 'p, 's> {
@@ -74,6 +77,7 @@ impl<'k, 'p, 's> Iterator for DedupStream<'k, 'p, 's> {
     }
 }
 
+#[derive(Debug)]
 pub struct UniqueStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, HashSet<MetaVal>);
 
 impl<'k, 'p, 's> Iterator for UniqueStream<'k, 'p, 's> {

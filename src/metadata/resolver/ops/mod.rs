@@ -19,14 +19,24 @@ use util::file_walkers::ChildFileWalker;
 
 /// Values that are pushed onto an operand stack.
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
+#[derive(Debug)]
 pub enum Operand<'k, 'p, 's> {
     Stream(Stream<'k, 'p, 's>),
     Value(MetaVal),
 }
 
+#[derive(Debug)]
 pub struct OperandStack<'k, 'p, 's>(Vec<Operand<'k, 'p, 's>>);
 
 impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
+    pub fn new() -> Self {
+        OperandStack(vec![])
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn pop(&mut self) -> Result<Operand, Error> {
         self.0.pop().ok_or_else(|| Error::EmptyStack)
     }

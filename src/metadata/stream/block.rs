@@ -39,6 +39,7 @@ impl std::error::Error for Error {
 }
 
 /// Generic meta block stream, that can be fed in a variety of ways.
+#[derive(Debug)]
 pub enum MetaBlockStream<'p, 's> {
     Fixed(FixedMetaBlockStream<'p>),
     File(FileMetaBlockStream<'p, 's>),
@@ -77,6 +78,7 @@ impl<'p, 's> From<FileMetaBlockStream<'p, 's>> for MetaBlockStream<'p, 's> {
 }
 
 /// A meta block stream that yields from a fixed sequence, used for testing.
+#[derive(Debug)]
 pub struct FixedMetaBlockStream<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
 
 impl<'p> FixedMetaBlockStream<'p> {
@@ -97,6 +99,7 @@ impl<'p> Iterator for FixedMetaBlockStream<'p> {
 }
 
 /// A meta block stream that yields from files on disk, powered by a file walker.
+#[derive(Debug)]
 pub struct FileMetaBlockStream<'p, 's> {
     file_walker: FileWalker<'p>,
     meta_format: MetaFormat,

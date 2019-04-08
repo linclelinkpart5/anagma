@@ -28,6 +28,7 @@ impl std::error::Error for Error {
 }
 
 /// Generic walker that supports either visiting parent or child files of an origin path.
+#[derive(Debug)]
 pub enum FileWalker<'p> {
     Parent(ParentFileWalker<'p>),
     Child(ChildFileWalker<'p>),
@@ -67,6 +68,7 @@ impl<'p> From<ChildFileWalker<'p>> for FileWalker<'p> {
     }
 }
 
+#[derive(Debug)]
 pub struct ParentFileWalker<'p>(Option<&'p Path>);
 
 impl<'p> ParentFileWalker<'p> {
@@ -92,6 +94,7 @@ impl<'p> Iterator for ParentFileWalker<'p> {
     }
 }
 
+#[derive(Debug)]
 pub struct ChildFileWalker<'p> {
     frontier: VecDeque<Result<Cow<'p, Path>, Error>>,
     last_processed_path: Option<Cow<'p, Path>>,

@@ -27,6 +27,7 @@ impl std::error::Error for Error {
     }
 }
 
+#[derive(Debug)]
 pub struct MetaValueStream<'k, 'p, 's> {
     target_key_path: Vec<&'k MetaKey>,
     meta_block_stream: MetaBlockStream<'p, 's>,
