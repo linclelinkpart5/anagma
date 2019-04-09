@@ -6,11 +6,14 @@ pub enum MetaKey{
     Str(String)
 }
 
-impl<S> From<S> for MetaKey
-where
-    S: Into<String>
-{
-    fn from(s: S) -> Self {
+impl From<String> for MetaKey {
+    fn from(s: String) -> Self {
+        Self::Str(s)
+    }
+}
+
+impl From<&str> for MetaKey {
+    fn from(s: &str) -> Self {
         Self::Str(s.into())
     }
 }
