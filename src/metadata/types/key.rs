@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum MetaKey{
@@ -21,34 +23,46 @@ impl std::fmt::Display for MetaKey {
     }
 }
 
-pub struct MetaKeyPath(Vec<MetaKey>);
+pub struct MetaKeyPath<'mk>(Vec<Cow<'mk, MetaKey>>);
 
-impl From<MetaKey> for MetaKeyPath {
+impl<'mk> From<&'mk MetaKey> for MetaKeyPath<'mk> {
+    fn from(mk: &'mk MetaKey) -> Self {
+        Self(vec![Cow::Borrowed(mk)])
+    }
+}
+
+impl<'mk> From<MetaKey> for MetaKeyPath<'mk> {
     fn from(mk: MetaKey) -> Self {
-        Self(vec![mk])
+        Self(vec![Cow::Owned(mk)])
     }
 }
 
-impl From<Vec<MetaKey>> for MetaKeyPath {
+impl<'mk> From<Vec<&'mk MetaKey>> for MetaKeyPath<'mk> {
+    fn from(mks: Vec<&'mk MetaKey>) -> Self {
+        Self(mks.into_iter().map(Cow::Borrowed).collect())
+    }
+}
+
+impl<'mk> From<Vec<MetaKey>> for MetaKeyPath<'mk> {
     fn from(mks: Vec<MetaKey>) -> Self {
-        Self(mks)
+        Self(mks.into_iter().map(Cow::Owned).collect())
     }
 }
 
-impl From<String> for MetaKeyPath {
+impl<'mk> From<String> for MetaKeyPath<'mk> {
     fn from(s: String) -> Self {
         let mk: MetaKey = s.into();
         mk.into()
     }
 }
 
-impl From<Vec<String>> for MetaKeyPath {
+impl<'mk> From<Vec<String>> for MetaKeyPath<'mk> {
     fn from(ss: Vec<String>) -> Self {
         let mut mks = vec![];
 
         for s in ss {
             let mk: MetaKey = s.into();
-            mks.push(mk);
+            mks.push(Cow::Owned(mk));
         }
 
         Self(mks)
