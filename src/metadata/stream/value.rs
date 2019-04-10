@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::path::Path;
 
 use metadata::types::MetaKey;
+use metadata::types::MetaKeyPath;
 use metadata::types::MetaVal;
 use metadata::stream::block::MetaBlockStream;
 use metadata::stream::block::Error as MetaBlockStreamError;
@@ -28,15 +29,15 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug)]
-pub struct MetaValueStream<'k, 'p, 's> {
-    target_key_path: Vec<&'k MetaKey>,
-    meta_block_stream: MetaBlockStream<'p, 's>,
+pub struct MetaValueStream<'vs> {
+    target_key_path: MetaKeyPath<'vs>,
+    meta_block_stream: MetaBlockStream<'vs>,
 }
 
-impl<'k, 'p, 's> MetaValueStream<'k, 'p, 's> {
-    pub fn new<MBS>(target_key_path: Vec<&'k MetaKey>, meta_block_stream: MBS) -> Self
+impl<'vs> MetaValueStream<'vs> {
+    pub fn new<MBS>(target_key_path: MetaKeyPath<'vs>, meta_block_stream: MBS) -> Self
     where
-        MBS: Into<MetaBlockStream<'p, 's>>,
+        MBS: Into<MetaBlockStream<'vs>>,
     {
         Self {
             target_key_path,
@@ -45,8 +46,8 @@ impl<'k, 'p, 's> MetaValueStream<'k, 'p, 's> {
     }
 }
 
-impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
-    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
+impl<'vs> Iterator for MetaValueStream<'vs> {
+    type Item = Result<(Cow<'vs, Path>, MetaVal<'vs>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_stream.next() {
@@ -75,17 +76,6 @@ impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
         }
     }
 }
-
-// /// A convenience newtype that only yields meta values.
-// pub struct SimpleMetaValueStream<'k, 'p, 's>(MetaValueStream<'k, 'p, 's>);
-
-// impl<'k, 'p, 's> Iterator for SimpleMetaValueStream<'k, 'p, 's> {
-//     type Item = Result<MetaVal, Error>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.0.next().map(|res| res.map(|(_, mv)| mv))
-//     }
-// }
 
 #[cfg(test)]
 mod tests {

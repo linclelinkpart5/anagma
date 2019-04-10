@@ -10,41 +10,41 @@ pub use metadata::types::val::MetaVal;
 pub use metadata::types::key::MetaKey;
 pub use metadata::types::key::MetaKeyPath;
 
-pub type MetaBlock = BTreeMap<MetaKey, MetaVal>;
-pub type MetaBlockSeq = Vec<MetaBlock>;
-pub type MetaBlockMap = HashMap<String, MetaBlock>;
+pub type MetaBlock<'k> = BTreeMap<MetaKey<'k>, MetaVal<'k>>;
+pub type MetaBlockSeq<'k> = Vec<MetaBlock<'k>>;
+pub type MetaBlockMap<'k> = HashMap<String, MetaBlock<'k>>;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-pub enum UnitMetaStructureRepr {
-    One(MetaBlock),
+pub enum UnitMetaStructureRepr<'k> {
+    One(MetaBlock<'k>),
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-pub enum ManyMetaStructureRepr {
-    Seq(MetaBlockSeq),
-    Map(MetaBlockMap),
+pub enum ManyMetaStructureRepr<'k> {
+    Seq(MetaBlockSeq<'k>),
+    Map(MetaBlockMap<'k>),
 }
 
 /// An easy-to-deserialize flavor of a meta structure.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-pub enum MetaStructureRepr {
-    Unit(UnitMetaStructureRepr),
-    Many(ManyMetaStructureRepr),
+pub enum MetaStructureRepr<'k> {
+    Unit(UnitMetaStructureRepr<'k>),
+    Many(ManyMetaStructureRepr<'k>),
 }
 
 /// A data structure-level representation of all possible metadata types and their formats.
 /// This is intended to be independent of the text-level representation of the metadata.
 #[derive(Debug, Clone)]
-pub enum MetaStructure {
-    One(MetaBlock),
-    Seq(MetaBlockSeq),
-    Map(MetaBlockMap),
+pub enum MetaStructure<'k> {
+    One(MetaBlock<'k>),
+    Seq(MetaBlockSeq<'k>),
+    Map(MetaBlockMap<'k>),
 }
 
-impl From<MetaStructureRepr> for MetaStructure {
+impl<'k> From<MetaStructureRepr<'k>> for MetaStructure<'k> {
     fn from(msr: MetaStructureRepr) -> Self {
         match msr {
             MetaStructureRepr::Unit(UnitMetaStructureRepr::One(mb)) => Self::One(mb),

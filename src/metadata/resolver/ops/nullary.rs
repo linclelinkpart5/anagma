@@ -18,7 +18,7 @@ pub enum NullaryOp {
 }
 
 impl Op for NullaryOp {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+    fn process<'no>(&self, rc: &ResolverContext<'no>, stack: &mut OperandStack<'no>) -> Result<(), Error> {
         let mb_stream = match self {
             &Self::Parents => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
             &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),

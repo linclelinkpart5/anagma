@@ -20,15 +20,15 @@ use util::file_walkers::ChildFileWalker;
 /// Values that are pushed onto an operand stack.
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
 #[derive(Debug)]
-pub enum Operand<'k, 'p, 's> {
-    Stream(Stream<'k, 'p, 's>),
-    Value(MetaVal),
+pub enum Operand<'o> {
+    Stream(Stream<'o>),
+    Value(MetaVal<'o>),
 }
 
 #[derive(Debug)]
-pub struct OperandStack<'k, 'p, 's>(Vec<Operand<'k, 'p, 's>>);
+pub struct OperandStack<'o>(Vec<Operand<'o>>);
 
-impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
+impl<'o> OperandStack<'o> {
     pub fn new() -> Self {
         OperandStack(vec![])
     }
@@ -41,7 +41,7 @@ impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
         self.0.pop().ok_or_else(|| Error::EmptyStack)
     }
 
-    pub fn push(&mut self, op: Operand<'k, 'p, 's>) -> () {
+    pub fn push(&mut self, op: Operand<'o>) -> () {
         self.0.push(op)
     }
 
@@ -89,13 +89,13 @@ impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
     }
 }
 
-pub enum Token<'k, 'p, 's> {
-    Operand(Operand<'k, 'p, 's>),
+pub enum Token<'o> {
+    Operand(Operand<'o>),
     NullaryOp(NullaryOp),
     UnaryOp(UnaryOp),
     BinaryOp,
 }
 
 pub trait Op {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error>;
+    fn process<'o>(&self, rc: &ResolverContext<'o>, stack: &mut OperandStack<'o>) -> Result<(), Error>;
 }

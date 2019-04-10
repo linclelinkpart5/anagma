@@ -33,8 +33,8 @@ impl Ord for NumberLike {
     }
 }
 
-impl Into<MetaVal> for NumberLike {
-    fn into(self) -> MetaVal {
+impl<'k> Into<MetaVal<'k>> for NumberLike {
+    fn into(self) -> MetaVal<'k> {
         match self {
             Self::Integer(i) => MetaVal::Int(i),
             Self::Decimal(d) => MetaVal::Dec(d),
@@ -42,10 +42,10 @@ impl Into<MetaVal> for NumberLike {
     }
 }
 
-impl TryFrom<MetaVal> for NumberLike {
+impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
     type Error = Error;
 
-    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+    fn try_from(value: MetaVal<'k>) -> Result<Self, Self::Error> {
         match value {
             MetaVal::Int(i) => Ok(Self::Integer(i)),
             MetaVal::Dec(d) => Ok(Self::Decimal(d)),
@@ -66,7 +66,7 @@ impl From<BigDecimal> for NumberLike {
     }
 }
 
-impl<'k, 'p, 's> From<NumberLike> for Operand<'k, 'p, 's> {
+impl<'o> From<NumberLike> for Operand<'o> {
     fn from(il: NumberLike) -> Self {
         match il {
             NumberLike::Integer(i) => Self::Value(MetaVal::Int(i)),

@@ -5,21 +5,22 @@ use std::collections::BTreeMap;
 use bigdecimal::BigDecimal;
 
 use metadata::types::key::MetaKey;
+use metadata::types::key::MetaKeyPath;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize)]
 #[serde(untagged)]
-pub enum MetaVal {
+pub enum MetaVal<'k> {
     Nil,
     Str(String),
-    Seq(Vec<MetaVal>),
-    Map(BTreeMap<MetaKey, MetaVal>),
+    Seq(Vec<MetaVal<'k>>),
+    Map(BTreeMap<MetaKey<'k>, MetaVal<'k>>),
     Int(i64),
     Bul(bool),
     Dec(BigDecimal),
 }
 
-impl MetaVal {
-    pub fn get_key_path<'k>(&self, key_path: &[&'k MetaKey]) -> Option<&MetaVal> {
+impl<'k> MetaVal<'k> {
+    pub fn get_key_path(&self, key_path: &MetaKeyPath<'k>) -> Option<&MetaVal> {
         let mut curr_val = self;
 
         for key in key_path {
@@ -49,62 +50,62 @@ impl MetaVal {
         Some(curr_val)
     }
 
-    pub fn resolve_key_path<'k>(self, key_path: &[&'k MetaKey]) -> Option<MetaVal> {
-        let mut curr_val = self;
+    // pub fn resolve_key_path<'k>(self, key_path: &[&'k MetaKey]) -> Option<MetaVal> {
+    //     let mut curr_val = self;
 
-        for key in key_path {
-            // See if the current meta value is indeed a mapping.
-            match curr_val {
-                MetaVal::Map(mut map) => {
-                    // See if the current key in the key path is found in this mapping.
-                    match map.remove(key) {
-                        None => {
-                            // Unable to proceed on the key path, short circuit.
-                            return None;
-                        }
-                        Some(val) => {
-                            // The current key was found, set the new current value.
-                            curr_val = val;
-                        }
-                    }
-                },
-                _ => {
-                    // An attempt was made to get the key of a non-mapping, short circuit.
-                    return None;
-                },
-            }
-        }
+    //     for key in key_path {
+    //         // See if the current meta value is indeed a mapping.
+    //         match curr_val {
+    //             MetaVal::Map(mut map) => {
+    //                 // See if the current key in the key path is found in this mapping.
+    //                 match map.remove(key) {
+    //                     None => {
+    //                         // Unable to proceed on the key path, short circuit.
+    //                         return None;
+    //                     }
+    //                     Some(val) => {
+    //                         // The current key was found, set the new current value.
+    //                         curr_val = val;
+    //                     }
+    //                 }
+    //             },
+    //             _ => {
+    //                 // An attempt was made to get the key of a non-mapping, short circuit.
+    //                 return None;
+    //             },
+    //         }
+    //     }
 
-        // The remaining current value is what is needed to return.
-        Some(curr_val)
-    }
+    //     // The remaining current value is what is needed to return.
+    //     Some(curr_val)
+    // }
 }
 
-impl From<String> for MetaVal {
+impl<'k> From<String> for MetaVal<'k> {
     fn from(s: String) -> Self {
         Self::Str(s)
     }
 }
 
-impl From<&str> for MetaVal {
+impl<'k> From<&str> for MetaVal<'k> {
     fn from(s: &str) -> Self {
         Self::Str(s.to_string())
     }
 }
 
-impl From<i64> for MetaVal {
+impl<'k> From<i64> for MetaVal<'k> {
     fn from(i: i64) -> Self {
         Self::Int(i)
     }
 }
 
-impl From<bool> for MetaVal {
+impl<'k> From<bool> for MetaVal<'k> {
     fn from(b: bool) -> Self {
         Self::Bul(b)
     }
 }
 
-impl From<BigDecimal> for MetaVal {
+impl<'k> From<BigDecimal> for MetaVal<'k> {
     fn from(d: BigDecimal) -> Self {
         Self::Dec(d)
     }

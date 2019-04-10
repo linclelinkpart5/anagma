@@ -36,24 +36,24 @@ impl std::error::Error for Error {
     }
 }
 
-pub struct Metadata;
+// pub struct Metadata;
 
-impl Metadata {
-    pub fn get_metadata<P: AsRef<Path>>(item_path: P) -> Result<MetaBlock, Error> {
-        // Use a default configuration and no aggregations.
-        let config = Config::default();
+// impl Metadata {
+//     pub fn get_metadata<'k, P: AsRef<Path>>(item_path: P) -> Result<MetaBlock<'k>, Error> {
+//         // Use a default configuration and no aggregations.
+//         let config = Config::default();
 
-        Self::get_metadata_with_config(item_path, &config)
-    }
+//         Self::get_metadata_with_config(item_path, &config)
+//     }
 
-    pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<MetaBlock, Error> {
-        let mb = MetaProcessor::process_item_file(
-            item_path,
-            config.meta_format,
-            &config.selection,
-            config.sort_order,
-        ).map_err(Error::CannotProcessMetadata)?;
+//     pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<MetaBlock, Error> {
+//         let mb = MetaProcessor::process_item_file(
+//             item_path,
+//             config.meta_format,
+//             &config.selection,
+//             config.sort_order,
+//         ).map_err(Error::CannotProcessMetadata)?;
 
-        Ok(mb)
-    }
-}
+//         Ok(mb)
+//     }
+// }

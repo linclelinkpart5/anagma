@@ -7,15 +7,17 @@ use metadata::resolver::Error;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
 #[derive(Debug)]
-pub enum Stream<'k, 'p, 's> {
-    Raw(RawStream<'k, 'p, 's>),
-    Flatten(FlattenStream<'k, 'p, 's>),
-    Dedup(DedupStream<'k, 'p, 's>),
-    Unique(UniqueStream<'k, 'p, 's>),
+pub enum Stream<'s> {
+    Raw(RawStream<'s>),
+    Flatten(FlattenStream<'s>),
+    Dedup(DedupStream<'s>),
+    Unique(UniqueStream<'s>),
 }
 
-impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
+type StreamResult<'s> = Result<MetaVal<'s>, Error>;
+
+impl<'s> Iterator for Stream<'s> {
+    type Item = StreamResult<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -28,10 +30,10 @@ impl<'k, 'p, 's> Iterator for Stream<'k, 'p, 's> {
 }
 
 #[derive(Debug)]
-pub struct FlattenStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, VecDeque<MetaVal>);
+pub struct FlattenStream<'s>(Box<Stream<'s>>, VecDeque<MetaVal<'s>>);
 
-impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
+impl<'s> Iterator for FlattenStream<'s> {
+    type Item = StreamResult<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.1.pop_front() {
@@ -52,10 +54,10 @@ impl<'k, 'p, 's> Iterator for FlattenStream<'k, 'p, 's> {
 }
 
 #[derive(Debug)]
-pub struct DedupStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, Option<MetaVal>);
+pub struct DedupStream<'s>(Box<Stream<'s>>, Option<MetaVal<'s>>);
 
-impl<'k, 'p, 's> Iterator for DedupStream<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
+impl<'s> Iterator for DedupStream<'s> {
+    type Item = StreamResult<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = self.0.next()?;
@@ -78,10 +80,10 @@ impl<'k, 'p, 's> Iterator for DedupStream<'k, 'p, 's> {
 }
 
 #[derive(Debug)]
-pub struct UniqueStream<'k, 'p, 's>(Box<Stream<'k, 'p, 's>>, HashSet<MetaVal>);
+pub struct UniqueStream<'s>(Box<Stream<'s>>, HashSet<MetaVal<'s>>);
 
-impl<'k, 'p, 's> Iterator for UniqueStream<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
+impl<'s> Iterator for UniqueStream<'s> {
+    type Item = StreamResult<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = self.0.next()?;

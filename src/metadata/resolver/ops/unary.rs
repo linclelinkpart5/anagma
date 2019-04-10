@@ -46,7 +46,7 @@ pub enum UnaryOp {
 }
 
 impl Op for UnaryOp {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+    fn process<'bo>(&self, rc: &ResolverContext<'bo>, stack: &mut OperandStack<'bo>) -> Result<(), Error> {
         let output_operand = match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {
                 let mut coll = match stack.pop_iterable_like()? {
