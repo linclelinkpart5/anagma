@@ -45,7 +45,7 @@ pub enum MetaStructure<'k> {
 }
 
 impl<'k> From<MetaStructureRepr<'k>> for MetaStructure<'k> {
-    fn from(msr: MetaStructureRepr) -> Self {
+    fn from(msr: MetaStructureRepr<'k>) -> Self {
         match msr {
             MetaStructureRepr::Unit(UnitMetaStructureRepr::One(mb)) => Self::One(mb),
             MetaStructureRepr::Many(ManyMetaStructureRepr::Seq(mb_seq)) => Self::Seq(mb_seq),

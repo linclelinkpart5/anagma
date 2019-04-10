@@ -37,7 +37,7 @@ impl<'o> OperandStack<'o> {
         self.0.len()
     }
 
-    pub fn pop(&mut self) -> Result<Operand, Error> {
+    pub fn pop(&mut self) -> Result<Operand<'o>, Error> {
         self.0.pop().ok_or_else(|| Error::EmptyStack)
     }
 
@@ -45,7 +45,7 @@ impl<'o> OperandStack<'o> {
         self.0.push(op)
     }
 
-    pub fn pop_iterable_like(&mut self) -> Result<IterableLike, Error> {
+    pub fn pop_iterable_like(&mut self) -> Result<IterableLike<'o>, Error> {
         match self.pop()? {
             Operand::Stream(s) => Ok(IterableLike::Stream(s)),
             Operand::Value(MetaVal::Seq(s)) => Ok(IterableLike::Sequence(s)),

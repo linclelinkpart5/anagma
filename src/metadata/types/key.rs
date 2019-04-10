@@ -26,7 +26,44 @@ impl<'k> std::fmt::Display for MetaKey<'k> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct MetaKeyPath<'k>(Cow<'k, [MetaKey<'k>]>);
+
+impl<'k> MetaKeyPath<'k> {
+    pub fn new() -> Self {
+        Self(Cow::Borrowed(&[]))
+    }
+}
+
+impl<'k> IntoIterator for MetaKeyPath<'k> {
+    type Item = &'k MetaKey<'k>;
+    type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<'k> IntoIterator for &'k MetaKeyPath<'k> {
+    type Item = &'k MetaKey<'k>;
+    type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+// impl<'il> IntoIterator for IterableLike<'il> {
+//     type Item = Result<MetaVal<'il>, Error>;
+//     type IntoIter = IterLike<'il>;
+
+//     fn into_iter(self) -> Self::IntoIter {
+//         match self {
+//             Self::Stream(s) => IterLike::Stream(s),
+//             Self::Sequence(s) => IterLike::Sequence(s.into_iter()),
+//         }
+//     }
+// }
 
 impl<'k> From<MetaKey<'k>> for MetaKeyPath<'k> {
     fn from(mk: MetaKey<'k>) -> Self {
@@ -40,22 +77,22 @@ impl<'k> From<Vec<MetaKey<'k>>> for MetaKeyPath<'k> {
     }
 }
 
-impl<'k> From<&[MetaKey<'k>]> for MetaKeyPath<'k> {
-    fn from(mks: &[MetaKey<'k>]) -> Self {
+impl<'k> From<&'k [MetaKey<'k>]> for MetaKeyPath<'k> {
+    fn from(mks: &'k [MetaKey<'k>]) -> Self {
         Self(mks.into())
     }
 }
 
 impl<'k> From<String> for MetaKeyPath<'k> {
     fn from(s: String) -> Self {
-        let mk: MetaKey = s.into();
+        let mk: MetaKey<'k> = s.into();
         mk.into()
     }
 }
 
-impl<'k> From<&str> for MetaKeyPath<'k> {
-    fn from(s: &str) -> Self {
-        let mk: MetaKey = s.into();
+impl<'k> From<&'k str> for MetaKeyPath<'k> {
+    fn from(s: &'k str) -> Self {
+        let mk: MetaKey<'k> = s.into();
         mk.into()
     }
 }
@@ -71,18 +108,18 @@ impl<'k> From<&str> for MetaKeyPath<'k> {
 //     }
 // }
 
-impl<'k> From<Vec<String>> for MetaKeyPath<'k> {
-    fn from(ss: Vec<String>) -> Self {
-        let mut mks = vec![];
+// impl<'k> From<Vec<String>> for MetaKeyPath<'k> {
+//     fn from(ss: Vec<String>) -> Self {
+//         let mut mks = vec![];
 
-        for s in ss {
-            let mk: MetaKey = s.into();
-            mks.push(Cow::Owned(mk));
-        }
+//         for s in ss {
+//             let mk: MetaKey = s.into();
+//             mks.push(Cow::Owned(mk));
+//         }
 
-        Self(mks)
-    }
-}
+//         mks.into()
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

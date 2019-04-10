@@ -20,7 +20,7 @@ pub enum MetaVal<'k> {
 }
 
 impl<'k> MetaVal<'k> {
-    pub fn get_key_path(&self, key_path: &MetaKeyPath<'k>) -> Option<&MetaVal> {
+    pub fn get_key_path(&self, key_path: &'k MetaKeyPath<'k>) -> Option<&MetaVal> {
         let mut curr_val = self;
 
         for key in key_path {
@@ -118,6 +118,7 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use metadata::types::key::MetaKey;
+    use metadata::types::key::MetaKeyPath;
 
     #[test]
     fn test_deserialize() {
@@ -251,38 +252,38 @@ mod tests {
         let inputs_and_expected = vec![
 
             // An empty key path always returns the original value.
-            ((&val_nil, vec![]), Some(&val_nil)),
-            ((&val_str_a, vec![]), Some(&val_str_a)),
-            ((&val_seq_a, vec![]), Some(&val_seq_a)),
-            ((&val_map_a, vec![]), Some(&val_map_a)),
+            ((&val_nil, MetaKeyPath::new()), Some(&val_nil)),
+            ((&val_str_a, MetaKeyPath::new()), Some(&val_str_a)),
+            ((&val_seq_a, MetaKeyPath::new()), Some(&val_seq_a)),
+            ((&val_map_a, MetaKeyPath::new()), Some(&val_map_a)),
 
             // A non-empty key path returns no value on non-maps.
-            ((&val_nil, vec![&key_str_a]), None),
-            ((&val_str_a, vec![&key_str_a]), None),
-            ((&val_seq_a, vec![&key_str_a]), None),
+            ((&val_nil, MetaKeyPath::from(key_str_a)), None),
+            ((&val_str_a, MetaKeyPath::from(key_str_a)), None),
+            ((&val_seq_a, MetaKeyPath::from(key_str_a)), None),
 
             // If the key is not found in a mapping, nothing is returned.
-            ((&val_map_a, vec![&key_str_x]), None),
-            ((&val_map_d, vec![&key_str_a, &key_str_x]), None),
+            ((&val_map_a, MetaKeyPath::from(key_str_x)), None),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_a, key_str_x])), None),
 
             // Positive test cases.
-            ((&val_map_a, vec![&key_str_a]), Some(&val_str_a)),
-            ((&val_map_b, vec![&key_str_a]), Some(&val_seq_a)),
-            ((&val_map_c, vec![&key_str_a]), Some(&val_nil)),
-            ((&val_map_d, vec![&key_str_a]), Some(&val_map_a)),
-            ((&val_map_a, vec![&key_str_b]), Some(&val_str_b)),
-            ((&val_map_b, vec![&key_str_b]), Some(&val_seq_b)),
-            ((&val_map_c, vec![&key_str_b]), Some(&val_nil)),
-            ((&val_map_d, vec![&key_str_b]), Some(&val_map_b)),
-            ((&val_map_a, vec![&key_str_c]), Some(&val_str_c)),
-            ((&val_map_b, vec![&key_str_c]), Some(&val_seq_c)),
-            ((&val_map_c, vec![&key_str_c]), Some(&val_nil)),
-            ((&val_map_d, vec![&key_str_c]), Some(&val_map_c)),
+            ((&val_map_a, MetaKeyPath::from(key_str_a)), Some(&val_str_a)),
+            ((&val_map_b, MetaKeyPath::from(key_str_a)), Some(&val_seq_a)),
+            ((&val_map_c, MetaKeyPath::from(key_str_a)), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(key_str_a)), Some(&val_map_a)),
+            ((&val_map_a, MetaKeyPath::from(key_str_b)), Some(&val_str_b)),
+            ((&val_map_b, MetaKeyPath::from(key_str_b)), Some(&val_seq_b)),
+            ((&val_map_c, MetaKeyPath::from(key_str_b)), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(key_str_b)), Some(&val_map_b)),
+            ((&val_map_a, MetaKeyPath::from(key_str_c)), Some(&val_str_c)),
+            ((&val_map_b, MetaKeyPath::from(key_str_c)), Some(&val_seq_c)),
+            ((&val_map_c, MetaKeyPath::from(key_str_c)), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(key_str_c)), Some(&val_map_c)),
 
             // Nested positive test cases.
-            ((&val_map_d, vec![&key_str_a, &key_str_a]), Some(&val_str_a)),
-            ((&val_map_d, vec![&key_str_b, &key_str_b]), Some(&val_seq_b)),
-            ((&val_map_d, vec![&key_str_c, &key_str_c]), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_a, key_str_a])), Some(&val_str_a)),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_b, key_str_b])), Some(&val_seq_b)),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_c, key_str_c])), Some(&val_nil)),
 
         ];
 

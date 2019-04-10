@@ -58,7 +58,7 @@ impl<'vs> Iterator for MetaValueStream<'vs> {
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         let mut curr_val = MetaVal::Map(mb);
 
-                        match curr_val.resolve_key_path(&self.target_key_path) {
+                        match curr_val.get_key_path(&self.target_key_path) {
                             // Not found here, delegate to the next iteration.
                             None => {
                                 // We need to delve here before proceeding.
@@ -67,7 +67,7 @@ impl<'vs> Iterator for MetaValueStream<'vs> {
                                     Err(err) => Some(Err(Error::MetaBlockStream(err))),
                                 }
                             },
-                            Some(val) => Some(Ok((path, val))),
+                            Some(val) => Some(Ok((path, val.clone()))),
                         }
                     },
                 }
@@ -87,6 +87,7 @@ mod tests {
     use metadata::stream::block::MetaBlockStream;
     use metadata::stream::block::FileMetaBlockStream;
     use metadata::types::MetaKey;
+    use metadata::types::MetaKeyPath;
     use metadata::types::MetaVal;
     use config::selection::Selection;
     use config::sort_order::SortOrder;
@@ -101,7 +102,7 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key = MetaKey::from("flag_key");
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -120,7 +121,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
         ];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -135,7 +136,7 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key = MetaKey::from("flag_key");
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -151,7 +152,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
         ];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -181,7 +182,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
         ];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -196,7 +197,7 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key = MetaKey::from("flag_key");
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -210,7 +211,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -230,7 +231,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()

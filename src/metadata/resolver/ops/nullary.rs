@@ -48,6 +48,7 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use metadata::types::MetaKey;
+    use metadata::types::MetaKeyPath;
     use metadata::types::MetaVal;
     use config::selection::Selection;
     use config::sort_order::SortOrder;
@@ -63,7 +64,7 @@ mod tests {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
-        let current_key_path = vec![];
+        let current_key_path = MetaKeyPath::new();
         let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
         let selection = Selection::default();
 
