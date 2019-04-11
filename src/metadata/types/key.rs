@@ -1,27 +1,25 @@
 use std::borrow::Cow;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum MetaKey{
-    Str(String)
-}
+#[serde(transparent)]
+pub struct MetaKey(String);
 
 impl From<String> for MetaKey {
     fn from(s: String) -> Self {
-        Self::Str(s)
+        Self(s)
     }
 }
 
 impl From<&str> for MetaKey {
     fn from(s: &str) -> Self {
-        Self::Str(s.into())
+        Self(s.into())
     }
 }
 
 impl std::fmt::Display for MetaKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::Str(ref s) => s.fmt(f),
+            Self(ref s) => s.fmt(f),
         }
     }
 }

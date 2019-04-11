@@ -224,7 +224,7 @@ impl TestSerialize for MetaStructure {
                 MetaVal::Map(
                     mb_map
                         .into_iter()
-                        .map(|(k, v)| (MetaKey::Str(k.clone()), MetaVal::Map(v.clone())))
+                        .map(|(k, v)| (MetaKey::from(k.clone()), MetaVal::Map(v.clone())))
                         .collect()
                 ).to_serialized_chunk(meta_format)
             },
@@ -416,23 +416,23 @@ impl TestUtil {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
-            MetaKey::Str(format!("{}_key", meta_location.default_file_name())),
+            MetaKey::from(format!("{}_key", meta_location.default_file_name())),
             MetaVal::Str(format!("{}_val", meta_location.default_file_name())),
         );
 
         map.insert(
-            MetaKey::Str(String::from("meta_location")),
+            MetaKey::from("meta_location"),
             MetaVal::Str(String::from(meta_location.default_file_name())),
         );
 
         map.insert(
-            MetaKey::Str(String::from("target_file_name")),
+            MetaKey::from("target_file_name"),
             MetaVal::Str(String::from(target_name)),
         );
 
         if include_flag_key {
             map.insert(
-                MetaKey::Str(String::from("flag_key")),
+                MetaKey::from("flag_key"),
                 MetaVal::Str(String::from(target_name)),
             );
         }
@@ -445,13 +445,13 @@ impl TestUtil {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
-            MetaKey::Str(String::from("target_file_name")),
+            MetaKey::from("target_file_name"),
             MetaVal::Str(String::from(target_name)),
         );
 
         if include_flag_key {
             map.insert(
-                MetaKey::Str(String::from("flag_key")),
+                MetaKey::from("flag_key"),
                 MetaVal::Str(String::from(target_name)),
             );
         }
