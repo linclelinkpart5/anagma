@@ -40,13 +40,13 @@ impl std::error::Error for Error {
 
 /// Generic meta block stream, that can be fed in a variety of ways.
 #[derive(Debug)]
-pub enum MetaBlockStream<'bs> {
-    Fixed(FixedMetaBlockStream<'bs>),
-    File(FileMetaBlockStream<'bs>),
+pub enum MetaBlockStream<'p, 'mb> {
+    Fixed(FixedMetaBlockStream<'p, 'mb>),
+    File(FileMetaBlockStream<'p, 'mb>),
 }
 
-impl<'bs> Iterator for MetaBlockStream<'bs> {
-    type Item = Result<(Cow<'bs, Path>, MetaBlock<'bs>), Error>;
+impl<'p, 'mb> Iterator for MetaBlockStream<'p, 'mb> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock<'mb>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -56,7 +56,7 @@ impl<'bs> Iterator for MetaBlockStream<'bs> {
     }
 }
 
-impl<'bs> MetaBlockStream<'bs> {
+impl<'p, 'mb> MetaBlockStream<'p, 'mb> {
     pub fn delve(&mut self) -> Result<(), Error> {
         match self {
             &mut Self::Fixed(..) => Ok(()),
@@ -65,33 +65,33 @@ impl<'bs> MetaBlockStream<'bs> {
     }
 }
 
-impl<'bs> From<FixedMetaBlockStream<'bs>> for MetaBlockStream<'bs> {
-    fn from(other: FixedMetaBlockStream<'bs>) -> Self {
+impl<'p, 'mb> From<FixedMetaBlockStream<'p, 'mb>> for MetaBlockStream<'p, 'mb> {
+    fn from(other: FixedMetaBlockStream<'p, 'mb>) -> Self {
         Self::Fixed(other)
     }
 }
 
-impl<'bs> From<FileMetaBlockStream<'bs>> for MetaBlockStream<'bs> {
-    fn from(other: FileMetaBlockStream<'bs>) -> Self {
+impl<'p, 'mb> From<FileMetaBlockStream<'p, 'mb>> for MetaBlockStream<'p, 'mb> {
+    fn from(other: FileMetaBlockStream<'p, 'mb>) -> Self {
         Self::File(other)
     }
 }
 
 /// A meta block stream that yields from a fixed sequence, used for testing.
 #[derive(Debug)]
-pub struct FixedMetaBlockStream<'bs>(VecDeque<(Cow<'bs, Path>, MetaBlock<'bs>)>);
+pub struct FixedMetaBlockStream<'p, 'mb>(VecDeque<(Cow<'p, Path>, MetaBlock<'mb>)>);
 
-impl<'bs> FixedMetaBlockStream<'bs> {
+impl<'p, 'mb> FixedMetaBlockStream<'p, 'mb> {
     pub fn new<II>(items: II) -> Self
     where
-        II: IntoIterator<Item = (Cow<'bs, Path>, MetaBlock<'bs>)>,
+        II: IntoIterator<Item = (Cow<'p, Path>, MetaBlock<'mb>)>,
     {
         FixedMetaBlockStream(items.into_iter().collect())
     }
 }
 
-impl<'bs> Iterator for FixedMetaBlockStream<'bs> {
-    type Item = Result<(Cow<'bs, Path>, MetaBlock<'bs>), Error>;
+impl<'p, 'mb> Iterator for FixedMetaBlockStream<'p, 'mb> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock<'mb>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
@@ -100,22 +100,22 @@ impl<'bs> Iterator for FixedMetaBlockStream<'bs> {
 
 /// A meta block stream that yields from files on disk, powered by a file walker.
 #[derive(Debug)]
-pub struct FileMetaBlockStream<'bs> {
-    file_walker: FileWalker<'bs>,
+pub struct FileMetaBlockStream<'p, 'mb> {
+    file_walker: FileWalker<'p>,
     meta_format: MetaFormat,
-    selection: &'bs Selection,
+    selection: &'mb Selection,
     sort_order: SortOrder,
 }
 
-impl<'bs> FileMetaBlockStream<'bs> {
+impl<'p, 'mb> FileMetaBlockStream<'p, 'mb> {
     pub fn new<FW>(
         file_walker: FW,
         meta_format: MetaFormat,
-        selection: &'bs Selection,
+        selection: &'mb Selection,
         sort_order: SortOrder,
     ) -> Self
     where
-        FW: Into<FileWalker<'bs>>,
+        FW: Into<FileWalker<'p>>,
     {
         FileMetaBlockStream {
             file_walker: file_walker.into(),
@@ -126,8 +126,8 @@ impl<'bs> FileMetaBlockStream<'bs> {
     }
 }
 
-impl<'bs> Iterator for FileMetaBlockStream<'bs> {
-    type Item = Result<(Cow<'bs, Path>, MetaBlock<'bs>), Error>;
+impl<'p, 'mb> Iterator for FileMetaBlockStream<'p, 'mb> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock<'mb>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next() {
@@ -153,7 +153,7 @@ impl<'bs> Iterator for FileMetaBlockStream<'bs> {
     }
 }
 
-impl<'bs> FileMetaBlockStream<'bs> {
+impl<'p, 'mb> FileMetaBlockStream<'p, 'mb> {
     pub fn delve(&mut self) -> Result<(), Error> {
         self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
     }
