@@ -35,18 +35,23 @@ impl<'k> MetaKeyPath<'k> {
     }
 }
 
-impl<'k> IntoIterator for MetaKeyPath<'k> {
-    type Item = &'k MetaKey<'k>;
-    type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
+// LEARN: According to stephaneyfx on IRC: "You cannot implement IntoIterator for MetaKeyPath<'k>, because it's basically a Cow and a Cow either borrows or owns, so there's no good Item type to choose (neither &MetaKey nor MetaKey works).
+// impl<'k> IntoIterator for MetaKeyPath<'k> {
+//     type Item = &'k MetaKey<'k>;
+//     type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
 
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
-    }
-}
+//     fn into_iter(self) -> Self::IntoIter {
+//         self.0.iter()
+//     }
+// }
 
-impl<'k> IntoIterator for &'k MetaKeyPath<'k> {
-    type Item = &'k MetaKey<'k>;
-    type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
+// LEARN: Note the added 'a lifetime on the new version!
+// impl<'k> IntoIterator for &'k MetaKeyPath<'k> {
+//     type Item = &'k MetaKey<'k>;
+//     type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
+impl<'a, 'k> IntoIterator for &'a MetaKeyPath<'k> {
+    type Item = &'a MetaKey<'k>;
+    type IntoIter = std::slice::Iter<'a, MetaKey<'k>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -67,7 +72,7 @@ impl<'k> IntoIterator for &'k MetaKeyPath<'k> {
 
 impl<'k> From<MetaKey<'k>> for MetaKeyPath<'k> {
     fn from(mk: MetaKey<'k>) -> Self {
-        Self(Cow::Borrowed(&[mk]))
+        Self(Cow::Owned(vec![mk]))
     }
 }
 

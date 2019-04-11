@@ -20,7 +20,9 @@ pub enum MetaVal<'k> {
 }
 
 impl<'k> MetaVal<'k> {
-    pub fn get_key_path(&self, key_path: &'k MetaKeyPath<'k>) -> Option<&MetaVal> {
+    // LEARN: The following line does not work!
+    // pub fn get_key_path(&self, key_path: &'k MetaKeyPath<'k>) -> Option<&MetaVal> {
+    pub fn get_key_path(&self, key_path: &MetaKeyPath<'k>) -> Option<&MetaVal<'k>> {
         let mut curr_val = self;
 
         for key in key_path {
@@ -49,36 +51,6 @@ impl<'k> MetaVal<'k> {
         // The remaining current value is what is needed to return.
         Some(curr_val)
     }
-
-    // pub fn resolve_key_path<'k>(self, key_path: &[&'k MetaKey]) -> Option<MetaVal> {
-    //     let mut curr_val = self;
-
-    //     for key in key_path {
-    //         // See if the current meta value is indeed a mapping.
-    //         match curr_val {
-    //             MetaVal::Map(mut map) => {
-    //                 // See if the current key in the key path is found in this mapping.
-    //                 match map.remove(key) {
-    //                     None => {
-    //                         // Unable to proceed on the key path, short circuit.
-    //                         return None;
-    //                     }
-    //                     Some(val) => {
-    //                         // The current key was found, set the new current value.
-    //                         curr_val = val;
-    //                     }
-    //                 }
-    //             },
-    //             _ => {
-    //                 // An attempt was made to get the key of a non-mapping, short circuit.
-    //                 return None;
-    //             },
-    //         }
-    //     }
-
-    //     // The remaining current value is what is needed to return.
-    //     Some(curr_val)
-    // }
 }
 
 impl<'k> From<String> for MetaVal<'k> {
@@ -258,32 +230,32 @@ mod tests {
             ((&val_map_a, MetaKeyPath::new()), Some(&val_map_a)),
 
             // A non-empty key path returns no value on non-maps.
-            ((&val_nil, MetaKeyPath::from(key_str_a)), None),
-            ((&val_str_a, MetaKeyPath::from(key_str_a)), None),
-            ((&val_seq_a, MetaKeyPath::from(key_str_a)), None),
+            ((&val_nil, MetaKeyPath::from(key_str_a.clone())), None),
+            ((&val_str_a, MetaKeyPath::from(key_str_a.clone())), None),
+            ((&val_seq_a, MetaKeyPath::from(key_str_a.clone())), None),
 
             // If the key is not found in a mapping, nothing is returned.
-            ((&val_map_a, MetaKeyPath::from(key_str_x)), None),
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_a, key_str_x])), None),
+            ((&val_map_a, MetaKeyPath::from(key_str_x.clone())), None),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_a.clone(), key_str_x.clone()])), None),
 
             // Positive test cases.
-            ((&val_map_a, MetaKeyPath::from(key_str_a)), Some(&val_str_a)),
-            ((&val_map_b, MetaKeyPath::from(key_str_a)), Some(&val_seq_a)),
-            ((&val_map_c, MetaKeyPath::from(key_str_a)), Some(&val_nil)),
-            ((&val_map_d, MetaKeyPath::from(key_str_a)), Some(&val_map_a)),
-            ((&val_map_a, MetaKeyPath::from(key_str_b)), Some(&val_str_b)),
-            ((&val_map_b, MetaKeyPath::from(key_str_b)), Some(&val_seq_b)),
-            ((&val_map_c, MetaKeyPath::from(key_str_b)), Some(&val_nil)),
-            ((&val_map_d, MetaKeyPath::from(key_str_b)), Some(&val_map_b)),
-            ((&val_map_a, MetaKeyPath::from(key_str_c)), Some(&val_str_c)),
-            ((&val_map_b, MetaKeyPath::from(key_str_c)), Some(&val_seq_c)),
-            ((&val_map_c, MetaKeyPath::from(key_str_c)), Some(&val_nil)),
-            ((&val_map_d, MetaKeyPath::from(key_str_c)), Some(&val_map_c)),
+            ((&val_map_a, MetaKeyPath::from(key_str_a.clone())), Some(&val_str_a)),
+            ((&val_map_b, MetaKeyPath::from(key_str_a.clone())), Some(&val_seq_a)),
+            ((&val_map_c, MetaKeyPath::from(key_str_a.clone())), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(key_str_a.clone())), Some(&val_map_a)),
+            ((&val_map_a, MetaKeyPath::from(key_str_b.clone())), Some(&val_str_b)),
+            ((&val_map_b, MetaKeyPath::from(key_str_b.clone())), Some(&val_seq_b)),
+            ((&val_map_c, MetaKeyPath::from(key_str_b.clone())), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(key_str_b.clone())), Some(&val_map_b)),
+            ((&val_map_a, MetaKeyPath::from(key_str_c.clone())), Some(&val_str_c)),
+            ((&val_map_b, MetaKeyPath::from(key_str_c.clone())), Some(&val_seq_c)),
+            ((&val_map_c, MetaKeyPath::from(key_str_c.clone())), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(key_str_c.clone())), Some(&val_map_c)),
 
             // Nested positive test cases.
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_a, key_str_a])), Some(&val_str_a)),
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_b, key_str_b])), Some(&val_seq_b)),
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_c, key_str_c])), Some(&val_nil)),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_a.clone(), key_str_a.clone()])), Some(&val_str_a)),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_b.clone(), key_str_b.clone()])), Some(&val_seq_b)),
+            ((&val_map_d, MetaKeyPath::from(vec![key_str_c.clone(), key_str_c.clone()])), Some(&val_nil)),
 
         ];
 
