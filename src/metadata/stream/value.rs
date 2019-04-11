@@ -121,7 +121,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
         ];
         let produced = {
-            MetaValueStream::new(target_key_path, block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -152,7 +152,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
         ];
         let produced = {
-            MetaValueStream::new(target_key_path, block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -182,7 +182,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
         ];
         let produced = {
-            MetaValueStream::new(target_key_path, block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -211,7 +211,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(target_key_path, block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -231,7 +231,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(target_key_path, block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()

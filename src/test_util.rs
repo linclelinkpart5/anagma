@@ -459,7 +459,7 @@ impl TestUtil {
         map
     }
 
-    pub fn create_sample_fixed_block_stream() -> FixedMetaBlockStream<'static, 'static> {
+    pub fn create_sample_fixed_block_stream() -> FixedMetaBlockStream<'static> {
         let mut vd: VecDeque<_> = VecDeque::new();
 
         vd.push_back((Path::new("dummy_0").into(), Self::sample_naive_meta_block("meta_block_0", false)));
