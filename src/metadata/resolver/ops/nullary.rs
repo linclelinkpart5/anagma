@@ -61,6 +61,11 @@ mod tests {
 
     #[test]
     fn test_process() {
+        // LEARN:
+        // stephaneyfx | mark1: I think I have a fix, but I am still investigating to understand the root cause and why it's fine on the playground
+        // stephaneyfx | mark1: This fix consists in defining target_key_path _after_ origin_path. That makes test_meta_field_stream_all compile at least.
+        //       mark1 | stephaneyfx: Interesting, that seems so innocuous, I'm surprised that was the cause!
+        // stephaneyfx | mark1: MetaValueStream::new forces the same lifetime of both argument types. Somehow it works on the playground but not in your real code. I'm still trying to understand why.
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
