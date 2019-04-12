@@ -2,15 +2,15 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use config::selection::Selection;
-use config::sort_order::SortOrder;
-use config::meta_format::MetaFormat;
-use metadata::types::MetaBlock;
-use metadata::location::MetaLocation;
-use metadata::location::Error as LocationError;
-use metadata::reader::Error as ReaderError;
-use metadata::plexer::MetaPlexer;
-use metadata::reader::MetaReader;
+use crate::config::selection::Selection;
+use crate::config::sort_order::SortOrder;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::types::MetaBlock;
+use crate::metadata::location::MetaLocation;
+use crate::metadata::location::Error as LocationError;
+use crate::metadata::reader::Error as ReaderError;
+use crate::metadata::plexer::MetaPlexer;
+use crate::metadata::reader::MetaReader;
 
 #[derive(Debug)]
 pub enum Error {

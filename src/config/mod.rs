@@ -4,9 +4,9 @@ pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
-use config::meta_format::MetaFormat;
-use config::selection::Selection;
-use config::sort_order::SortOrder;
+use crate::config::meta_format::MetaFormat;
+use crate::config::selection::Selection;
+use crate::config::sort_order::SortOrder;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -20,7 +20,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        use metadata::location::MetaLocation;
+        use crate::metadata::location::MetaLocation;
 
         // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
         let selection = Selection::default();

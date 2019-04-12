@@ -5,14 +5,14 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
 
-use config::selection::Selection;
-use config::sort_order::SortOrder;
-use config::meta_format::MetaFormat;
-use metadata::types::MetaBlock;
-use metadata::processor::MetaProcessor;
-use metadata::processor::Error as ProcessorError;
-use util::file_walkers::FileWalker;
-use util::file_walkers::Error as FileWalkerError;
+use crate::config::selection::Selection;
+use crate::config::sort_order::SortOrder;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::types::MetaBlock;
+use crate::metadata::processor::MetaProcessor;
+use crate::metadata::processor::Error as ProcessorError;
+use crate::util::file_walkers::FileWalker;
+use crate::util::file_walkers::Error as FileWalkerError;
 
 #[derive(Debug)]
 pub enum Error {

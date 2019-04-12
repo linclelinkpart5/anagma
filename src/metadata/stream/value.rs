@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-use metadata::types::MetaKey;
-use metadata::types::MetaKeyPath;
-use metadata::types::MetaVal;
-use metadata::stream::block::MetaBlockStream;
-use metadata::stream::block::Error as MetaBlockStreamError;
+
+use crate::metadata::types::MetaKeyPath;
+use crate::metadata::types::MetaVal;
+use crate::metadata::stream::block::MetaBlockStream;
+use crate::metadata::stream::block::Error as MetaBlockStreamError;
 
 #[derive(Debug)]
 pub enum Error {

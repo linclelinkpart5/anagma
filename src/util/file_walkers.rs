@@ -2,9 +2,9 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
 
-use config::selection::Selection;
-use config::selection::Error as SelectionError;
-use config::sort_order::SortOrder;
+use crate::config::selection::Selection;
+use crate::config::selection::Error as SelectionError;
+use crate::config::sort_order::SortOrder;
 
 #[derive(Debug)]
 pub enum Error {

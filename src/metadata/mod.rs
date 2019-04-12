@@ -8,12 +8,12 @@ pub mod processor;
 pub mod stream;
 pub mod resolver;
 
-use std::path::Path;
 
-use config::Config;
-use metadata::types::MetaBlock;
-use metadata::processor::MetaProcessor;
-use metadata::processor::Error as ProcessorError;
+
+
+
+
+use crate::metadata::processor::Error as ProcessorError;
 
 #[derive(Debug)]
 pub enum Error {

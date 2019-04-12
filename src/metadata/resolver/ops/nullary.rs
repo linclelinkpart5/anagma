@@ -1,13 +1,13 @@
-use metadata::resolver::Error;
-use metadata::resolver::ops::Op;
-use metadata::resolver::ops::Operand;
-use metadata::resolver::ops::OperandStack;
-use metadata::resolver::context::ResolverContext;
-use metadata::resolver::streams::Stream;
-use metadata::stream::block::FileMetaBlockStream;
-use metadata::stream::value::MetaValueStream;
-use util::file_walkers::ParentFileWalker;
-use util::file_walkers::ChildFileWalker;
+use crate::metadata::resolver::Error;
+use crate::metadata::resolver::ops::Op;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::ops::OperandStack;
+use crate::metadata::resolver::context::ResolverContext;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::stream::block::FileMetaBlockStream;
+use crate::metadata::stream::value::MetaValueStream;
+use crate::util::file_walkers::ParentFileWalker;
+use crate::util::file_walkers::ChildFileWalker;
 
 #[derive(Clone, Copy, Debug)]
 pub enum NullaryOp {

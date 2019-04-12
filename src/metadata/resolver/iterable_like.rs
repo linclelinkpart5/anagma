@@ -1,9 +1,9 @@
 ///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
 
-use metadata::resolver::ops::Operand;
-use metadata::resolver::streams::Stream;
-use metadata::types::MetaVal;
-use metadata::resolver::Error;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::types::MetaVal;
+use crate::metadata::resolver::Error;
 
 pub enum IterableLike<'il> {
     Stream(Stream<'il>),

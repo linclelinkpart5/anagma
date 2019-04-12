@@ -4,7 +4,7 @@ pub mod streams;
 pub mod ops;
 pub mod context;
 
-use metadata::stream::value::Error as ValueStreamError;
+use crate::metadata::stream::value::Error as ValueStreamError;
 
 #[derive(Debug)]
 pub enum Error {

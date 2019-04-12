@@ -7,9 +7,9 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
-use config::meta_format::MetaFormat;
-use metadata::location::MetaLocation;
-use metadata::types::MetaStructure;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::location::MetaLocation;
+use crate::metadata::types::MetaStructure;
 
 #[derive(Debug)]
 pub enum Error {

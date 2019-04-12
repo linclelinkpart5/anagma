@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
 
-use metadata::stream::value::MetaValueStream as RawStream;
-use metadata::types::MetaVal;
-use metadata::resolver::Error;
+use crate::metadata::stream::value::MetaValueStream as RawStream;
+use crate::metadata::types::MetaVal;
+use crate::metadata::resolver::Error;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
 #[derive(Debug)]

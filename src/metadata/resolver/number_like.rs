@@ -6,9 +6,9 @@ use std::ops::MulAssign;
 
 use bigdecimal::BigDecimal;
 
-use metadata::resolver::Error;
-use metadata::resolver::ops::Operand;
-use metadata::types::MetaVal;
+use crate::metadata::resolver::Error;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::types::MetaVal;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NumberLike {

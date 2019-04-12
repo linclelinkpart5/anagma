@@ -1,9 +1,9 @@
 use std::path::Path;
 
-use config::selection::Selection;
-use config::sort_order::SortOrder;
-use config::meta_format::MetaFormat;
-use metadata::types::MetaKeyPath;
+use crate::config::selection::Selection;
+use crate::config::sort_order::SortOrder;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::types::MetaKeyPath;
 
 pub struct ResolverContext<'rc> {
     pub current_key_path: MetaKeyPath<'rc>,

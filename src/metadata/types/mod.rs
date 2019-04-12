@@ -6,9 +6,9 @@ pub mod val;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 
-pub use metadata::types::val::MetaVal;
-pub use metadata::types::key::MetaKey;
-pub use metadata::types::key::MetaKeyPath;
+pub use crate::metadata::types::val::MetaVal;
+pub use crate::metadata::types::key::MetaKey;
+pub use crate::metadata::types::key::MetaKeyPath;
 
 pub type MetaBlock<'k> = BTreeMap<MetaKey<'k>, MetaVal<'k>>;
 pub type MetaBlockSeq<'k> = Vec<MetaBlock<'k>>;

@@ -1,7 +1,7 @@
-use metadata::types::MetaStructure;
-use metadata::types::MetaStructureRepr;
-use metadata::reader::Error;
-use metadata::location::MetaLocation;
+use crate::metadata::types::MetaStructure;
+use crate::metadata::types::MetaStructureRepr;
+use crate::metadata::reader::Error;
+use crate::metadata::location::MetaLocation;
 
 pub(crate) fn read_str<'k, S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure<'k>, Error> {
     Ok(match mt {

@@ -4,8 +4,8 @@ use std::collections::BTreeMap;
 
 use bigdecimal::BigDecimal;
 
-use metadata::types::key::MetaKey;
-use metadata::types::key::MetaKeyPath;
+use crate::metadata::types::key::MetaKey;
+use crate::metadata::types::key::MetaKeyPath;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize)]
 #[serde(untagged)]
