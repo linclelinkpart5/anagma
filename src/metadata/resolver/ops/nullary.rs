@@ -1,13 +1,13 @@
-use metadata::resolver::Error;
-use metadata::resolver::ops::Op;
-use metadata::resolver::ops::Operand;
-use metadata::resolver::ops::OperandStack;
-use metadata::resolver::context::ResolverContext;
-use metadata::resolver::streams::Stream;
-use metadata::stream::block::FileMetaBlockStream;
-use metadata::stream::value::MetaValueStream;
-use util::file_walkers::ParentFileWalker;
-use util::file_walkers::ChildFileWalker;
+use crate::metadata::resolver::Error;
+use crate::metadata::resolver::ops::Op;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::ops::OperandStack;
+use crate::metadata::resolver::context::ResolverContext;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::stream::block::FileMetaBlockStream;
+use crate::metadata::stream::value::MetaValueStream;
+use crate::util::file_walkers::ParentFileWalker;
+use crate::util::file_walkers::ChildFileWalker;
 
 #[derive(Clone, Copy, Debug)]
 pub enum NullaryOp {
@@ -18,7 +18,7 @@ pub enum NullaryOp {
 }
 
 impl Op for NullaryOp {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+    fn process<'no>(&self, rc: &ResolverContext<'no>, stack: &mut OperandStack<'no>) -> Result<(), Error> {
         let mb_stream = match self {
             &Self::Parents => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
             &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
@@ -36,36 +36,43 @@ impl Op for NullaryOp {
 mod tests {
     use super::NullaryOp;
 
-    use metadata::resolver::ops::Op;
-    use metadata::resolver::ops::Operand;
-    use metadata::resolver::ops::OperandStack;
-    use metadata::resolver::context::ResolverContext;
+    use crate::metadata::resolver::ops::Op;
+    use crate::metadata::resolver::ops::Operand;
+    use crate::metadata::resolver::ops::OperandStack;
+    use crate::metadata::resolver::context::ResolverContext;
 
-    use std::borrow::Cow;
-    use std::path::Path;
-    use std::collections::VecDeque;
+    
+    
+    
 
-    use bigdecimal::BigDecimal;
+    
 
-    use metadata::types::MetaKey;
-    use metadata::types::MetaVal;
-    use config::selection::Selection;
-    use config::sort_order::SortOrder;
-    use config::meta_format::MetaFormat;
-    use util::file_walkers::FileWalker;
-    use util::file_walkers::ParentFileWalker;
-    use util::file_walkers::ChildFileWalker;
+    
+    use crate::metadata::types::MetaKeyPath;
+    
+    use crate::config::selection::Selection;
+    use crate::config::sort_order::SortOrder;
+    use crate::config::meta_format::MetaFormat;
+    
+    
+    
 
-    use test_util::TestUtil;
+    use crate::test_util::TestUtil;
 
     #[test]
     fn test_process() {
+        // LEARN:
+        // stephaneyfx | mark1: I think I have a fix, but I am still investigating to understand the root cause and why it's fine on the playground
+        // stephaneyfx | mark1: This fix consists in defining target_key_path _after_ origin_path. That makes test_meta_field_stream_all compile at least.
+        //       mark1 | stephaneyfx: Interesting, that seems so innocuous, I'm surprised that was the cause!
+        // stephaneyfx | mark1: MetaValueStream::new forces the same lifetime of both argument types. Somehow it works on the playground but not in your real code. I'm still trying to understand why.
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
-        let current_key_path = vec![];
         let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
         let selection = Selection::default();
+
+        let current_key_path = MetaKeyPath::new();
 
         let rc = ResolverContext {
             current_key_path,

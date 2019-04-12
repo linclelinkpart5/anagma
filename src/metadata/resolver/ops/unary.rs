@@ -1,18 +1,18 @@
 use std::convert::TryInto;
 
-use metadata::types::MetaVal;
-use metadata::resolver::Error;
-use metadata::resolver::ops::Op;
-use metadata::resolver::ops::Operand;
-use metadata::resolver::ops::OperandStack;
-use metadata::resolver::context::ResolverContext;
-use metadata::resolver::streams::Stream;
-use metadata::resolver::number_like::NumberLike;
-use metadata::resolver::iterable_like::IterableLike;
-use metadata::stream::block::FileMetaBlockStream;
-use metadata::stream::value::MetaValueStream;
-use util::file_walkers::ParentFileWalker;
-use util::file_walkers::ChildFileWalker;
+use crate::metadata::types::MetaVal;
+use crate::metadata::resolver::Error;
+use crate::metadata::resolver::ops::Op;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::ops::OperandStack;
+use crate::metadata::resolver::context::ResolverContext;
+
+use crate::metadata::resolver::number_like::NumberLike;
+use crate::metadata::resolver::iterable_like::IterableLike;
+
+
+
+
 
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
@@ -46,7 +46,7 @@ pub enum UnaryOp {
 }
 
 impl Op for UnaryOp {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error> {
+    fn process<'bo>(&self, _rc: &ResolverContext<'bo>, stack: &mut OperandStack<'bo>) -> Result<(), Error> {
         let output_operand = match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {
                 let mut coll = match stack.pop_iterable_like()? {

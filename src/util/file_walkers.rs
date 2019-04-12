@@ -2,9 +2,9 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
 
-use config::selection::Selection;
-use config::selection::Error as SelectionError;
-use config::sort_order::SortOrder;
+use crate::config::selection::Selection;
+use crate::config::selection::Error as SelectionError;
+use crate::config::sort_order::SortOrder;
 
 #[derive(Debug)]
 pub enum Error {
@@ -159,10 +159,10 @@ mod tests {
     use super::ParentFileWalker;
     use super::ChildFileWalker;
 
-    use config::selection::Selection;
-    use config::sort_order::SortOrder;
+    use crate::config::selection::Selection;
+    use crate::config::sort_order::SortOrder;
 
-    use test_util::TestUtil;
+    use crate::test_util::TestUtil;
 
     #[test]
     fn test_parent_file_walker() {

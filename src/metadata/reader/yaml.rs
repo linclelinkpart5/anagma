@@ -1,9 +1,9 @@
-use metadata::types::MetaStructure;
-use metadata::types::MetaStructureRepr;
-use metadata::reader::Error;
-use metadata::location::MetaLocation;
+use crate::metadata::types::MetaStructure;
+use crate::metadata::types::MetaStructureRepr;
+use crate::metadata::reader::Error;
+use crate::metadata::location::MetaLocation;
 
-pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
+pub(crate) fn read_str<'k, S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure<'k>, Error> {
     Ok(match mt {
         MetaLocation::Contains => MetaStructureRepr::Unit(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
         MetaLocation::Siblings => MetaStructureRepr::Many(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
@@ -14,7 +14,7 @@ pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStru
 mod tests {
     use super::read_str;
 
-    use metadata::location::MetaLocation;
+    use crate::metadata::location::MetaLocation;
 
     #[test]
     fn test_read_str() {

@@ -2,33 +2,33 @@ pub mod nullary;
 pub mod unary;
 pub mod binary;
 
-use metadata::resolver::streams::Stream;
-use metadata::types::MetaVal;
-use metadata::types::MetaKey;
-use metadata::types::MetaKeyPath;
-use metadata::resolver::iterable_like::IterableLike;
-use metadata::resolver::number_like::NumberLike;
-use metadata::resolver::context::ResolverContext;
-use metadata::resolver::Error;
-use metadata::resolver::ops::nullary::NullaryOp;
-use metadata::resolver::ops::unary::UnaryOp;
-use metadata::stream::block::FileMetaBlockStream;
-use metadata::stream::value::MetaValueStream;
-use util::file_walkers::ParentFileWalker;
-use util::file_walkers::ChildFileWalker;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::types::MetaVal;
+use crate::metadata::types::MetaKey;
+use crate::metadata::types::MetaKeyPath;
+use crate::metadata::resolver::iterable_like::IterableLike;
+use crate::metadata::resolver::number_like::NumberLike;
+use crate::metadata::resolver::context::ResolverContext;
+use crate::metadata::resolver::Error;
+use crate::metadata::resolver::ops::nullary::NullaryOp;
+use crate::metadata::resolver::ops::unary::UnaryOp;
+
+
+
+
 
 /// Values that are pushed onto an operand stack.
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
 #[derive(Debug)]
-pub enum Operand<'k, 'p, 's> {
-    Stream(Stream<'k, 'p, 's>),
-    Value(MetaVal),
+pub enum Operand<'o> {
+    Stream(Stream<'o>),
+    Value(MetaVal<'o>),
 }
 
 #[derive(Debug)]
-pub struct OperandStack<'k, 'p, 's>(Vec<Operand<'k, 'p, 's>>);
+pub struct OperandStack<'o>(Vec<Operand<'o>>);
 
-impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
+impl<'o> OperandStack<'o> {
     pub fn new() -> Self {
         OperandStack(vec![])
     }
@@ -37,15 +37,15 @@ impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
         self.0.len()
     }
 
-    pub fn pop(&mut self) -> Result<Operand, Error> {
+    pub fn pop(&mut self) -> Result<Operand<'o>, Error> {
         self.0.pop().ok_or_else(|| Error::EmptyStack)
     }
 
-    pub fn push(&mut self, op: Operand<'k, 'p, 's>) -> () {
+    pub fn push(&mut self, op: Operand<'o>) -> () {
         self.0.push(op)
     }
 
-    pub fn pop_iterable_like(&mut self) -> Result<IterableLike, Error> {
+    pub fn pop_iterable_like(&mut self) -> Result<IterableLike<'o>, Error> {
         match self.pop()? {
             Operand::Stream(s) => Ok(IterableLike::Stream(s)),
             Operand::Value(MetaVal::Seq(s)) => Ok(IterableLike::Sequence(s)),
@@ -89,13 +89,13 @@ impl<'k, 'p, 's> OperandStack<'k, 'p, 's> {
     }
 }
 
-pub enum Token<'k, 'p, 's> {
-    Operand(Operand<'k, 'p, 's>),
+pub enum Token<'o> {
+    Operand(Operand<'o>),
     NullaryOp(NullaryOp),
     UnaryOp(UnaryOp),
     BinaryOp,
 }
 
 pub trait Op {
-    fn process<'k, 'p, 's>(&self, rc: &ResolverContext<'k, 'p, 's>, stack: &mut OperandStack<'k, 'p, 's>) -> Result<(), Error>;
+    fn process<'o>(&self, rc: &ResolverContext<'o>, stack: &mut OperandStack<'o>) -> Result<(), Error>;
 }

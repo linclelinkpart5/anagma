@@ -11,14 +11,14 @@ use std::collections::VecDeque;
 use tempfile::Builder;
 use tempfile::TempDir;
 
-use config::meta_format::MetaFormat;
-use metadata::location::MetaLocation;
-use metadata::types::MetaVal;
-use metadata::types::MetaKey;
-use metadata::types::MetaBlock;
-use metadata::types::MetaStructure;
-use metadata::stream::block::FixedMetaBlockStream;
-use metadata::stream::value::MetaValueStream;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::location::MetaLocation;
+use crate::metadata::types::MetaVal;
+use crate::metadata::types::MetaKey;
+use crate::metadata::types::MetaBlock;
+use crate::metadata::types::MetaStructure;
+use crate::metadata::stream::block::FixedMetaBlockStream;
+
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -208,7 +208,7 @@ trait TestSerialize {
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String;
 }
 
-impl TestSerialize for MetaStructure {
+impl<'k> TestSerialize for MetaStructure<'k> {
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
         match self {
             &MetaStructure::One(ref mb) => MetaVal::Map(mb.clone()).to_serialized_chunk(meta_format),
@@ -232,7 +232,7 @@ impl TestSerialize for MetaStructure {
     }
 }
 
-impl TestSerialize for MetaVal {
+impl<'k> TestSerialize for MetaVal<'k> {
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
         match (meta_format, self) {
             (MetaFormat::Json, &Self::Nil) => "null".into(),
@@ -338,27 +338,27 @@ impl TestUtil {
     pub const SEQUENCE_KEY: &'static str = "sequence_key";
     pub const MAPPING_KEY: &'static str = "mapping_key";
 
-    pub fn sample_string() -> MetaVal {
+    pub fn sample_string() -> MetaVal<'static> {
         MetaVal::Str(String::from("string"))
     }
 
-    pub fn sample_integer() -> MetaVal {
+    pub fn sample_integer() -> MetaVal<'static> {
         MetaVal::Int(27)
     }
 
-    pub fn sample_decimal() -> MetaVal {
+    pub fn sample_decimal() -> MetaVal<'static> {
         MetaVal::Dec(bigdecimal::BigDecimal::new(31415.into(), 4))
     }
 
-    pub fn sample_boolean() -> MetaVal {
+    pub fn sample_boolean() -> MetaVal<'static> {
         MetaVal::Bul(true)
     }
 
-    pub fn sample_null() -> MetaVal {
+    pub fn sample_null() -> MetaVal<'static> {
         MetaVal::Nil
     }
 
-    fn core_flat_sequence() -> Vec<MetaVal> {
+    fn core_flat_sequence() -> Vec<MetaVal<'static>> {
         vec![
             Self::sample_string(),
             Self::sample_integer(),
@@ -368,7 +368,7 @@ impl TestUtil {
         ]
     }
 
-    fn core_nested_sequence() -> Vec<MetaVal> {
+    fn core_nested_sequence() -> Vec<MetaVal<'static>> {
         let mut seq = Self::core_flat_sequence();
 
         seq.push(Self::sample_flat_sequence());
@@ -377,7 +377,7 @@ impl TestUtil {
         seq
     }
 
-    fn core_flat_mapping() -> BTreeMap<MetaKey, MetaVal> {
+    fn core_flat_mapping() -> BTreeMap<MetaKey<'static>, MetaVal<'static>> {
         btreemap![
             MetaKey::from(Self::STRING_KEY) => Self::sample_string(),
             MetaKey::from(Self::INTEGER_KEY) => Self::sample_integer(),
@@ -387,7 +387,7 @@ impl TestUtil {
         ]
     }
 
-    fn core_nested_mapping() -> BTreeMap<MetaKey, MetaVal> {
+    fn core_nested_mapping() -> BTreeMap<MetaKey<'static>, MetaVal<'static>> {
         let mut map = Self::core_flat_mapping();
 
         map.insert(MetaKey::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
@@ -396,23 +396,23 @@ impl TestUtil {
         map
     }
 
-    pub fn sample_flat_sequence() -> MetaVal {
+    pub fn sample_flat_sequence() -> MetaVal<'static> {
         MetaVal::Seq(Self::core_flat_sequence())
     }
 
-    pub fn sample_flat_mapping() -> MetaVal {
+    pub fn sample_flat_mapping() -> MetaVal<'static> {
         MetaVal::Map(Self::core_flat_mapping())
     }
 
-    pub fn sample_nested_sequence() -> MetaVal {
+    pub fn sample_nested_sequence() -> MetaVal<'static> {
         MetaVal::Seq(Self::core_nested_sequence())
     }
 
-    pub fn sample_nested_mapping() -> MetaVal {
+    pub fn sample_nested_mapping() -> MetaVal<'static> {
         MetaVal::Map(Self::core_nested_mapping())
     }
 
-    pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock {
+    pub fn sample_meta_block<'k>(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock<'k> {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
@@ -470,12 +470,6 @@ impl TestUtil {
 
         FixedMetaBlockStream::new(vd)
     }
-
-    // pub fn create_sample_fixed_value_stream() -> MetaValueStream<'static, 'static, 'static> {
-    //     let b_stream = Self::create_sample_fixed_block_stream();
-
-    //     MetaValueStream::new(vec!["target_file_path".into()], b_stream)
-    // }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
@@ -592,8 +586,8 @@ mod tests {
     use super::TestUtil;
     use super::TestSerialize;
 
-    use config::meta_format::MetaFormat;
-    use metadata::types::MetaVal;
+    use crate::config::meta_format::MetaFormat;
+    use crate::metadata::types::MetaVal;
 
     #[test]
     fn test_create_meta_fanout_test_dir() {

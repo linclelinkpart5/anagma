@@ -1,14 +1,12 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
-pub mod fallback_method;
 pub mod meta_format;
 pub mod selection;
 pub mod sort_order;
 
-use config::meta_format::MetaFormat;
-use config::selection::Selection;
-use config::sort_order::SortOrder;
-use config::fallback_method::Fallback;
+use crate::config::meta_format::MetaFormat;
+use crate::config::selection::Selection;
+use crate::config::sort_order::SortOrder;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -18,13 +16,11 @@ pub struct Config {
     pub item_fn: String,
     pub self_fn: String,
     pub meta_format: MetaFormat,
-    // pub fallbacks: FallbackSpec,
-    pub default_fallback: Fallback,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        use metadata::location::MetaLocation;
+        use crate::metadata::location::MetaLocation;
 
         // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
         let selection = Selection::default();
@@ -32,8 +28,6 @@ impl Default for Config {
         let meta_format = MetaFormat::default();
         let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
         let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
-        // let fallbacks = FallbackSpec::default();
-        let default_fallback = Fallback::default();
 
         Config {
             selection,
@@ -41,8 +35,6 @@ impl Default for Config {
             item_fn,
             self_fn,
             meta_format,
-            // fallbacks,
-            default_fallback,
         }
     }
 }
@@ -51,11 +43,9 @@ impl Default for Config {
 mod tests {
     use serde_yaml;
 
-    use config::Config;
-    use config::sort_order::SortOrder;
-    use config::meta_format::MetaFormat;
-    use config::fallback_method::Fallback;
-    use config::fallback_method::HarvestFallback;
+    use crate::config::Config;
+    use crate::config::sort_order::SortOrder;
+    use crate::config::meta_format::MetaFormat;
 
     #[test]
     fn test_deserialization() {
@@ -118,7 +108,6 @@ mod tests {
             sort_order: name
             item_fn: item_meta.yml
             meta_format: yaml
-            default_fallback: collect
         "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
@@ -130,9 +119,5 @@ mod tests {
         assert_eq!(config.item_fn, "item_meta.yml");
         assert_eq!(config.self_fn, "self.yml");
         assert_eq!(config.meta_format, MetaFormat::Yaml);
-        // assert_eq!(config.fallbacks, hashmap![
-        //     MetaKey::from("title") => FallbackSpecNode::Leaf(Some(Fallback::Inherit(InheritFallback::Override))),
-        // ]);
-        assert_eq!(config.default_fallback, Fallback::Harvest(HarvestFallback::Collect));
     }
 }

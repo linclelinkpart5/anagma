@@ -7,9 +7,9 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
-use config::meta_format::MetaFormat;
-use metadata::location::MetaLocation;
-use metadata::types::MetaStructure;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::location::MetaLocation;
+use crate::metadata::types::MetaStructure;
 
 #[derive(Debug)]
 pub enum Error {
@@ -54,9 +54,9 @@ impl std::error::Error for Error {
 }
 
 pub trait MetaReader {
-    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
+    fn from_str<'ms, S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure<'ms>, Error>;
 
-    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    fn from_file<'ms, P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure<'ms>, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
@@ -68,7 +68,7 @@ pub trait MetaReader {
 }
 
 impl MetaReader for MetaFormat {
-    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    fn from_str<'ms, S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure<'ms>, Error> {
         Ok(match *self {
             MetaFormat::Yaml => yaml::read_str(s, mt)?,
             MetaFormat::Json => json::read_str(s, mt)?,

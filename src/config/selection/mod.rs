@@ -3,9 +3,9 @@ pub mod matcher;
 use std::path::Path;
 use std::path::PathBuf;
 
-use config::selection::matcher::Matcher;
-use config::sort_order::SortOrder;
-use config::selection::matcher::Error as MatcherError;
+use crate::config::selection::matcher::Matcher;
+use crate::config::sort_order::SortOrder;
+use crate::config::selection::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -140,7 +140,7 @@ mod tests {
     use tempfile::Builder;
     use tempfile::TempDir;
 
-    use config::sort_order::SortOrder;
+    use crate::config::sort_order::SortOrder;
 
     fn create_test_dir(name: &str) -> TempDir {
         let temp = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");

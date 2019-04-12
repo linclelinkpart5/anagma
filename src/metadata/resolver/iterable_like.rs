@@ -1,17 +1,17 @@
 ///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
 
-use metadata::resolver::ops::Operand;
-use metadata::resolver::streams::Stream;
-use metadata::types::MetaVal;
-use metadata::resolver::Error;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::types::MetaVal;
+use crate::metadata::resolver::Error;
 
-pub enum IterableLike<'k, 'p, 's> {
-    Stream(Stream<'k, 'p, 's>),
-    Sequence(Vec<MetaVal>),
+pub enum IterableLike<'il> {
+    Stream(Stream<'il>),
+    Sequence(Vec<MetaVal<'il>>),
 }
 
-impl<'k, 'p, 's> From<IterableLike<'k, 'p, 's>> for Operand<'k, 'p, 's> {
-    fn from(il: IterableLike<'k, 'p, 's>) -> Self {
+impl<'il> From<IterableLike<'il>> for Operand<'il> {
+    fn from(il: IterableLike<'il>) -> Self {
         match il {
             IterableLike::Stream(stream) => Self::Stream(stream),
             IterableLike::Sequence(sequence) => Self::Value(MetaVal::Seq(sequence)),
@@ -19,9 +19,9 @@ impl<'k, 'p, 's> From<IterableLike<'k, 'p, 's>> for Operand<'k, 'p, 's> {
     }
 }
 
-impl<'k, 'p, 's> IntoIterator for IterableLike<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
-    type IntoIter = IterLike<'k, 'p, 's>;
+impl<'il> IntoIterator for IterableLike<'il> {
+    type Item = Result<MetaVal<'il>, Error>;
+    type IntoIter = IterLike<'il>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
@@ -31,13 +31,13 @@ impl<'k, 'p, 's> IntoIterator for IterableLike<'k, 'p, 's> {
     }
 }
 
-pub enum IterLike<'k, 'p, 's> {
-    Stream(Stream<'k, 'p, 's>),
-    Sequence(std::vec::IntoIter<MetaVal>),
+pub enum IterLike<'il> {
+    Stream(Stream<'il>),
+    Sequence(std::vec::IntoIter<MetaVal<'il>>),
 }
 
-impl<'k, 'p, 's> Iterator for IterLike<'k, 'p, 's> {
-    type Item = Result<MetaVal, Error>;
+impl<'il> Iterator for IterLike<'il> {
+    type Item = Result<MetaVal<'il>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {

@@ -4,19 +4,19 @@ use std::path::PathBuf;
 use itertools::Itertools;
 use itertools::EitherOrBoth;
 
-use config::sort_order::SortOrder;
-use metadata::types::MetaStructure;
-use metadata::types::MetaBlock;
-use util::GenConverter;
+use crate::config::sort_order::SortOrder;
+use crate::metadata::types::MetaStructure;
+use crate::metadata::types::MetaBlock;
+use crate::util::GenConverter;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Error {
+pub enum Error<'k> {
     UnusedItemPath(PathBuf),
-    UnusedMetaBlock(MetaBlock, Option<String>),
+    UnusedMetaBlock(MetaBlock<'k>, Option<String>),
     NamelessItemPath(PathBuf),
 }
 
-impl std::fmt::Display for Error {
+impl<'k> std::fmt::Display for Error<'k> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
@@ -33,7 +33,7 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl<'k> std::error::Error for Error<'k> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::UnusedItemPath(..) => None,
@@ -46,11 +46,11 @@ impl std::error::Error for Error {
 pub struct MetaPlexer;
 
 impl MetaPlexer {
-    pub fn plex<II, P>(
-        meta_structure: MetaStructure,
+    pub fn plex<'k, II, P>(
+        meta_structure: MetaStructure<'k>,
         item_paths: II,
         sort_order: SortOrder,
-    ) -> impl Iterator<Item = Result<(PathBuf, MetaBlock), Error>>
+    ) -> impl Iterator<Item = Result<(PathBuf, MetaBlock<'k>), Error>>
     where II: IntoIterator<Item = P>,
           P: AsRef<Path>,
     {
@@ -138,10 +138,10 @@ mod tests {
     use std::path::PathBuf;
     use std::collections::HashSet;
 
-    use config::sort_order::SortOrder;
-    use metadata::types::MetaStructure;
-    use metadata::types::MetaVal;
-    use metadata::types::MetaKey;
+    use crate::config::sort_order::SortOrder;
+    use crate::metadata::types::MetaStructure;
+    use crate::metadata::types::MetaVal;
+    use crate::metadata::types::MetaKey;
 
     #[test]
     fn test_plex() {

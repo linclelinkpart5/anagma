@@ -2,8 +2,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::fs;
 
-use config::selection::Selection;
-use config::meta_format::MetaFormat;
+use crate::config::selection::Selection;
+use crate::config::meta_format::MetaFormat;
 
 #[derive(Debug)]
 pub enum Error {

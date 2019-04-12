@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-use metadata::types::MetaKey;
-use metadata::types::MetaVal;
-use metadata::stream::block::MetaBlockStream;
-use metadata::stream::block::Error as MetaBlockStreamError;
+
+use crate::metadata::types::MetaKeyPath;
+use crate::metadata::types::MetaVal;
+use crate::metadata::stream::block::MetaBlockStream;
+use crate::metadata::stream::block::Error as MetaBlockStreamError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -28,15 +29,15 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug)]
-pub struct MetaValueStream<'k, 'p, 's> {
-    target_key_path: Vec<&'k MetaKey>,
-    meta_block_stream: MetaBlockStream<'p, 's>,
+pub struct MetaValueStream<'vs> {
+    target_key_path: MetaKeyPath<'vs>,
+    meta_block_stream: MetaBlockStream<'vs>,
 }
 
-impl<'k, 'p, 's> MetaValueStream<'k, 'p, 's> {
-    pub fn new<MBS>(target_key_path: Vec<&'k MetaKey>, meta_block_stream: MBS) -> Self
+impl<'vs> MetaValueStream<'vs> {
+    pub fn new<MBS>(target_key_path: MetaKeyPath<'vs>, meta_block_stream: MBS) -> Self
     where
-        MBS: Into<MetaBlockStream<'p, 's>>,
+        MBS: Into<MetaBlockStream<'vs>>,
     {
         Self {
             target_key_path,
@@ -45,8 +46,8 @@ impl<'k, 'p, 's> MetaValueStream<'k, 'p, 's> {
     }
 }
 
-impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
-    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
+impl<'vs> Iterator for MetaValueStream<'vs> {
+    type Item = Result<(Cow<'vs, Path>, MetaVal<'vs>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_stream.next() {
@@ -57,7 +58,7 @@ impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         let mut curr_val = MetaVal::Map(mb);
 
-                        match curr_val.resolve_key_path(&self.target_key_path) {
+                        match curr_val.get_key_path(&self.target_key_path) {
                             // Not found here, delegate to the next iteration.
                             None => {
                                 // We need to delve here before proceeding.
@@ -66,7 +67,7 @@ impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
                                     Err(err) => Some(Err(Error::MetaBlockStream(err))),
                                 }
                             },
-                            Some(val) => Some(Ok((path, val))),
+                            Some(val) => Some(Ok((path, val.clone()))),
                         }
                     },
                 }
@@ -76,34 +77,24 @@ impl<'k, 'p, 's> Iterator for MetaValueStream<'k, 'p, 's> {
     }
 }
 
-// /// A convenience newtype that only yields meta values.
-// pub struct SimpleMetaValueStream<'k, 'p, 's>(MetaValueStream<'k, 'p, 's>);
-
-// impl<'k, 'p, 's> Iterator for SimpleMetaValueStream<'k, 'p, 's> {
-//     type Item = Result<MetaVal, Error>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.0.next().map(|res| res.map(|(_, mv)| mv))
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use super::MetaValueStream;
 
     use std::borrow::Cow;
-    use test_util::TestUtil;
+    use crate::test_util::TestUtil;
 
-    use metadata::stream::block::MetaBlockStream;
-    use metadata::stream::block::FileMetaBlockStream;
-    use metadata::types::MetaKey;
-    use metadata::types::MetaVal;
-    use config::selection::Selection;
-    use config::sort_order::SortOrder;
-    use config::meta_format::MetaFormat;
-    use util::file_walkers::FileWalker;
-    use util::file_walkers::ParentFileWalker;
-    use util::file_walkers::ChildFileWalker;
+    use crate::metadata::stream::block::MetaBlockStream;
+    use crate::metadata::stream::block::FileMetaBlockStream;
+    
+    use crate::metadata::types::MetaKeyPath;
+    use crate::metadata::types::MetaVal;
+    use crate::config::selection::Selection;
+    use crate::config::sort_order::SortOrder;
+    use crate::config::meta_format::MetaFormat;
+    use crate::util::file_walkers::FileWalker;
+    use crate::util::file_walkers::ParentFileWalker;
+    use crate::util::file_walkers::ChildFileWalker;
 
     #[test]
     fn test_meta_field_stream_all() {
@@ -111,10 +102,10 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key = MetaKey::from("flag_key");
-
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -130,7 +121,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
         ];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -145,10 +136,10 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key = MetaKey::from("flag_key");
-
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -161,7 +152,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
         ];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -171,6 +162,8 @@ mod tests {
 
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -191,7 +184,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
         ];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -206,10 +199,10 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key = MetaKey::from("flag_key");
-
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -220,7 +213,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -231,6 +224,8 @@ mod tests {
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
 
+        let target_key_path = MetaKeyPath::from("flag_key");
+
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
             MetaFormat::Json,
@@ -240,7 +235,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(vec![&target_key], block_stream)
+            MetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
