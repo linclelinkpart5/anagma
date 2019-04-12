@@ -69,9 +69,10 @@ mod tests {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
-        let current_key_path = MetaKeyPath::new();
         let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
         let selection = Selection::default();
+
+        let current_key_path = MetaKeyPath::new();
 
         let rc = ResolverContext {
             current_key_path,

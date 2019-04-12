@@ -102,10 +102,10 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key_path = MetaKeyPath::from("flag_key");
-
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -136,10 +136,10 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key_path = MetaKeyPath::from("flag_key");
-
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -162,6 +162,8 @@ mod tests {
 
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -197,10 +199,10 @@ mod tests {
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
-        let target_key_path = MetaKeyPath::from("flag_key");
-
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -221,6 +223,8 @@ mod tests {
 
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
+
+        let target_key_path = MetaKeyPath::from("flag_key");
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
