@@ -89,8 +89,8 @@ mod tests {
 
     use bigdecimal::BigDecimal;
 
-    use metadata::types::key::MetaKey;
-    use metadata::types::key::MetaKeyPath;
+    use crate::metadata::types::key::MetaKey;
+    use crate::metadata::types::key::MetaKeyPath;
 
     #[test]
     fn test_deserialize() {

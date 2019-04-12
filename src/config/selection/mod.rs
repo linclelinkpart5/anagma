@@ -140,7 +140,7 @@ mod tests {
     use tempfile::Builder;
     use tempfile::TempDir;
 
-    use config::sort_order::SortOrder;
+    use crate::config::sort_order::SortOrder;
 
     fn create_test_dir(name: &str) -> TempDir {
         let temp = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");

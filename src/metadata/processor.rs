@@ -124,13 +124,13 @@ impl MetaProcessor {
 mod tests {
     use super::MetaProcessor;
 
-    use config::Config;
-    use config::meta_format::MetaFormat;
-    use metadata::location::MetaLocation;
-    use metadata::types::MetaVal;
-    use metadata::types::MetaKey;
+    use crate::config::Config;
+    use crate::config::meta_format::MetaFormat;
+    use crate::metadata::location::MetaLocation;
+    use crate::metadata::types::MetaVal;
+    use crate::metadata::types::MetaKey;
 
-    use test_util::create_temp_media_test_dir;
+    use crate::test_util::create_temp_media_test_dir;
 
     #[test]
     fn test_process_meta_file() {

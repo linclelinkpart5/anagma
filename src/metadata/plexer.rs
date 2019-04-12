@@ -138,10 +138,10 @@ mod tests {
     use std::path::PathBuf;
     use std::collections::HashSet;
 
-    use config::sort_order::SortOrder;
-    use metadata::types::MetaStructure;
-    use metadata::types::MetaVal;
-    use metadata::types::MetaKey;
+    use crate::config::sort_order::SortOrder;
+    use crate::metadata::types::MetaStructure;
+    use crate::metadata::types::MetaVal;
+    use crate::metadata::types::MetaKey;
 
     #[test]
     fn test_plex() {

@@ -11,14 +11,14 @@ use std::collections::VecDeque;
 use tempfile::Builder;
 use tempfile::TempDir;
 
-use config::meta_format::MetaFormat;
-use metadata::location::MetaLocation;
-use metadata::types::MetaVal;
-use metadata::types::MetaKey;
-use metadata::types::MetaBlock;
-use metadata::types::MetaStructure;
-use metadata::stream::block::FixedMetaBlockStream;
-use metadata::stream::value::MetaValueStream;
+use crate::config::meta_format::MetaFormat;
+use crate::metadata::location::MetaLocation;
+use crate::metadata::types::MetaVal;
+use crate::metadata::types::MetaKey;
+use crate::metadata::types::MetaBlock;
+use crate::metadata::types::MetaStructure;
+use crate::metadata::stream::block::FixedMetaBlockStream;
+
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -586,8 +586,8 @@ mod tests {
     use super::TestUtil;
     use super::TestSerialize;
 
-    use config::meta_format::MetaFormat;
-    use metadata::types::MetaVal;
+    use crate::config::meta_format::MetaFormat;
+    use crate::metadata::types::MetaVal;
 
     #[test]
     fn test_create_meta_fanout_test_dir() {

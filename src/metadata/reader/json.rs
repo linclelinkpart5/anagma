@@ -14,7 +14,7 @@ pub(crate) fn read_str<'k, S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<Meta
 mod tests {
     use super::read_str;
 
-    use metadata::location::MetaLocation;
+    use crate::metadata::location::MetaLocation;
 
     #[test]
     fn test_read_str() {

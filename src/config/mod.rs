@@ -43,9 +43,9 @@ impl Default for Config {
 mod tests {
     use serde_yaml;
 
-    use config::Config;
-    use config::sort_order::SortOrder;
-    use config::meta_format::MetaFormat;
+    use crate::config::Config;
+    use crate::config::sort_order::SortOrder;
+    use crate::config::meta_format::MetaFormat;
 
     #[test]
     fn test_deserialization() {
