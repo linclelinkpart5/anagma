@@ -15,10 +15,11 @@ use crate::config::meta_format::MetaFormat;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::types::MetaVal;
 use crate::metadata::types::MetaKey;
+use crate::metadata::types::MetaKeyPath;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaStructure;
 use crate::metadata::stream::block::FixedMetaBlockStream;
-
+use crate::metadata::stream::value::MetaValueStream;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -469,6 +470,13 @@ impl TestUtil {
         vd.push_back((Path::new("dummy_4").into(), Self::sample_naive_meta_block("meta_block_4", false)));
 
         FixedMetaBlockStream::new(vd)
+    }
+
+    pub fn create_sample_fixed_value_stream() -> MetaValueStream<'static> {
+        let mbs = Self::create_sample_fixed_block_stream();
+        let target_key_path = MetaKeyPath::from("target_file_name");
+
+        MetaValueStream::new(target_key_path, mbs)
     }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {

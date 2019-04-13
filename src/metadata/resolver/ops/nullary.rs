@@ -41,6 +41,7 @@ mod tests {
     use crate::metadata::resolver::ops::OperandStack;
     use crate::metadata::resolver::context::ResolverContext;
 
+    use crate::metadata::types::MetaVal;
     use crate::metadata::types::MetaKeyPath;
 
     use crate::config::selection::Selection;
@@ -54,7 +55,7 @@ mod tests {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
-        let current_key_path = MetaKeyPath::new();
+        let current_key_path = MetaKeyPath::from("target_file_name");
 
         let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
         let selection = Selection::default();
@@ -74,7 +75,16 @@ mod tests {
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Stream(_) => {},
+            Operand::Stream(st) => {
+                let expected = vec![
+                    MetaVal::from("0_1_2"),
+                    MetaVal::from("0_1"),
+                    MetaVal::from("0"),
+                    MetaVal::from("ROOT"),
+                ];
+                let produced = st.collect::<Result<Vec<_>, _>>().unwrap();
+                assert_eq!(expected, produced);
+            },
             _ => { panic!("unexpected operand found on stack"); }
         }
 
@@ -85,7 +95,43 @@ mod tests {
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Stream(_) => {},
+            Operand::Stream(st) => {
+                let expected = vec![
+                    MetaVal::from("0_1_2"),
+                ];
+                let produced = st.collect::<Result<Vec<_>, _>>().unwrap();
+                assert_eq!(expected, produced);
+            },
+            _ => { panic!("unexpected operand found on stack"); }
+        }
+
+        let current_key_path = MetaKeyPath::from("flag_key");
+        let current_item_file_path = root_dir.join("0").join("0_1");
+
+        let rc = ResolverContext {
+            current_key_path,
+            current_item_file_path: &current_item_file_path,
+            meta_format: MetaFormat::Json,
+            selection: &selection,
+            sort_order: SortOrder::Name,
+        };
+
+        let op = NullaryOp::Children;
+        let mut stack: OperandStack = OperandStack::new();
+
+        op.process(&rc, &mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Stream(st) => {
+                let expected = vec![
+                    MetaVal::from("0_1_0"),
+                    MetaVal::from("0_1_1_1"),
+                    MetaVal::from("0_1_2"),
+                ];
+                let produced = st.collect::<Result<Vec<_>, _>>().unwrap();
+                assert_eq!(expected, produced);
+            },
             _ => { panic!("unexpected operand found on stack"); }
         }
     }

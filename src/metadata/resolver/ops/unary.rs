@@ -10,10 +10,6 @@ use crate::metadata::resolver::context::ResolverContext;
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
 
-
-
-
-
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
     // (Iterable<V>) -> Sequence<V>
@@ -39,10 +35,10 @@ pub enum UnaryOp {
     // (Iterable<V>) -> Sequence<V>
     Sort,
 
-    // (KeyPath) -> Stream<V>
-    ParentsRef,
-    // (KeyPath) -> Stream<V>
-    ChildrenRef,
+    // // (KeyPath) -> Stream<V>
+    // ParentsRef,
+    // // (KeyPath) -> Stream<V>
+    // ChildrenRef,
 }
 
 impl Op for UnaryOp {
@@ -166,24 +162,65 @@ impl Op for UnaryOp {
 
                 Operand::Value(MetaVal::Bul(res))
             },
-            &Self::ParentsRef | &Self::ChildrenRef => {
-                // let kp = stack.pop_key_path_like()?;
+            // &Self::ParentsRef | &Self::ChildrenRef => {
+            //     // let kp = stack.pop_key_path_like()?;
 
-                // let mb_stream = match self {
-                //     &Self::ParentsRef => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
-                //     &Self::ChildrenRef => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
-                //     _ => unreachable!(),
-                // };
+            //     // let mb_stream = match self {
+            //     //     &Self::ParentsRef => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
+            //     //     &Self::ChildrenRef => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
+            //     //     _ => unreachable!(),
+            //     // };
 
-                // let stream = Stream::Raw(MetaValueStream::new(kp, mb_stream));
+            //     // let stream = Stream::Raw(MetaValueStream::new(kp, mb_stream));
 
-                // Operand::Stream(stream)
-                Operand::Value(MetaVal::Nil)
-            },
+            //     // Operand::Stream(stream)
+            //     Operand::Value(MetaVal::Nil)
+            // },
         };
 
         stack.push(output_operand);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UnaryOp;
+
+    use crate::metadata::resolver::ops::Op;
+    use crate::metadata::resolver::ops::Operand;
+    use crate::metadata::resolver::ops::OperandStack;
+    use crate::metadata::resolver::context::ResolverContext;
+
+    use crate::metadata::types::MetaKeyPath;
+
+    use crate::config::selection::Selection;
+    use crate::config::sort_order::SortOrder;
+    use crate::config::meta_format::MetaFormat;
+
+    use crate::test_util::TestUtil;
+
+    #[test]
+    fn test_process() {
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
+        let root_dir = temp_dir.path();
+
+        let current_key_path = MetaKeyPath::new();
+
+        let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
+        let selection = Selection::default();
+
+        let rc = ResolverContext {
+            current_key_path,
+            current_item_file_path: &current_item_file_path,
+            meta_format: MetaFormat::Json,
+            selection: &selection,
+            sort_order: SortOrder::Name,
+        };
+
+        let op = UnaryOp::Collect;
+        let mut stack: OperandStack = OperandStack::new();
+        // stack.push();
     }
 }
