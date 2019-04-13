@@ -193,6 +193,7 @@ mod tests {
     use crate::metadata::resolver::ops::OperandStack;
     use crate::metadata::resolver::context::ResolverContext;
 
+    use crate::metadata::types::MetaVal;
     use crate::metadata::types::MetaKeyPath;
 
     use crate::config::selection::Selection;
@@ -201,12 +202,19 @@ mod tests {
 
     use crate::test_util::TestUtil;
 
+    fn generate_stream_stack<'a>(rc: &ResolverContext<'a>) -> OperandStack<'a> {
+        use crate::metadata::resolver::ops::nullary::NullaryOp;
+        let mut os = OperandStack::new();
+        NullaryOp::Parents.process(rc, &mut os).expect("unable to create sample stack");
+        os
+    }
+
     #[test]
     fn test_process() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
 
-        let current_key_path = MetaKeyPath::new();
+        let current_key_path = MetaKeyPath::from("target_file_name");
 
         let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
         let selection = Selection::default();
@@ -220,7 +228,46 @@ mod tests {
         };
 
         let op = UnaryOp::Collect;
-        let mut stack: OperandStack = OperandStack::new();
-        // stack.push();
+        let mut stack: OperandStack = generate_stream_stack(&rc);
+
+        op.process(&rc, &mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(MetaVal::Seq(seq)) => {
+                assert_eq!(
+                    vec![MetaVal::from("0_1_2"), MetaVal::from("0_1"), MetaVal::from("0"), MetaVal::from("ROOT")],
+                    seq
+                );
+            },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let op = UnaryOp::Rev;
+        let mut stack: OperandStack = generate_stream_stack(&rc);
+
+        op.process(&rc, &mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(MetaVal::Seq(seq)) => {
+                assert_eq!(
+                    vec![MetaVal::from("ROOT"), MetaVal::from("0"), MetaVal::from("0_1"), MetaVal::from("0_1_2")],
+                    seq
+                );
+            },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let op = UnaryOp::Count;
+        let mut stack: OperandStack = generate_stream_stack(&rc);
+
+        op.process(&rc, &mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(MetaVal::Int(i)) => { assert_eq!(4, i); },
+            _ => { panic!("unexpected operand"); },
+        }
     }
 }
