@@ -96,3 +96,27 @@ impl MulAssign for NumberLike {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::NumberLike;
+
+    #[test]
+    fn test_cmp() {
+        for l in -3..=3 {
+            for r in -3..=3 {
+                let li = NumberLike::Integer(l);
+                let ld = NumberLike::Decimal(l.into());
+                let ri = NumberLike::Integer(r);
+                let rd = NumberLike::Decimal(r.into());
+
+                let expected = l.cmp(&r);
+
+                assert_eq!(expected, li.cmp(&ri));
+                assert_eq!(expected, li.cmp(&rd));
+                assert_eq!(expected, ld.cmp(&ri));
+                assert_eq!(expected, ld.cmp(&rd));
+            }
+        }
+    }
+}
