@@ -1,14 +1,14 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
 
-use crate::metadata::stream::value::MetaValueStream as RawStream;
+use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
 #[derive(Debug)]
 pub enum Stream<'s> {
-    Raw(RawStream<'s>),
+    Raw(MetaValueStream<'s>),
     Flatten(FlattenStream<'s>),
     Dedup(DedupStream<'s>),
     Unique(UniqueStream<'s>),

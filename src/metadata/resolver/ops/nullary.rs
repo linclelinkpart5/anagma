@@ -5,7 +5,7 @@ use crate::metadata::resolver::ops::OperandStack;
 use crate::metadata::resolver::context::ResolverContext;
 use crate::metadata::resolver::streams::Stream;
 use crate::metadata::stream::block::FileMetaBlockStream;
-use crate::metadata::stream::value::MetaValueStream;
+use crate::metadata::stream::value::BlockMetaValueStream;
 use crate::util::file_walkers::ParentFileWalker;
 use crate::util::file_walkers::ChildFileWalker;
 
@@ -24,7 +24,7 @@ impl Op for NullaryOp {
             &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
         };
 
-        let stream = Stream::Raw(MetaValueStream::new(rc.current_key_path.clone(), mb_stream));
+        let stream = Stream::Raw(BlockMetaValueStream::new(rc.current_key_path.clone(), mb_stream).into());
 
         stack.push(Operand::Stream(stream));
 

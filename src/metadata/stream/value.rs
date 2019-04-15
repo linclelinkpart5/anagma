@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::path::Path;
-
+use std::collections::VecDeque;
 
 use crate::metadata::types::MetaKeyPath;
 use crate::metadata::types::MetaVal;
@@ -29,15 +29,64 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug)]
-pub struct MetaValueStream<'vs> {
-    target_key_path: MetaKeyPath<'vs>,
-    meta_block_stream: MetaBlockStream<'vs>,
+pub enum MetaValueStream<'mvs> {
+    Fixed(FixedMetaValueStream<'mvs>),
+    Block(BlockMetaValueStream<'mvs>),
 }
 
-impl<'vs> MetaValueStream<'vs> {
-    pub fn new<MBS>(target_key_path: MetaKeyPath<'vs>, meta_block_stream: MBS) -> Self
+impl<'mvs> Iterator for MetaValueStream<'mvs> {
+    type Item = Result<(Cow<'mvs, Path>, MetaVal<'mvs>), Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            &mut Self::Fixed(ref mut it) => it.next(),
+            &mut Self::Block(ref mut it) => it.next(),
+        }
+    }
+}
+
+impl<'mvs> From<FixedMetaValueStream<'mvs>> for MetaValueStream<'mvs> {
+    fn from(other: FixedMetaValueStream<'mvs>) -> Self {
+        Self::Fixed(other)
+    }
+}
+
+impl<'mvs> From<BlockMetaValueStream<'mvs>> for MetaValueStream<'mvs> {
+    fn from(other: BlockMetaValueStream<'mvs>) -> Self {
+        Self::Block(other)
+    }
+}
+
+#[derive(Debug)]
+pub struct FixedMetaValueStream<'mvs>(VecDeque<(Cow<'mvs, Path>, MetaVal<'mvs>)>);
+
+impl<'mvs> FixedMetaValueStream<'mvs> {
+    pub fn new<II>(items: II) -> Self
     where
-        MBS: Into<MetaBlockStream<'vs>>,
+        II: IntoIterator<Item = (Cow<'mvs, Path>, MetaVal<'mvs>)>,
+    {
+        FixedMetaValueStream(items.into_iter().collect())
+    }
+}
+
+impl<'mvs> Iterator for FixedMetaValueStream<'mvs> {
+    type Item = Result<(Cow<'mvs, Path>, MetaVal<'mvs>), Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop_front().map(Result::Ok)
+    }
+}
+
+#[derive(Debug)]
+pub struct BlockMetaValueStream<'mvs> {
+    target_key_path: MetaKeyPath<'mvs>,
+    meta_block_stream: MetaBlockStream<'mvs>,
+}
+
+impl<'mvs> BlockMetaValueStream<'mvs> {
+    pub fn new<MBS>(target_key_path: MetaKeyPath<'mvs>, meta_block_stream: MBS) -> Self
+    where
+        MBS: Into<MetaBlockStream<'mvs>>,
     {
         Self {
             target_key_path,
@@ -46,8 +95,8 @@ impl<'vs> MetaValueStream<'vs> {
     }
 }
 
-impl<'vs> Iterator for MetaValueStream<'vs> {
-    type Item = Result<(Cow<'vs, Path>, MetaVal<'vs>), Error>;
+impl<'mvs> Iterator for BlockMetaValueStream<'mvs> {
+    type Item = Result<(Cow<'mvs, Path>, MetaVal<'mvs>), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_stream.next() {
@@ -56,7 +105,7 @@ impl<'vs> Iterator for MetaValueStream<'vs> {
                     Err(err) => Some(Err(Error::MetaBlockStream(err))),
                     Ok((path, mb)) => {
                         // Initalize the meta value by wrapping the entire meta block in a map.
-                        let mut curr_val = MetaVal::Map(mb);
+                        let curr_val = MetaVal::Map(mb);
 
                         match curr_val.get_key_path(&self.target_key_path) {
                             // Not found here, delegate to the next iteration.
@@ -79,14 +128,14 @@ impl<'vs> Iterator for MetaValueStream<'vs> {
 
 #[cfg(test)]
 mod tests {
-    use super::MetaValueStream;
+    use super::BlockMetaValueStream;
 
     use std::borrow::Cow;
     use crate::test_util::TestUtil;
 
     use crate::metadata::stream::block::MetaBlockStream;
     use crate::metadata::stream::block::FileMetaBlockStream;
-    
+
     use crate::metadata::types::MetaKeyPath;
     use crate::metadata::types::MetaVal;
     use crate::config::selection::Selection;
@@ -121,7 +170,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
         ];
         let produced = {
-            MetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -152,7 +201,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
         ];
         let produced = {
-            MetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -184,7 +233,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
         ];
         let produced = {
-            MetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -213,7 +262,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -235,7 +284,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
         let produced = {
-            MetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
