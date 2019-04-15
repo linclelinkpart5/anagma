@@ -203,27 +203,26 @@ mod tests {
 
     #[test]
     fn test_process() {
-        let op = UnaryOp::Collect;
         let mut stack = stackify_meta_vals(vec![
-            MetaVal::from("string_0"),
-            MetaVal::from("string_1"),
-            MetaVal::from("string_2"),
-            MetaVal::from("string_3"),
-            MetaVal::from("string_4"),
+            TestUtil::sample_string(),
+            TestUtil::sample_integer(),
+            TestUtil::sample_boolean(),
+            TestUtil::sample_decimal(),
+            TestUtil::sample_null(),
         ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::Collect.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
             Operand::Value(MetaVal::Seq(seq)) => {
                 assert_eq!(
                     vec![
-                        MetaVal::from("string_0"),
-                        MetaVal::from("string_1"),
-                        MetaVal::from("string_2"),
-                        MetaVal::from("string_3"),
-                        MetaVal::from("string_4"),
+                        TestUtil::sample_string(),
+                        TestUtil::sample_integer(),
+                        TestUtil::sample_boolean(),
+                        TestUtil::sample_decimal(),
+                        TestUtil::sample_null(),
                     ],
                     seq
                 );
@@ -231,21 +230,26 @@ mod tests {
             _ => { panic!("unexpected operand"); },
         }
 
-        let op = UnaryOp::Rev;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
+        let mut stack = stackify_meta_vals(vec![
+            TestUtil::sample_string(),
+            TestUtil::sample_integer(),
+            TestUtil::sample_boolean(),
+            TestUtil::sample_decimal(),
+            TestUtil::sample_null(),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::Rev.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
             Operand::Value(MetaVal::Seq(seq)) => {
                 assert_eq!(
                     vec![
-                        MetaVal::from("string_4"),
-                        MetaVal::from("string_3"),
-                        MetaVal::from("string_2"),
-                        MetaVal::from("string_1"),
-                        MetaVal::from("string_0"),
+                        TestUtil::sample_null(),
+                        TestUtil::sample_decimal(),
+                        TestUtil::sample_boolean(),
+                        TestUtil::sample_integer(),
+                        TestUtil::sample_string(),
                     ],
                     seq
                 );
@@ -253,10 +257,15 @@ mod tests {
             _ => { panic!("unexpected operand"); },
         }
 
-        let op = UnaryOp::Count;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
+        let mut stack = stackify_meta_vals(vec![
+            TestUtil::sample_string(),
+            TestUtil::sample_integer(),
+            TestUtil::sample_boolean(),
+            TestUtil::sample_decimal(),
+            TestUtil::sample_null(),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::Count.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -264,67 +273,137 @@ mod tests {
             _ => { panic!("unexpected operand"); },
         }
 
-        let op = UnaryOp::First;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
+        let mut stack = stackify_meta_vals(vec![
+            TestUtil::sample_string(),
+            TestUtil::sample_integer(),
+            TestUtil::sample_boolean(),
+            TestUtil::sample_decimal(),
+            TestUtil::sample_null(),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::First.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::from("string_0"), mv); },
+            Operand::Value(mv) => { assert_eq!(TestUtil::sample_string(), mv); },
             _ => { panic!("unexpected operand"); },
         }
 
-        let op = UnaryOp::Last;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
+        let mut stack = stackify_meta_vals(vec![
+            TestUtil::sample_string(),
+            TestUtil::sample_integer(),
+            TestUtil::sample_boolean(),
+            TestUtil::sample_decimal(),
+            TestUtil::sample_null(),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::Last.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::from("string_4"), mv); },
+            Operand::Value(mv) => { assert_eq!(TestUtil::sample_null(), mv); },
             _ => { panic!("unexpected operand"); },
         }
 
-        let op = UnaryOp::MaxIn;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_i_stream());
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(-1),
+            MetaVal::Int(-2),
+            MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+            MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+            MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+            MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+            MetaVal::Int(2),
+            MetaVal::Int(1),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::MaxIn.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::Int(9), mv); },
+            Operand::Value(mv) => { assert_eq!(MetaVal::Int(2), mv); },
             _ => { panic!("unexpected operand"); },
         }
 
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_d_stream());
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(-1),
+            MetaVal::Int(-2),
+            MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+            MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+            MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+            MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+            MetaVal::Int(2),
+            MetaVal::Int(1),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::MinIn.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::new(31415.into(), 4)), mv); },
+            Operand::Value(mv) => { assert_eq!(MetaVal::Int(-2), mv); },
             _ => { panic!("unexpected operand"); },
         }
 
-        let op = UnaryOp::MinIn;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_i_stream());
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(1),
+            MetaVal::Int(2),
+            MetaVal::Int(3),
+            MetaVal::Int(4),
+            MetaVal::Int(5),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::Sum.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::Int(-9), mv); },
+            Operand::Value(mv) => { assert_eq!(MetaVal::Int(15), mv); },
             _ => { panic!("unexpected operand"); },
         }
 
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_d_stream());
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(1),
+            MetaVal::Int(2),
+            MetaVal::Int(3),
+            MetaVal::Int(4),
+            MetaVal::Dec(BigDecimal::from(5.5)),
+        ]);
 
-        op.process(&mut stack).expect("process failed");
+        UnaryOp::Sum.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::new((-27182).into(), 4)), mv); },
+            Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::from(15.5)), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(1),
+            MetaVal::Int(2),
+            MetaVal::Int(3),
+            MetaVal::Int(4),
+            MetaVal::Int(5),
+        ]);
+
+        UnaryOp::Product.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Int(120), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(1),
+            MetaVal::Int(2),
+            MetaVal::Int(3),
+            MetaVal::Int(4),
+            MetaVal::Dec(BigDecimal::from(5.5)),
+        ]);
+
+        UnaryOp::Product.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::from(132)), mv); },
             _ => { panic!("unexpected operand"); },
         }
     }
