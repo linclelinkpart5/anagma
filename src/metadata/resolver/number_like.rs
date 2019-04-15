@@ -33,11 +33,20 @@ impl Ord for NumberLike {
     }
 }
 
-impl<'k> Into<MetaVal<'k>> for NumberLike {
-    fn into(self) -> MetaVal<'k> {
-        match self {
-            Self::Integer(i) => MetaVal::Int(i),
-            Self::Decimal(d) => MetaVal::Dec(d),
+impl<'o> From<NumberLike> for Operand<'o> {
+    fn from(il: NumberLike) -> Self {
+        match il {
+            NumberLike::Integer(i) => Self::Value(MetaVal::Int(i)),
+            NumberLike::Decimal(d) => Self::Value(MetaVal::Dec(d)),
+        }
+    }
+}
+
+impl<'k> From<NumberLike> for MetaVal<'k> {
+    fn from(nl: NumberLike) -> MetaVal<'k> {
+        match nl {
+            NumberLike::Integer(i) => MetaVal::Int(i),
+            NumberLike::Decimal(d) => MetaVal::Dec(d),
         }
     }
 }
@@ -63,15 +72,6 @@ impl From<i64> for NumberLike {
 impl From<BigDecimal> for NumberLike {
     fn from(n: BigDecimal) -> Self {
         Self::Decimal(n)
-    }
-}
-
-impl<'o> From<NumberLike> for Operand<'o> {
-    fn from(il: NumberLike) -> Self {
-        match il {
-            NumberLike::Integer(i) => Self::Value(MetaVal::Int(i)),
-            NumberLike::Decimal(d) => Self::Value(MetaVal::Dec(d)),
-        }
     }
 }
 

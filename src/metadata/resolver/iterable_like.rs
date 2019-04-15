@@ -1,5 +1,7 @@
 ///! Wrapper type for items on the consumer stack that behave as a sequence of meta values.
 
+use std::convert::TryFrom;
+
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::streams::Stream;
 use crate::metadata::types::MetaVal;
@@ -15,6 +17,18 @@ impl<'il> From<IterableLike<'il>> for Operand<'il> {
         match il {
             IterableLike::Stream(stream) => Self::Stream(stream),
             IterableLike::Sequence(sequence) => Self::Value(MetaVal::Seq(sequence)),
+        }
+    }
+}
+
+impl<'il> TryFrom<Operand<'il>> for IterableLike<'il> {
+    type Error = Error;
+
+    fn try_from(value: Operand<'il>) -> Result<Self, Self::Error> {
+        match value {
+            Operand::Stream(s) => Ok(Self::Stream(s)),
+            Operand::Value(MetaVal::Seq(s)) => Ok(Self::Sequence(s)),
+            _ => Err(Error::NotIterable),
         }
     }
 }
