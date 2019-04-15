@@ -181,15 +181,6 @@ mod tests {
 
     use crate::test_util::TestUtil;
 
-    fn stackify_vs<'a, VS>(vs: VS) -> OperandStack<'a>
-    where
-        VS: Into<MetaValueStream<'a>>,
-    {
-        let mut stack = OperandStack::new();
-        stack.push(Operand::Stream(Stream::Raw(vs.into())));
-        stack
-    }
-
     fn stackify_meta_vals<'a, II>(mvs: II) -> OperandStack<'a>
     where
         II: IntoIterator<Item = MetaVal<'a>>,
@@ -404,6 +395,44 @@ mod tests {
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
             Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::from(132)), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(1),
+            MetaVal::Int(1),
+            MetaVal::Int(1),
+        ]);
+
+        UnaryOp::AllEqual.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Bul(true), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_meta_vals(vec![]);
+
+        UnaryOp::AllEqual.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Bul(true), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::Int(1),
+            MetaVal::Int(1),
+            MetaVal::Int(-1),
+        ]);
+
+        UnaryOp::AllEqual.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Bul(false), mv); },
             _ => { panic!("unexpected operand"); },
         }
     }
