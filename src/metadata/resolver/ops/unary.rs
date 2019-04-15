@@ -269,5 +269,27 @@ mod tests {
             Operand::Value(MetaVal::Int(i)) => { assert_eq!(4, i); },
             _ => { panic!("unexpected operand"); },
         }
+
+        let op = UnaryOp::First;
+        let mut stack: OperandStack = generate_stream_stack(&rc);
+
+        op.process(&rc, &mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::from("0_1_2"), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let op = UnaryOp::Last;
+        let mut stack: OperandStack = generate_stream_stack(&rc);
+
+        op.process(&rc, &mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::from("ROOT"), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
     }
 }
