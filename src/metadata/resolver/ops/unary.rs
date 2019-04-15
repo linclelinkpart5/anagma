@@ -190,10 +190,27 @@ mod tests {
         stack
     }
 
+    fn stackify_meta_vals<'a, II>(mvs: II) -> OperandStack<'a>
+    where
+        II: IntoIterator<Item = MetaVal<'a>>,
+    {
+        let fmvs = TestUtil::create_fixed_value_stream(mvs);
+
+        let mut stack = OperandStack::new();
+        stack.push(Operand::Stream(Stream::Raw(fmvs.into())));
+        stack
+    }
+
     #[test]
     fn test_process() {
         let op = UnaryOp::Collect;
-        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
+        let mut stack = stackify_meta_vals(vec![
+            MetaVal::from("string_0"),
+            MetaVal::from("string_1"),
+            MetaVal::from("string_2"),
+            MetaVal::from("string_3"),
+            MetaVal::from("string_4"),
+        ]);
 
         op.process(&mut stack).expect("process failed");
 

@@ -6,6 +6,7 @@ use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
 use std::collections::BTreeMap;
+use std::borrow::Cow;
 
 use tempfile::Builder;
 use tempfile::TempDir;
@@ -15,10 +16,8 @@ use crate::config::meta_format::MetaFormat;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::types::MetaVal;
 use crate::metadata::types::MetaKey;
-use crate::metadata::types::MetaKeyPath;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaStructure;
-use crate::metadata::stream::block::FixedMetaBlockStream;
 use crate::metadata::stream::value::FixedMetaValueStream;
 
 enum TEntry<'a> {
@@ -460,30 +459,11 @@ impl TestUtil {
         map
     }
 
-    pub fn create_sample_fixed_block_stream() -> FixedMetaBlockStream<'static> {
-        FixedMetaBlockStream::new(
-            vec![
-                (Path::new("dummy_0").into(), Self::sample_naive_meta_block("meta_block_0", false)),
-                (Path::new("dummy_1").into(), Self::sample_naive_meta_block("meta_block_1", false)),
-                (Path::new("dummy_2").into(), Self::sample_naive_meta_block("meta_block_2", false)),
-                (Path::new("dummy_3").into(), Self::sample_naive_meta_block("meta_block_3", false)),
-                (Path::new("dummy_4").into(), Self::sample_naive_meta_block("meta_block_4", false)),
-            ]
-        )
-    }
-
-    pub fn create_sample_fixed_value_stream() -> FixedMetaValueStream<'static> {
-        FixedMetaValueStream::new(
-            vec![
-                (Path::new("dummy_0").into(), Self::sample_string()),
-                (Path::new("dummy_1").into(), Self::sample_integer()),
-                (Path::new("dummy_2").into(), Self::sample_decimal()),
-                (Path::new("dummy_3").into(), Self::sample_boolean()),
-                (Path::new("dummy_4").into(), Self::sample_null()),
-                (Path::new("dummy_5").into(), Self::sample_flat_sequence()),
-                (Path::new("dummy_6").into(), Self::sample_flat_mapping()),
-            ]
-        )
+    pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedMetaValueStream<'a>
+    where
+        II: IntoIterator<Item = MetaVal<'a>>,
+    {
+        FixedMetaValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
     }
 
     pub fn create_sample_fixed_value_string_stream() -> FixedMetaValueStream<'static> {
