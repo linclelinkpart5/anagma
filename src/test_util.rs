@@ -6,10 +6,10 @@ use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
 use std::collections::BTreeMap;
-use std::collections::VecDeque;
 
 use tempfile::Builder;
 use tempfile::TempDir;
+use bigdecimal::BigDecimal;
 
 use crate::config::meta_format::MetaFormat;
 use crate::metadata::location::MetaLocation;
@@ -19,7 +19,7 @@ use crate::metadata::types::MetaKeyPath;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaStructure;
 use crate::metadata::stream::block::FixedMetaBlockStream;
-use crate::metadata::stream::value::BlockMetaValueStream;
+use crate::metadata::stream::value::FixedMetaValueStream;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -348,7 +348,7 @@ impl TestUtil {
     }
 
     pub fn sample_decimal() -> MetaVal<'static> {
-        MetaVal::Dec(bigdecimal::BigDecimal::new(31415.into(), 4))
+        MetaVal::Dec(BigDecimal::new(31415.into(), 4))
     }
 
     pub fn sample_boolean() -> MetaVal<'static> {
@@ -461,22 +461,57 @@ impl TestUtil {
     }
 
     pub fn create_sample_fixed_block_stream() -> FixedMetaBlockStream<'static> {
-        let mut vd: VecDeque<_> = VecDeque::new();
-
-        vd.push_back((Path::new("dummy_0").into(), Self::sample_naive_meta_block("meta_block_0", false)));
-        vd.push_back((Path::new("dummy_1").into(), Self::sample_naive_meta_block("meta_block_1", false)));
-        vd.push_back((Path::new("dummy_2").into(), Self::sample_naive_meta_block("meta_block_2", false)));
-        vd.push_back((Path::new("dummy_3").into(), Self::sample_naive_meta_block("meta_block_3", false)));
-        vd.push_back((Path::new("dummy_4").into(), Self::sample_naive_meta_block("meta_block_4", false)));
-
-        FixedMetaBlockStream::new(vd)
+        FixedMetaBlockStream::new(
+            vec![
+                (Path::new("dummy_0").into(), Self::sample_naive_meta_block("meta_block_0", false)),
+                (Path::new("dummy_1").into(), Self::sample_naive_meta_block("meta_block_1", false)),
+                (Path::new("dummy_2").into(), Self::sample_naive_meta_block("meta_block_2", false)),
+                (Path::new("dummy_3").into(), Self::sample_naive_meta_block("meta_block_3", false)),
+                (Path::new("dummy_4").into(), Self::sample_naive_meta_block("meta_block_4", false)),
+            ]
+        )
     }
 
-    pub fn create_sample_fixed_value_stream() -> BlockMetaValueStream<'static> {
-        let mbs = Self::create_sample_fixed_block_stream();
-        let target_key_path = MetaKeyPath::from("target_file_name");
+    pub fn create_sample_fixed_value_stream() -> FixedMetaValueStream<'static> {
+        FixedMetaValueStream::new(
+            vec![
+                (Path::new("dummy_0").into(), Self::sample_string()),
+                (Path::new("dummy_1").into(), Self::sample_integer()),
+                (Path::new("dummy_2").into(), Self::sample_decimal()),
+                (Path::new("dummy_3").into(), Self::sample_boolean()),
+                (Path::new("dummy_4").into(), Self::sample_null()),
+                (Path::new("dummy_5").into(), Self::sample_flat_sequence()),
+                (Path::new("dummy_6").into(), Self::sample_flat_mapping()),
+            ]
+        )
+    }
 
-        BlockMetaValueStream::new(target_key_path, mbs)
+    pub fn create_sample_fixed_value_numbers_d_stream() -> FixedMetaValueStream<'static> {
+        FixedMetaValueStream::new(
+            vec![
+                (Path::new("dummy_0").into(), MetaVal::Int(-1)),
+                (Path::new("dummy_1").into(), MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
+                (Path::new("dummy_2").into(), MetaVal::Int(2)),
+                (Path::new("dummy_3").into(), MetaVal::Dec(BigDecimal::new((-27182).into(), 4))),
+                (Path::new("dummy_4").into(), MetaVal::Int(0)),
+                (Path::new("dummy_5").into(), MetaVal::Dec(BigDecimal::new(12345.into(), 4))),
+                (Path::new("dummy_6").into(), MetaVal::Int(1)),
+            ]
+        )
+    }
+
+    pub fn create_sample_fixed_value_numbers_i_stream() -> FixedMetaValueStream<'static> {
+        FixedMetaValueStream::new(
+            vec![
+                (Path::new("dummy_0").into(), MetaVal::Int(-9)),
+                (Path::new("dummy_1").into(), MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
+                (Path::new("dummy_2").into(), MetaVal::Int(2)),
+                (Path::new("dummy_3").into(), MetaVal::Dec(BigDecimal::new((-27182).into(), 4))),
+                (Path::new("dummy_4").into(), MetaVal::Int(0)),
+                (Path::new("dummy_5").into(), MetaVal::Dec(BigDecimal::new(12345.into(), 4))),
+                (Path::new("dummy_6").into(), MetaVal::Int(9)),
+            ]
+        )
     }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
@@ -594,6 +629,8 @@ mod tests {
     use super::TestUtil;
     use super::TestSerialize;
 
+    use bigdecimal::BigDecimal;
+
     use crate::config::meta_format::MetaFormat;
     use crate::metadata::types::MetaVal;
 
@@ -604,7 +641,7 @@ mod tests {
 
     #[test]
     fn test_to_serialized_chunk() {
-        let dec = bigdecimal::BigDecimal::new(31415.into(), 4);
+        let dec = BigDecimal::new(31415.into(), 4);
 
         let seq_a = MetaVal::Seq(vec![MetaVal::Int(27), MetaVal::Str("string".into())]);
         let seq_b = MetaVal::Seq(vec![MetaVal::Bul(false), MetaVal::Nil, MetaVal::Dec(dec)]);
