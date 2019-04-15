@@ -21,9 +21,9 @@ pub enum UnaryOp {
     // (Iterable<V>) -> V
     Last,
     // (Iterable<Number>) -> Number
-    Max,
+    MaxIn,
     // (Iterable<Number>) -> Number
-    Min,
+    MinIn,
     // (Iterable<V>) -> Sequence<V>
     Rev,
     // (Iterable<Number>) -> Number
@@ -34,11 +34,6 @@ pub enum UnaryOp {
     AllEqual,
     // (Iterable<V>) -> Sequence<V>
     Sort,
-
-    // // (KeyPath) -> Stream<V>
-    // ParentsRef,
-    // // (KeyPath) -> Stream<V>
-    // ChildrenRef,
 }
 
 impl Op for UnaryOp {
@@ -87,7 +82,7 @@ impl Op for UnaryOp {
 
                 Operand::Value(mv)
             },
-            &Self::Max => {
+            &Self::MaxIn => {
                 let mut m: Option<NumberLike> = None;
 
                 for mv in stack.pop_iterable_like()? {
@@ -103,7 +98,7 @@ impl Op for UnaryOp {
 
                 Operand::Value(m.ok_or(Error::EmptyIterable)?.into())
             },
-            &Self::Min => {
+            &Self::MinIn => {
                 let mut m: Option<NumberLike> = None;
 
                 for mv in stack.pop_iterable_like()? {
@@ -162,20 +157,6 @@ impl Op for UnaryOp {
 
                 Operand::Value(MetaVal::Bul(res))
             },
-            // &Self::ParentsRef | &Self::ChildrenRef => {
-            //     // let kp = stack.pop_key_path_like()?;
-
-            //     // let mb_stream = match self {
-            //     //     &Self::ParentsRef => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
-            //     //     &Self::ChildrenRef => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
-            //     //     _ => unreachable!(),
-            //     // };
-
-            //     // let stream = Stream::Raw(BlockMetaValueStream::new(kp, mb_stream));
-
-            //     // Operand::Stream(stream)
-            //     Operand::Value(MetaVal::Nil)
-            // },
         };
 
         stack.push(output_operand);
@@ -188,19 +169,15 @@ impl Op for UnaryOp {
 mod tests {
     use super::UnaryOp;
 
+    use bigdecimal::BigDecimal;
+
     use crate::metadata::resolver::ops::Op;
     use crate::metadata::resolver::ops::Operand;
     use crate::metadata::resolver::ops::OperandStack;
-    use crate::metadata::resolver::context::ResolverContext;
     use crate::metadata::resolver::streams::Stream;
 
     use crate::metadata::types::MetaVal;
-    use crate::metadata::types::MetaKeyPath;
     use crate::metadata::stream::value::MetaValueStream;
-
-    use crate::config::selection::Selection;
-    use crate::config::sort_order::SortOrder;
-    use crate::config::meta_format::MetaFormat;
 
     use crate::test_util::TestUtil;
 
@@ -215,22 +192,6 @@ mod tests {
 
     #[test]
     fn test_process() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_process", 3, 3, TestUtil::flag_set_by_default);
-        let root_dir = temp_dir.path();
-
-        let current_key_path = MetaKeyPath::from("target_file_name");
-
-        let current_item_file_path = root_dir.join("0").join("0_1").join("0_1_2");
-        let selection = Selection::default();
-
-        let rc = ResolverContext {
-            current_key_path,
-            current_item_file_path: &current_item_file_path,
-            meta_format: MetaFormat::Json,
-            selection: &selection,
-            sort_order: SortOrder::Name,
-        };
-
         let op = UnaryOp::Collect;
         let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
@@ -305,6 +266,48 @@ mod tests {
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
             Operand::Value(mv) => { assert_eq!(MetaVal::from("string_4"), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let op = UnaryOp::MaxIn;
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_i_stream());
+
+        op.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Int(9), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_d_stream());
+
+        op.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::new(31415.into(), 4)), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let op = UnaryOp::MinIn;
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_i_stream());
+
+        op.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Int(-9), mv); },
+            _ => { panic!("unexpected operand"); },
+        }
+
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_numbers_d_stream());
+
+        op.process(&mut stack).expect("process failed");
+
+        assert_eq!(1, stack.len());
+        match stack.pop().expect("stack is empty") {
+            Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::new((-27182).into(), 4)), mv); },
             _ => { panic!("unexpected operand"); },
         }
     }
