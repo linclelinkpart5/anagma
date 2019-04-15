@@ -42,7 +42,7 @@ pub enum UnaryOp {
 }
 
 impl Op for UnaryOp {
-    fn process<'bo>(&self, _rc: &ResolverContext<'bo>, stack: &mut OperandStack<'bo>) -> Result<(), Error> {
+    fn process<'bo>(&self, stack: &mut OperandStack<'bo>, _rc: Option<&ResolverContext<'bo>>) -> Result<(), Error> {
         let output_operand = match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {
                 let mut coll = match stack.pop_iterable_like()? {
@@ -192,9 +192,11 @@ mod tests {
     use crate::metadata::resolver::ops::Operand;
     use crate::metadata::resolver::ops::OperandStack;
     use crate::metadata::resolver::context::ResolverContext;
+    use crate::metadata::resolver::streams::Stream;
 
     use crate::metadata::types::MetaVal;
     use crate::metadata::types::MetaKeyPath;
+    use crate::metadata::stream::value::MetaValueStream;
 
     use crate::config::selection::Selection;
     use crate::config::sort_order::SortOrder;
@@ -202,11 +204,13 @@ mod tests {
 
     use crate::test_util::TestUtil;
 
-    fn generate_stream_stack<'a>(rc: &ResolverContext<'a>) -> OperandStack<'a> {
-        use crate::metadata::resolver::ops::nullary::NullaryOp;
-        let mut os = OperandStack::new();
-        NullaryOp::Parents.process(rc, &mut os).expect("unable to create sample stack");
-        os
+    fn stackify_vs<'a, VS>(vs: VS) -> OperandStack<'a>
+    where
+        VS: Into<MetaValueStream<'a>>,
+    {
+        let mut stack = OperandStack::new();
+        stack.push(Operand::Stream(Stream::Raw(vs.into())));
+        stack
     }
 
     #[test]
@@ -228,15 +232,21 @@ mod tests {
         };
 
         let op = UnaryOp::Collect;
-        let mut stack: OperandStack = generate_stream_stack(&rc);
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, None).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
             Operand::Value(MetaVal::Seq(seq)) => {
                 assert_eq!(
-                    vec![MetaVal::from("0_1_2"), MetaVal::from("0_1"), MetaVal::from("0"), MetaVal::from("ROOT")],
+                    vec![
+                        MetaVal::from("string_0"),
+                        MetaVal::from("string_1"),
+                        MetaVal::from("string_2"),
+                        MetaVal::from("string_3"),
+                        MetaVal::from("string_4"),
+                    ],
                     seq
                 );
             },
@@ -244,15 +254,21 @@ mod tests {
         }
 
         let op = UnaryOp::Rev;
-        let mut stack: OperandStack = generate_stream_stack(&rc);
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, None).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
             Operand::Value(MetaVal::Seq(seq)) => {
                 assert_eq!(
-                    vec![MetaVal::from("ROOT"), MetaVal::from("0"), MetaVal::from("0_1"), MetaVal::from("0_1_2")],
+                    vec![
+                        MetaVal::from("string_4"),
+                        MetaVal::from("string_3"),
+                        MetaVal::from("string_2"),
+                        MetaVal::from("string_1"),
+                        MetaVal::from("string_0"),
+                    ],
                     seq
                 );
             },
@@ -260,35 +276,35 @@ mod tests {
         }
 
         let op = UnaryOp::Count;
-        let mut stack: OperandStack = generate_stream_stack(&rc);
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, None).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(MetaVal::Int(i)) => { assert_eq!(4, i); },
+            Operand::Value(MetaVal::Int(i)) => { assert_eq!(5, i); },
             _ => { panic!("unexpected operand"); },
         }
 
         let op = UnaryOp::First;
-        let mut stack: OperandStack = generate_stream_stack(&rc);
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, None).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::from("0_1_2"), mv); },
+            Operand::Value(mv) => { assert_eq!(MetaVal::from("string_0"), mv); },
             _ => { panic!("unexpected operand"); },
         }
 
         let op = UnaryOp::Last;
-        let mut stack: OperandStack = generate_stream_stack(&rc);
+        let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, None).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
-            Operand::Value(mv) => { assert_eq!(MetaVal::from("ROOT"), mv); },
+            Operand::Value(mv) => { assert_eq!(MetaVal::from("string_4"), mv); },
             _ => { panic!("unexpected operand"); },
         }
     }

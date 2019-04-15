@@ -486,6 +486,18 @@ impl TestUtil {
         )
     }
 
+    pub fn create_sample_fixed_value_string_stream() -> FixedMetaValueStream<'static> {
+        FixedMetaValueStream::new(
+            vec![
+                (Path::new("dummy_0").into(), MetaVal::from("string_0")),
+                (Path::new("dummy_1").into(), MetaVal::from("string_1")),
+                (Path::new("dummy_2").into(), MetaVal::from("string_2")),
+                (Path::new("dummy_3").into(), MetaVal::from("string_3")),
+                (Path::new("dummy_4").into(), MetaVal::from("string_4")),
+            ]
+        )
+    }
+
     pub fn create_sample_fixed_value_numbers_d_stream() -> FixedMetaValueStream<'static> {
         FixedMetaValueStream::new(
             vec![

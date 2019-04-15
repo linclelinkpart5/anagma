@@ -18,7 +18,9 @@ pub enum NullaryOp {
 }
 
 impl Op for NullaryOp {
-    fn process<'no>(&self, rc: &ResolverContext<'no>, stack: &mut OperandStack<'no>) -> Result<(), Error> {
+    fn process<'no>(&self, stack: &mut OperandStack<'no>, rc: Option<&ResolverContext<'no>>) -> Result<(), Error> {
+        let rc = rc.ok_or(Error::ContextUnavailable)?;
+
         let mb_stream = match self {
             &Self::Parents => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
             &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
@@ -71,7 +73,7 @@ mod tests {
         let op = NullaryOp::Parents;
         let mut stack: OperandStack = OperandStack::new();
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, Some(&rc)).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -91,7 +93,7 @@ mod tests {
         let op = NullaryOp::Children;
         let mut stack: OperandStack = OperandStack::new();
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, Some(&rc)).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -119,7 +121,7 @@ mod tests {
         let op = NullaryOp::Children;
         let mut stack: OperandStack = OperandStack::new();
 
-        op.process(&rc, &mut stack).expect("process failed");
+        op.process(&mut stack, Some(&rc)).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {

@@ -97,5 +97,5 @@ pub enum Token<'o> {
 }
 
 pub trait Op {
-    fn process<'o>(&self, rc: &ResolverContext<'o>, stack: &mut OperandStack<'o>) -> Result<(), Error>;
+    fn process<'o>(&self, stack: &mut OperandStack<'o>, rc: Option<&ResolverContext<'o>>) -> Result<(), Error>;
 }
