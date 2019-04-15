@@ -14,7 +14,6 @@ pub enum Error {
     NotNumeric,
     EmptyIterable,
     NotString,
-    ContextUnavailable,
 }
 
 impl std::fmt::Display for Error {
@@ -26,7 +25,6 @@ impl std::fmt::Display for Error {
             Self::NotNumeric => write!(f, "non numeric value was found"),
             Self::EmptyIterable => write!(f, "empty iterable"),
             Self::NotString => write!(f, "non string value was found"),
-            Self::ContextUnavailable => write!(f, "context unavailable"),
         }
     }
 }
@@ -40,7 +38,6 @@ impl std::error::Error for Error {
             Self::NotNumeric => None,
             Self::EmptyIterable => None,
             Self::NotString => None,
-            Self::ContextUnavailable => None,
         }
     }
 }

@@ -1,4 +1,4 @@
-pub mod nullary;
+pub mod source;
 pub mod unary;
 pub mod binary;
 
@@ -10,12 +10,8 @@ use crate::metadata::resolver::iterable_like::IterableLike;
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::context::ResolverContext;
 use crate::metadata::resolver::Error;
-use crate::metadata::resolver::ops::nullary::NullaryOp;
+use crate::metadata::resolver::ops::source::Source;
 use crate::metadata::resolver::ops::unary::UnaryOp;
-
-
-
-
 
 /// Values that are pushed onto an operand stack.
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
@@ -91,11 +87,11 @@ impl<'o> OperandStack<'o> {
 
 pub enum Token<'o> {
     Operand(Operand<'o>),
-    NullaryOp(NullaryOp),
+    Source(Source),
     UnaryOp(UnaryOp),
     BinaryOp,
 }
 
 pub trait Op {
-    fn process<'o>(&self, stack: &mut OperandStack<'o>, rc: Option<&ResolverContext<'o>>) -> Result<(), Error>;
+    fn process<'o>(&self, stack: &mut OperandStack<'o>) -> Result<(), Error>;
 }

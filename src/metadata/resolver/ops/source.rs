@@ -10,17 +10,15 @@ use crate::util::file_walkers::ParentFileWalker;
 use crate::util::file_walkers::ChildFileWalker;
 
 #[derive(Clone, Copy, Debug)]
-pub enum NullaryOp {
+pub enum Source {
     // () -> Stream<V>
     Parents,
     // () -> Stream<V>
     Children,
 }
 
-impl Op for NullaryOp {
-    fn process<'no>(&self, stack: &mut OperandStack<'no>, rc: Option<&ResolverContext<'no>>) -> Result<(), Error> {
-        let rc = rc.ok_or(Error::ContextUnavailable)?;
-
+impl Source {
+    fn process<'s>(&self, stack: &mut OperandStack<'s>, rc: &ResolverContext<'s>) -> Result<(), Error> {
         let mb_stream = match self {
             &Self::Parents => FileMetaBlockStream::new(ParentFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
             &Self::Children => FileMetaBlockStream::new(ChildFileWalker::new(rc.current_item_file_path), rc.meta_format, rc.selection, rc.sort_order),
@@ -36,7 +34,7 @@ impl Op for NullaryOp {
 
 #[cfg(test)]
 mod tests {
-    use super::NullaryOp;
+    use super::Source;
 
     use crate::metadata::resolver::ops::Op;
     use crate::metadata::resolver::ops::Operand;
@@ -70,10 +68,10 @@ mod tests {
             sort_order: SortOrder::Name,
         };
 
-        let op = NullaryOp::Parents;
+        let op = Source::Parents;
         let mut stack: OperandStack = OperandStack::new();
 
-        op.process(&mut stack, Some(&rc)).expect("process failed");
+        op.process(&mut stack, &rc).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -90,10 +88,10 @@ mod tests {
             _ => { panic!("unexpected operand found on stack"); }
         }
 
-        let op = NullaryOp::Children;
+        let op = Source::Children;
         let mut stack: OperandStack = OperandStack::new();
 
-        op.process(&mut stack, Some(&rc)).expect("process failed");
+        op.process(&mut stack, &rc).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -118,10 +116,10 @@ mod tests {
             sort_order: SortOrder::Name,
         };
 
-        let op = NullaryOp::Children;
+        let op = Source::Children;
         let mut stack: OperandStack = OperandStack::new();
 
-        op.process(&mut stack, Some(&rc)).expect("process failed");
+        op.process(&mut stack, &rc).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {

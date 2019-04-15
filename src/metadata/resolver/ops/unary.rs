@@ -42,7 +42,7 @@ pub enum UnaryOp {
 }
 
 impl Op for UnaryOp {
-    fn process<'bo>(&self, stack: &mut OperandStack<'bo>, _rc: Option<&ResolverContext<'bo>>) -> Result<(), Error> {
+    fn process<'bo>(&self, stack: &mut OperandStack<'bo>) -> Result<(), Error> {
         let output_operand = match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {
                 let mut coll = match stack.pop_iterable_like()? {
@@ -234,7 +234,7 @@ mod tests {
         let op = UnaryOp::Collect;
         let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&mut stack, None).expect("process failed");
+        op.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -256,7 +256,7 @@ mod tests {
         let op = UnaryOp::Rev;
         let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&mut stack, None).expect("process failed");
+        op.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -278,7 +278,7 @@ mod tests {
         let op = UnaryOp::Count;
         let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&mut stack, None).expect("process failed");
+        op.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -289,7 +289,7 @@ mod tests {
         let op = UnaryOp::First;
         let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&mut stack, None).expect("process failed");
+        op.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -300,7 +300,7 @@ mod tests {
         let op = UnaryOp::Last;
         let mut stack = stackify_vs(TestUtil::create_sample_fixed_value_string_stream());
 
-        op.process(&mut stack, None).expect("process failed");
+        op.process(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
