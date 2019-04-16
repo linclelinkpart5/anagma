@@ -36,11 +36,11 @@ pub enum UnaryOp {
     Sort,
 }
 
-impl Op for UnaryOp {
-    fn process<'bo>(&self, stack: &mut OperandStack<'bo>) -> Result<(), Error> {
-        let output_operand = match self {
+impl UnaryOp {
+    pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
+        Ok(match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {
-                let mut coll = match stack.pop_iterable_like()? {
+                let mut coll = match operand.try_into()? {
                     IterableLike::Stream(st) => st.collect::<Result<Vec<_>, _>>()?,
                     IterableLike::Sequence(sq) => sq,
                 };
@@ -55,7 +55,7 @@ impl Op for UnaryOp {
                 Operand::Value(MetaVal::Seq(coll))
             },
             &Self::Count => {
-                let len = match stack.pop_iterable_like()? {
+                let len = match operand.try_into()? {
                     // TODO: Make this work without needing to allocate a vector.
                     IterableLike::Stream(st) => st.collect::<Result<Vec<_>, _>>()?.len() as i64,
                     IterableLike::Sequence(sq) => sq.len() as i64,
@@ -64,11 +64,14 @@ impl Op for UnaryOp {
                 Operand::Value(MetaVal::Int(len))
             },
             &Self::First => {
-                let mv = stack.pop_iterable_like()?.into_iter().next().unwrap_or(Ok(MetaVal::Nil))?;
+                // LEARN: Why is a turbofish not allowed here?
+                // let mv = operand.try_into()?.into_iter().next().unwrap_or(Ok(MetaVal::Nil))?;
+                let il: IterableLike<'_> = operand.try_into()?;
+                let mv = il.into_iter().next().unwrap_or(Ok(MetaVal::Nil))?;
                 Operand::Value(mv)
             },
             &Self::Last => {
-                let mv = match stack.pop_iterable_like()? {
+                let mv = match operand.try_into()? {
                     IterableLike::Stream(st) => {
                         let mut last_seen = None;
                         for res_mv in st {
@@ -82,60 +85,53 @@ impl Op for UnaryOp {
 
                 Operand::Value(mv)
             },
-            &Self::MaxIn => {
+            &Self::MaxIn | &Self::MinIn => {
                 let mut m: Option<NumberLike> = None;
 
-                for mv in stack.pop_iterable_like()? {
+                let il: IterableLike<'_> = operand.try_into()?;
+
+                for mv in il {
                     let num: NumberLike = mv?.try_into()?;
 
                     m = Some(
                         match m {
                             None => num,
-                            Some(curr_m) => curr_m.max(num),
+                            Some(curr_m) => {
+                                match self {
+                                    &Self::MaxIn => curr_m.max(num),
+                                    &Self::MinIn => curr_m.min(num),
+                                    _ => unreachable!(),
+                                }
+                            },
                         }
                     );
                 }
 
                 Operand::Value(m.ok_or(Error::EmptyIterable)?.into())
             },
-            &Self::MinIn => {
-                let mut m: Option<NumberLike> = None;
+            &Self::Sum | &Self::Product => {
+                let mut total = match self {
+                    &Self::Sum => NumberLike::Integer(0),
+                    &Self::Product => NumberLike::Integer(1),
+                    _ => unreachable!(),
+                };
 
-                for mv in stack.pop_iterable_like()? {
+                let il: IterableLike<'_> = operand.try_into()?;
+
+                for mv in il {
                     let num: NumberLike = mv?.try_into()?;
-
-                    m = Some(
-                        match m {
-                            None => num,
-                            Some(curr_m) => curr_m.min(num),
-                        }
-                    );
-                }
-
-                Operand::Value(m.ok_or(Error::EmptyIterable)?.into())
-            },
-            &Self::Sum => {
-                let mut total = NumberLike::Integer(0);
-
-                for mv in stack.pop_iterable_like()? {
-                    let num: NumberLike = mv?.try_into()?;
-                    total += num;
-                }
-
-                Operand::Value(total.into())
-            },
-            &Self::Product => {
-                let mut total = NumberLike::Integer(1);
-
-                for mv in stack.pop_iterable_like()? {
-                    let num: NumberLike = mv?.try_into()?;
-                    total *= num;
+                    match self {
+                        &Self::Sum => { total += num; },
+                        &Self::Product => { total *= num; },
+                        _ => unreachable!(),
+                    };
                 }
 
                 Operand::Value(total.into())
             },
             &Self::AllEqual => {
-                let mut it = stack.pop_iterable_like()?.into_iter();
+                let il: IterableLike<'_> = operand.try_into()?;
+                let mut it = il.into_iter();
 
                 let res = match it.next() {
                     None => true,
@@ -157,9 +153,16 @@ impl Op for UnaryOp {
 
                 Operand::Value(MetaVal::Bul(res))
             },
-        };
+        })
+    }
+}
 
-        stack.push(output_operand);
+impl Op for UnaryOp {
+    fn process_stack<'bo>(&self, stack: &mut OperandStack<'bo>) -> Result<(), Error> {
+        let input = stack.pop()?;
+        let output = self.process(input)?;
+
+        stack.push(output);
 
         Ok(())
     }
@@ -177,7 +180,6 @@ mod tests {
     use crate::metadata::resolver::streams::Stream;
 
     use crate::metadata::types::MetaVal;
-    use crate::metadata::stream::value::MetaValueStream;
 
     use crate::test_util::TestUtil;
 
@@ -202,7 +204,7 @@ mod tests {
             TestUtil::sample_null(),
         ]);
 
-        UnaryOp::Collect.process(&mut stack).expect("process failed");
+        UnaryOp::Collect.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -229,7 +231,7 @@ mod tests {
             TestUtil::sample_null(),
         ]);
 
-        UnaryOp::Rev.process(&mut stack).expect("process failed");
+        UnaryOp::Rev.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -256,7 +258,7 @@ mod tests {
             TestUtil::sample_null(),
         ]);
 
-        UnaryOp::Count.process(&mut stack).expect("process failed");
+        UnaryOp::Count.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -272,7 +274,7 @@ mod tests {
             TestUtil::sample_null(),
         ]);
 
-        UnaryOp::First.process(&mut stack).expect("process failed");
+        UnaryOp::First.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -288,7 +290,7 @@ mod tests {
             TestUtil::sample_null(),
         ]);
 
-        UnaryOp::Last.process(&mut stack).expect("process failed");
+        UnaryOp::Last.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -307,7 +309,7 @@ mod tests {
             MetaVal::Int(1),
         ]);
 
-        UnaryOp::MaxIn.process(&mut stack).expect("process failed");
+        UnaryOp::MaxIn.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -326,7 +328,7 @@ mod tests {
             MetaVal::Int(1),
         ]);
 
-        UnaryOp::MinIn.process(&mut stack).expect("process failed");
+        UnaryOp::MinIn.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -342,7 +344,7 @@ mod tests {
             MetaVal::Int(5),
         ]);
 
-        UnaryOp::Sum.process(&mut stack).expect("process failed");
+        UnaryOp::Sum.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -358,7 +360,7 @@ mod tests {
             MetaVal::Dec(BigDecimal::from(5.5)),
         ]);
 
-        UnaryOp::Sum.process(&mut stack).expect("process failed");
+        UnaryOp::Sum.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -374,7 +376,7 @@ mod tests {
             MetaVal::Int(5),
         ]);
 
-        UnaryOp::Product.process(&mut stack).expect("process failed");
+        UnaryOp::Product.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -390,7 +392,7 @@ mod tests {
             MetaVal::Dec(BigDecimal::from(5.5)),
         ]);
 
-        UnaryOp::Product.process(&mut stack).expect("process failed");
+        UnaryOp::Product.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -404,7 +406,7 @@ mod tests {
             MetaVal::Int(1),
         ]);
 
-        UnaryOp::AllEqual.process(&mut stack).expect("process failed");
+        UnaryOp::AllEqual.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -414,7 +416,7 @@ mod tests {
 
         let mut stack = stackify_meta_vals(vec![]);
 
-        UnaryOp::AllEqual.process(&mut stack).expect("process failed");
+        UnaryOp::AllEqual.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
@@ -428,7 +430,7 @@ mod tests {
             MetaVal::Int(-1),
         ]);
 
-        UnaryOp::AllEqual.process(&mut stack).expect("process failed");
+        UnaryOp::AllEqual.process_stack(&mut stack).expect("process failed");
 
         assert_eq!(1, stack.len());
         match stack.pop().expect("stack is empty") {
