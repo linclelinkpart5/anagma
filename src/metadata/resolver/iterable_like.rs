@@ -27,7 +27,18 @@ impl<'il> TryFrom<Operand<'il>> for IterableLike<'il> {
     fn try_from(value: Operand<'il>) -> Result<Self, Self::Error> {
         match value {
             Operand::Stream(s) => Ok(Self::Stream(s)),
-            Operand::Value(MetaVal::Seq(s)) => Ok(Self::Sequence(s)),
+            Operand::Value(mv) => Self::try_from(mv),
+            _ => Err(Error::NotIterable),
+        }
+    }
+}
+
+impl<'il> TryFrom<MetaVal<'il>> for IterableLike<'il> {
+    type Error = Error;
+
+    fn try_from(value: MetaVal<'il>) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Seq(s) => Ok(Self::Sequence(s)),
             _ => Err(Error::NotIterable),
         }
     }
