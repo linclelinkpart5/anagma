@@ -9,6 +9,8 @@ use crate::metadata::resolver::Error;
 #[derive(Debug)]
 pub enum Stream<'s> {
     Raw(MetaValueStream<'s>),
+    Fixed(std::vec::IntoIter<MetaVal<'s>>),
+
     Flatten(FlattenStream<'s>),
     Dedup(DedupStream<'s>),
     Unique(UniqueStream<'s>),
@@ -22,6 +24,8 @@ impl<'s> Iterator for Stream<'s> {
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv)).map(|res| res.map_err(Error::ValueStream)),
+            &mut Self::Fixed(ref mut it) => it.next().map(Result::Ok),
+
             &mut Self::Flatten(ref mut it) => it.next(),
             &mut Self::Dedup(ref mut it) => it.next(),
             &mut Self::Unique(ref mut it) => it.next(),
@@ -31,6 +35,12 @@ impl<'s> Iterator for Stream<'s> {
 
 #[derive(Debug)]
 pub struct FlattenStream<'s>(Box<Stream<'s>>, VecDeque<MetaVal<'s>>);
+
+impl<'s> FlattenStream<'s> {
+    pub fn new(s: Stream<'s>) -> Self {
+        Self(Box::new(s), VecDeque::new())
+    }
+}
 
 impl<'s> Iterator for FlattenStream<'s> {
     type Item = StreamResult<'s>;
@@ -55,6 +65,12 @@ impl<'s> Iterator for FlattenStream<'s> {
 
 #[derive(Debug)]
 pub struct DedupStream<'s>(Box<Stream<'s>>, Option<MetaVal<'s>>);
+
+impl<'s> DedupStream<'s> {
+    pub fn new(s: Stream<'s>) -> Self {
+        Self(Box::new(s), None)
+    }
+}
 
 impl<'s> Iterator for DedupStream<'s> {
     type Item = StreamResult<'s>;
@@ -81,6 +97,12 @@ impl<'s> Iterator for DedupStream<'s> {
 
 #[derive(Debug)]
 pub struct UniqueStream<'s>(Box<Stream<'s>>, HashSet<MetaVal<'s>>);
+
+impl<'s> UniqueStream<'s> {
+    pub fn new(s: Stream<'s>) -> Self {
+        Self(Box::new(s), HashSet::new())
+    }
+}
 
 impl<'s> Iterator for UniqueStream<'s> {
     type Item = StreamResult<'s>;

@@ -5,9 +5,16 @@ use bigdecimal::BigDecimal;
 
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::resolver::streams::FlattenStream;
+use crate::metadata::resolver::streams::DedupStream;
+use crate::metadata::resolver::streams::UniqueStream;
 use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
+
+use crate::metadata::stream::value::MetaValueStream;
+use crate::metadata::stream::value::FixedMetaValueStream;
 
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
@@ -51,6 +58,16 @@ pub enum UnaryOp {
     AllEqual,
     // (Iterable<V>) -> Sequence<V>
     Sort,
+
+    // (Sequence<V>) -> Sequence<V>
+    // (Stream<V>) -> Stream<V>
+    Flatten,
+    // (Sequence<V>) -> Sequence<V>
+    // (Stream<V>) -> Stream<V>
+    Dedup,
+    // (Sequence<V>) -> Sequence<V>
+    // (Stream<V>) -> Stream<V>
+    Unique,
 }
 
 impl UnaryOp {
@@ -170,6 +187,30 @@ impl UnaryOp {
 
                 Operand::Value(MetaVal::Bul(res))
             },
+            &Self::Flatten | &Self::Dedup | &Self::Unique => {
+                let il: IterableLike<'_> = operand.try_into()?;
+
+                let (collect_after, stream) = match il {
+                    IterableLike::Sequence(s) => (true, Stream::Fixed(s.into_iter())),
+                    IterableLike::Stream(s) => (false, s),
+                };
+
+                let adapted_stream = match self {
+                    &Self::Flatten => Stream::Flatten(FlattenStream::new(stream)),
+                    &Self::Dedup => Stream::Dedup(DedupStream::new(stream)),
+                    &Self::Unique => Stream::Unique(UniqueStream::new(stream)),
+                    _ => unreachable!(),
+                };
+
+                if collect_after {
+                    Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))
+                }
+                else {
+                    Operand::Stream(adapted_stream)
+                }
+
+                // Operand::Value(MetaVal::Nil)
+            }
         })
     }
 }
