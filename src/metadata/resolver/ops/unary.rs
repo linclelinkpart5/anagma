@@ -191,9 +191,7 @@ mod tests {
 
     use bigdecimal::BigDecimal;
 
-    use crate::metadata::resolver::ops::Op;
     use crate::metadata::resolver::ops::Operand;
-    use crate::metadata::resolver::ops::OperandStack;
     use crate::metadata::resolver::streams::Stream;
 
     use crate::metadata::types::MetaVal;
@@ -488,6 +486,68 @@ mod tests {
                 ),
                 MetaVal::Int(1),
             ),
+            (
+                (
+                    UnaryOp::AllEqual,
+                    streamify(vec![
+                        MetaVal::Str(String::from("same")),
+                        MetaVal::Str(String::from("same")),
+                        MetaVal::Str(String::from("same")),
+                    ])
+                ),
+                MetaVal::Bul(true),
+            ),
+            (
+                (
+                    UnaryOp::AllEqual,
+                    streamify(vec![
+                        MetaVal::Str(String::from("same")),
+                        MetaVal::Str(String::from("different")),
+                        MetaVal::Str(String::from("same")),
+                    ])
+                ),
+                MetaVal::Bul(false),
+            ),
+            (
+                (
+                    UnaryOp::AllEqual,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                    ])
+                ),
+                MetaVal::Bul(true),
+            ),
+            (
+                (
+                    UnaryOp::AllEqual,
+                    streamify(vec![
+                        MetaVal::Int(0),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                    ])
+                ),
+                MetaVal::Bul(false),
+            ),
+            // (
+            //     (
+            //         UnaryOp::AllEqual,
+            //         streamify(vec![
+            //             MetaVal::Int(1),
+            //             MetaVal::Int(1),
+            //             MetaVal::Dec(1.into()),
+            //         ])
+            //     ),
+            //     MetaVal::Bul(true),
+            // ),
+            (
+                (
+                    UnaryOp::AllEqual,
+                    streamify(vec![])
+                ),
+                MetaVal::Bul(true),
+            ),
         ];
 
         for (inputs, expected) in inputs_and_expected {
@@ -499,107 +559,5 @@ mod tests {
             };
             assert_eq!(expected, produced);
         }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(2),
-        //     MetaVal::Int(3),
-        //     MetaVal::Int(4),
-        //     MetaVal::Int(5),
-        // ]);
-
-        // UnaryOp::Sum.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Int(15), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(2),
-        //     MetaVal::Int(3),
-        //     MetaVal::Int(4),
-        //     MetaVal::Dec(BigDecimal::from(5.5)),
-        // ]);
-
-        // UnaryOp::Sum.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::from(15.5)), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(2),
-        //     MetaVal::Int(3),
-        //     MetaVal::Int(4),
-        //     MetaVal::Int(5),
-        // ]);
-
-        // UnaryOp::Product.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Int(120), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(2),
-        //     MetaVal::Int(3),
-        //     MetaVal::Int(4),
-        //     MetaVal::Dec(BigDecimal::from(5.5)),
-        // ]);
-
-        // UnaryOp::Product.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Dec(BigDecimal::from(132)), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(1),
-        // ]);
-
-        // UnaryOp::AllEqual.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Bul(true), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![]);
-
-        // UnaryOp::AllEqual.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Bul(true), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(1),
-        //     MetaVal::Int(-1),
-        // ]);
-
-        // UnaryOp::AllEqual.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Bul(false), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
     }
 }
