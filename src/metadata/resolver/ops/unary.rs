@@ -401,6 +401,93 @@ mod tests {
                 ),
                 MetaVal::Dec(BigDecimal::new(15.into(), 1)),
             ),
+            (
+                (
+                    UnaryOp::MinIn,
+                    streamify(vec![
+                        MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+                        MetaVal::Int(-1),
+                        MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+                        MetaVal::Int(0),
+                        MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+                        MetaVal::Int(-2),
+                        MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+                    ])
+                ),
+                MetaVal::Int(-2),
+            ),
+            (
+                (
+                    UnaryOp::MinIn,
+                    streamify(vec![
+                        MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+                        MetaVal::Int(-1),
+                        MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+                        MetaVal::Int(0),
+                        MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+                        MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+                    ])
+                ),
+                MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+            ),
+            (
+                (
+                    UnaryOp::Sum,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(2),
+                        MetaVal::Int(-3),
+                    ])
+                ),
+                MetaVal::Int(0),
+            ),
+            (
+                (
+                    UnaryOp::Sum,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Dec(BigDecimal::new(25.into(), 1)),
+                        MetaVal::Int(-3),
+                    ])
+                ),
+                MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+            ),
+            (
+                (
+                    UnaryOp::Sum,
+                    streamify(vec![])
+                ),
+                MetaVal::Int(0),
+            ),
+            (
+                (
+                    UnaryOp::Product,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(2),
+                        MetaVal::Int(-3),
+                    ])
+                ),
+                MetaVal::Int(-6),
+            ),
+            (
+                (
+                    UnaryOp::Product,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Dec(BigDecimal::new(25.into(), 1)),
+                        MetaVal::Int(-3),
+                    ])
+                ),
+                MetaVal::Dec(BigDecimal::new((-75).into(), 1)),
+            ),
+            (
+                (
+                    UnaryOp::Product,
+                    streamify(vec![])
+                ),
+                MetaVal::Int(1),
+            ),
         ];
 
         for (inputs, expected) in inputs_and_expected {
@@ -412,44 +499,6 @@ mod tests {
             };
             assert_eq!(expected, produced);
         }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(-1),
-        //     MetaVal::Int(-2),
-        //     MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
-        //     MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
-        //     MetaVal::Dec(BigDecimal::new(5.into(), 1)),
-        //     MetaVal::Dec(BigDecimal::new(15.into(), 1)),
-        //     MetaVal::Int(2),
-        //     MetaVal::Int(1),
-        // ]);
-
-        // UnaryOp::MaxIn.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Int(2), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     MetaVal::Int(-1),
-        //     MetaVal::Int(-2),
-        //     MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
-        //     MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
-        //     MetaVal::Dec(BigDecimal::new(5.into(), 1)),
-        //     MetaVal::Dec(BigDecimal::new(15.into(), 1)),
-        //     MetaVal::Int(2),
-        //     MetaVal::Int(1),
-        // ]);
-
-        // UnaryOp::MinIn.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(MetaVal::Int(-2), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
 
         // let mut stack = stackify_meta_vals(vec![
         //     MetaVal::Int(1),
