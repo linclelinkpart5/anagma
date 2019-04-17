@@ -232,6 +232,13 @@ mod tests {
             ),
             (
                 (
+                    UnaryOp::Collect,
+                    streamify(vec![])
+                ),
+                MetaVal::Seq(vec![]),
+            ),
+            (
+                (
                     UnaryOp::Rev,
                     streamify(vec![
                         TestUtil::sample_string(),
@@ -251,6 +258,13 @@ mod tests {
             ),
             (
                 (
+                    UnaryOp::Rev,
+                    streamify(vec![])
+                ),
+                MetaVal::Seq(vec![]),
+            ),
+            (
+                (
                     UnaryOp::Sort,
                     streamify(vec![
                         MetaVal::Str(String::from("ab")),
@@ -286,15 +300,15 @@ mod tests {
                 (
                     UnaryOp::Sort,
                     streamify(vec![
-                        MetaVal::Int(-2),
+                        MetaVal::Dec(BigDecimal::new(15.into(), 1)),
                         MetaVal::Int(1),
-                        MetaVal::Dec(BigDecimal::new(5.into(), 1)),
-                        MetaVal::Int(2),
-                        MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+                        MetaVal::Int(-2),
                         MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
                         MetaVal::Int(-1),
                         MetaVal::Int(0),
-                        MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+                        MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+                        MetaVal::Int(2),
+                        MetaVal::Dec(BigDecimal::new(5.into(), 1)),
                     ])
                 ),
                 MetaVal::Seq(vec![
@@ -309,6 +323,84 @@ mod tests {
                         MetaVal::Int(2),
                 ]),
             ),
+            (
+                (
+                    UnaryOp::Sort,
+                    streamify(vec![])
+                ),
+                MetaVal::Seq(vec![]),
+            ),
+            (
+                (
+                    UnaryOp::Count,
+                    streamify(vec![
+                        TestUtil::sample_string(),
+                        TestUtil::sample_integer(),
+                        TestUtil::sample_boolean(),
+                        TestUtil::sample_decimal(),
+                        TestUtil::sample_null(),
+                    ])
+                ),
+                MetaVal::Int(5),
+            ),
+            (
+                (
+                    UnaryOp::Count,
+                    streamify(vec![])
+                ),
+                MetaVal::Int(0),
+            ),
+            (
+                (
+                    UnaryOp::First,
+                    streamify(vec![
+                        TestUtil::sample_string(),
+                        TestUtil::sample_integer(),
+                        TestUtil::sample_boolean(),
+                    ])
+                ),
+                TestUtil::sample_string(),
+            ),
+            (
+                (
+                    UnaryOp::Last,
+                    streamify(vec![
+                        TestUtil::sample_string(),
+                        TestUtil::sample_integer(),
+                        TestUtil::sample_boolean(),
+                    ])
+                ),
+                TestUtil::sample_boolean(),
+            ),
+            (
+                (
+                    UnaryOp::MaxIn,
+                    streamify(vec![
+                        MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+                        MetaVal::Int(1),
+                        MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+                        MetaVal::Int(0),
+                        MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+                        MetaVal::Int(2),
+                        MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+                    ])
+                ),
+                MetaVal::Int(2),
+            ),
+            (
+                (
+                    UnaryOp::MaxIn,
+                    streamify(vec![
+                        MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+                        MetaVal::Int(1),
+                        MetaVal::Dec(BigDecimal::new((-15).into(), 1)),
+                        MetaVal::Int(0),
+                        MetaVal::Dec(BigDecimal::new((-5).into(), 1)),
+                        MetaVal::Dec(BigDecimal::new(5.into(), 1)),
+                    ])
+                ),
+                MetaVal::Dec(BigDecimal::new(15.into(), 1)),
+            ),
         ];
 
         for (inputs, expected) in inputs_and_expected {
@@ -320,54 +412,6 @@ mod tests {
             };
             assert_eq!(expected, produced);
         }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     TestUtil::sample_string(),
-        //     TestUtil::sample_integer(),
-        //     TestUtil::sample_boolean(),
-        //     TestUtil::sample_decimal(),
-        //     TestUtil::sample_null(),
-        // ]);
-
-        // UnaryOp::Count.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(MetaVal::Int(i)) => { assert_eq!(5, i); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     TestUtil::sample_string(),
-        //     TestUtil::sample_integer(),
-        //     TestUtil::sample_boolean(),
-        //     TestUtil::sample_decimal(),
-        //     TestUtil::sample_null(),
-        // ]);
-
-        // UnaryOp::First.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(TestUtil::sample_string(), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
-
-        // let mut stack = stackify_meta_vals(vec![
-        //     TestUtil::sample_string(),
-        //     TestUtil::sample_integer(),
-        //     TestUtil::sample_boolean(),
-        //     TestUtil::sample_decimal(),
-        //     TestUtil::sample_null(),
-        // ]);
-
-        // UnaryOp::Last.process_stack(&mut stack).expect("process failed");
-
-        // assert_eq!(1, stack.len());
-        // match stack.pop().expect("stack is empty") {
-        //     Operand::Value(mv) => { assert_eq!(TestUtil::sample_null(), mv); },
-        //     _ => { panic!("unexpected operand"); },
-        // }
 
         // let mut stack = stackify_meta_vals(vec![
         //     MetaVal::Int(-1),
