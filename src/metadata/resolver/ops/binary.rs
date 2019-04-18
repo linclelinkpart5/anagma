@@ -1,3 +1,21 @@
+use std::cmp::Ordering;
+use std::convert::TryInto;
+
+use bigdecimal::BigDecimal;
+
+use crate::metadata::types::MetaVal;
+use crate::metadata::resolver::Error;
+use crate::metadata::resolver::streams::Stream;
+use crate::metadata::resolver::streams::FlattenStream;
+use crate::metadata::resolver::streams::DedupStream;
+use crate::metadata::resolver::streams::UniqueStream;
+use crate::metadata::resolver::ops::Op;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::ops::OperandStack;
+
+use crate::metadata::resolver::number_like::NumberLike;
+use crate::metadata::resolver::iterable_like::IterableLike;
+
 #[derive(Clone, Copy, Debug)]
 pub enum BinaryOp {
     // (Iterable<V>, Usize) -> V
@@ -52,4 +70,12 @@ pub enum BinaryOp {
     // (Stream<V>, Usize) -> Stream<Sequence<V>>
     // (Sequence<V>, Usize) -> Sequence<Sequence<V>>
     Windows,
+}
+
+impl BinaryOp {
+    pub fn process<'o>(&self, operand_a: Operand<'o>, operand_b: Operand<'o>) -> Result<Operand<'o>, Error> {
+        Ok(match self {
+            _ => Operand::Value(MetaVal::Nil),
+        })
+    }
 }

@@ -15,6 +15,7 @@ pub enum Error {
     EmptyIterable,
     NotString,
     NotIterable,
+    NegativeIndex,
 }
 
 impl std::fmt::Display for Error {
@@ -27,6 +28,7 @@ impl std::fmt::Display for Error {
             Self::EmptyIterable => write!(f, "empty iterable"),
             Self::NotString => write!(f, "non string value was found"),
             Self::NotIterable => write!(f, "non iterable value was found"),
+            Self::NegativeIndex => write!(f, "negative indices are not allowed"),
         }
     }
 }
@@ -41,6 +43,7 @@ impl std::error::Error for Error {
             Self::EmptyIterable => None,
             Self::NotString => None,
             Self::NotIterable => None,
+            Self::NegativeIndex => None,
         }
     }
 }

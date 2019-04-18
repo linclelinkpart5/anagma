@@ -71,3 +71,6 @@ impl<'il> Iterator for IterLike<'il> {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct Index(usize);
