@@ -13,9 +13,6 @@ use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
 
-use crate::metadata::stream::value::MetaValueStream;
-use crate::metadata::stream::value::FixedMetaValueStream;
-
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
 
@@ -99,7 +96,6 @@ impl UnaryOp {
             },
             &Self::First => {
                 // LEARN: Why is a turbofish not allowed here?
-                // let mv = operand.try_into()?.into_iter().next().unwrap_or(Ok(MetaVal::Nil))?;
                 let il: IterableLike<'_> = operand.try_into()?;
                 let mv = il.into_iter().next().unwrap_or(Err(Error::EmptyIterable))?;
                 Operand::Value(mv)
@@ -262,12 +258,197 @@ mod tests {
     fn test_process() {
         positive_cases();
         negative_cases();
+        preserve_stream_cases();
+    }
+
+    fn preserve_stream_cases() {
+        let inputs_and_expected = vec![
+            (
+                (
+                    UnaryOp::Flatten,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Seq(vec![
+                            MetaVal::Int(2),
+                            MetaVal::Int(3),
+                        ]),
+                        MetaVal::Int(4),
+                        MetaVal::Seq(vec![
+                            MetaVal::Int(5),
+                            MetaVal::Int(6),
+                        ]),
+                        MetaVal::Int(7),
+                        MetaVal::Seq(vec![]),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                    MetaVal::Int(2),
+                    MetaVal::Int(3),
+                    MetaVal::Int(4),
+                    MetaVal::Int(5),
+                    MetaVal::Int(6),
+                    MetaVal::Int(7),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Flatten,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Seq(vec![
+                            MetaVal::Int(2),
+                            MetaVal::Int(3),
+                            MetaVal::Seq(vec![
+                                MetaVal::Int(4),
+                                MetaVal::Int(5),
+                            ]),
+                        ]),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                    MetaVal::Int(2),
+                    MetaVal::Int(3),
+                    MetaVal::Seq(vec![
+                        MetaVal::Int(4),
+                        MetaVal::Int(5),
+                    ]),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Flatten,
+                    streamify(vec![]),
+                ),
+                vec![],
+            ),
+            (
+                (
+                    UnaryOp::Dedup,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(2),
+                        MetaVal::Int(2),
+                        MetaVal::Int(3),
+                        MetaVal::Int(3),
+                        MetaVal::Int(3),
+                        MetaVal::Int(1),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                    MetaVal::Int(2),
+                    MetaVal::Int(3),
+                    MetaVal::Int(1),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Dedup,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(2),
+                        MetaVal::Int(3),
+                        MetaVal::Int(4),
+                        MetaVal::Int(5),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                    MetaVal::Int(2),
+                    MetaVal::Int(3),
+                    MetaVal::Int(4),
+                    MetaVal::Int(5),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Dedup,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Dedup,
+                    streamify(vec![]),
+                ),
+                vec![],
+            ),
+            (
+                (
+                    UnaryOp::Unique,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(2),
+                        MetaVal::Int(2),
+                        MetaVal::Int(3),
+                        MetaVal::Int(3),
+                        MetaVal::Int(3),
+                        MetaVal::Int(1),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                    MetaVal::Int(2),
+                    MetaVal::Int(3),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Unique,
+                    streamify(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                    ]),
+                ),
+                vec![
+                    MetaVal::Int(1),
+                ],
+            ),
+            (
+                (
+                    UnaryOp::Unique,
+                    streamify(vec![]),
+                ),
+                vec![],
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (op, input_operand) = inputs;
+            let produced_operand = op.process(input_operand).unwrap();
+            let produced = match produced_operand {
+                Operand::Stream(stream) => stream.map(Result::unwrap).collect::<Vec<_>>(),
+                _ => { panic!("expected stream as output"); },
+            };
+
+            assert_eq!(expected, produced);
+        }
     }
 
     fn negative_cases() {
         let empty_iter_cases = vec![
             (UnaryOp::First, streamify(vec![])),
             (UnaryOp::Last, streamify(vec![])),
+            (UnaryOp::MaxIn, streamify(vec![])),
+            (UnaryOp::MinIn, streamify(vec![])),
         ];
 
         for (op, input_operand) in empty_iter_cases {
