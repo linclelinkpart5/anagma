@@ -101,11 +101,11 @@ impl UnaryOp {
                 // LEARN: Why is a turbofish not allowed here?
                 // let mv = operand.try_into()?.into_iter().next().unwrap_or(Ok(MetaVal::Nil))?;
                 let il: IterableLike<'_> = operand.try_into()?;
-                let mv = il.into_iter().next().unwrap_or(Ok(MetaVal::Nil))?;
+                let mv = il.into_iter().next().unwrap_or(Err(Error::EmptyIterable))?;
                 Operand::Value(mv)
             },
             &Self::Last => {
-                let mv = match operand.try_into()? {
+                let opt_mv = match operand.try_into()? {
                     IterableLike::Stream(st) => {
                         let mut last_seen = None;
                         for res_mv in st {
@@ -115,9 +115,12 @@ impl UnaryOp {
                         last_seen
                     },
                     IterableLike::Sequence(sq) => sq.into_iter().last(),
-                }.unwrap_or(MetaVal::Nil);
+                };
 
-                Operand::Value(mv)
+                match opt_mv {
+                    Some(mv) => Operand::Value(mv),
+                    None => Err(Error::EmptyIterable)?,
+                }
             },
             &Self::MaxIn | &Self::MinIn => {
                 let mut m: Option<NumberLike> = None;
@@ -229,6 +232,7 @@ impl Op for UnaryOp {
 #[cfg(test)]
 mod tests {
     use super::UnaryOp;
+    use super::Error;
 
     use bigdecimal::BigDecimal;
 
@@ -247,8 +251,31 @@ mod tests {
         Operand::Stream(Stream::Raw(fmvs.into()))
     }
 
+    fn assert_empty_iterable_err(result: Result<Operand<'_>, Error>) {
+        match result {
+            Err(Error::EmptyIterable) => {},
+            _ => panic!("expected empty iterable error"),
+        };
+    }
+
     #[test]
     fn test_process() {
+        positive_cases();
+        negative_cases();
+    }
+
+    fn negative_cases() {
+        let empty_iter_cases = vec![
+            (UnaryOp::First, streamify(vec![])),
+            (UnaryOp::Last, streamify(vec![])),
+        ];
+
+        for (op, input_operand) in empty_iter_cases {
+            assert_empty_iterable_err(op.process(input_operand));
+        }
+    }
+
+    fn positive_cases() {
         let inputs_and_expected = vec![
             (
                 (
