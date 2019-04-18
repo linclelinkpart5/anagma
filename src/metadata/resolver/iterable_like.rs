@@ -73,4 +73,33 @@ impl<'il> Iterator for IterLike<'il> {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Index(usize);
+pub struct Index(pub usize);
+
+impl<'a> TryFrom<Operand<'a>> for Index {
+    type Error = Error;
+
+    fn try_from(value: Operand<'a>) -> Result<Self, Self::Error> {
+        match value {
+            Operand::Value(mv) => Self::try_from(mv),
+            _ => Err(Error::NotIndex),
+        }
+    }
+}
+
+impl<'a> TryFrom<MetaVal<'a>> for Index {
+    type Error = Error;
+
+    fn try_from(value: MetaVal<'a>) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Int(i) => {
+                if i < 0 {
+                    Err(Error::NegativeIndex)
+                }
+                else {
+                    Ok(Self(i as usize))
+                }
+            },
+            _ => Err(Error::NotIndex),
+        }
+    }
+}

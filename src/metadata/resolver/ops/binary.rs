@@ -6,15 +6,14 @@ use bigdecimal::BigDecimal;
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
 use crate::metadata::resolver::streams::Stream;
-use crate::metadata::resolver::streams::FlattenStream;
-use crate::metadata::resolver::streams::DedupStream;
-use crate::metadata::resolver::streams::UniqueStream;
+use crate::metadata::resolver::streams::StepByStream;
 use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
 
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
+use crate::metadata::resolver::iterable_like::Index;
 
 #[derive(Clone, Copy, Debug)]
 pub enum BinaryOp {
@@ -75,6 +74,45 @@ pub enum BinaryOp {
 impl BinaryOp {
     pub fn process<'o>(&self, operand_a: Operand<'o>, operand_b: Operand<'o>) -> Result<Operand<'o>, Error> {
         Ok(match self {
+            &Self::Nth => {
+                let il: IterableLike<'_> = operand_a.try_into()?;
+                let n: Index = operand_b.try_into()?;
+                let mut n = n.0;
+
+                for res_mv in il {
+                    let mv = res_mv?;
+
+                    if n == 0 {
+                        return Ok(Operand::Value(mv));
+                    }
+
+                    n -= 1;
+                }
+
+                return Err(Error::IndexOutOfBounds);
+            },
+            &Self::StepBy => {
+                let il: IterableLike<'_> = operand_a.try_into()?;
+                let n: Index = operand_b.try_into()?;
+                let n = n.0;
+
+                let (collect_after, stream) = match il {
+                    IterableLike::Sequence(s) => (true, Stream::Fixed(s.into_iter())),
+                    IterableLike::Stream(s) => (false, s),
+                };
+
+                let adapted_stream = match self {
+                    &Self::StepBy => Stream::StepBy(StepByStream::new(stream, n)),
+                    _ => unreachable!(),
+                };
+
+                if collect_after {
+                    Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))
+                }
+                else {
+                    Operand::Stream(adapted_stream)
+                }
+            },
             _ => Operand::Value(MetaVal::Nil),
         })
     }

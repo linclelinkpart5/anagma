@@ -12,6 +12,7 @@ use crate::metadata::resolver::context::ResolverContext;
 use crate::metadata::resolver::Error;
 use crate::metadata::resolver::ops::source::Source;
 use crate::metadata::resolver::ops::unary::UnaryOp;
+use crate::metadata::resolver::ops::binary::BinaryOp;
 
 /// Values that are pushed onto an operand stack.
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
@@ -89,7 +90,7 @@ pub enum Token<'o> {
     Operand(Operand<'o>),
     Source(Source),
     UnaryOp(UnaryOp),
-    BinaryOp,
+    BinaryOp(BinaryOp),
 }
 
 pub trait Op {

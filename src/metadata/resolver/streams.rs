@@ -14,6 +14,7 @@ pub enum Stream<'s> {
     Flatten(FlattenStream<'s>),
     Dedup(DedupStream<'s>),
     Unique(UniqueStream<'s>),
+    StepBy(StepByStream<'s>),
 }
 
 type StreamResult<'s> = Result<MetaVal<'s>, Error>;
@@ -29,6 +30,7 @@ impl<'s> Iterator for Stream<'s> {
             &mut Self::Flatten(ref mut it) => it.next(),
             &mut Self::Dedup(ref mut it) => it.next(),
             &mut Self::Unique(ref mut it) => it.next(),
+            &mut Self::StepBy(ref mut it) => it.next(),
         }
     }
 }
@@ -123,5 +125,22 @@ impl<'s> Iterator for UniqueStream<'s> {
                 }
             },
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct StepByStream<'s>(std::iter::StepBy<Box<Stream<'s>>>);
+
+impl<'s> StepByStream<'s> {
+    pub fn new(s: Stream<'s>, n: usize) -> Self {
+        Self(Box::new(s).step_by(n))
+    }
+}
+
+impl<'s> Iterator for StepByStream<'s> {
+    type Item = StreamResult<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }
