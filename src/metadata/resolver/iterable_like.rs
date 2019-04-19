@@ -12,6 +12,15 @@ pub enum IterableLike<'il> {
     Sequence(Vec<MetaVal<'il>>),
 }
 
+impl<'il> IterableLike<'il> {
+    pub fn is_lazy(&self) -> bool {
+        match self {
+            &Self::Stream(..) => true,
+            &Self::Sequence(..) => false,
+        }
+    }
+}
+
 impl<'il> From<IterableLike<'il>> for Operand<'il> {
     fn from(il: IterableLike<'il>) -> Self {
         match il {

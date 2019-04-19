@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
+use crate::metadata::resolver::iterable_like::IterableLike;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
 #[derive(Debug)]
@@ -33,6 +34,15 @@ impl<'s> Iterator for Stream<'s> {
             &mut Self::Unique(ref mut it) => it.next(),
             &mut Self::StepBy(ref mut it) => it.next(),
             &mut Self::Chain(ref mut it) => it.next(),
+        }
+    }
+}
+
+impl<'s> From<IterableLike<'s>> for Stream<'s> {
+    fn from(il: IterableLike<'s>) -> Self {
+        match il {
+            IterableLike::Sequence(seq) => Stream::Fixed(seq.into_iter()),
+            IterableLike::Stream(stm) => stm,
         }
     }
 }
