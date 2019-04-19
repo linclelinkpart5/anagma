@@ -92,10 +92,8 @@ impl BinaryOp {
                 let il: IterableLike<'_> = operand_a.try_into()?;
                 let n: Index = operand_b.try_into()?;
 
-                let (collect_after, stream) = match il {
-                    IterableLike::Sequence(s) => (true, Stream::Fixed(s.into_iter())),
-                    IterableLike::Stream(s) => (false, s),
-                };
+                let collect_after = il.is_eager();
+                let stream: Stream<'_> = il.into();
 
                 let adapted_stream = Stream::StepBy(StepByStream::new(stream, n)?);
 
@@ -110,7 +108,7 @@ impl BinaryOp {
                 let il_a: IterableLike<'_> = operand_a.try_into()?;
                 let il_b: IterableLike<'_> = operand_b.try_into()?;
 
-                let collect_after = !(il_a.is_lazy() || il_b.is_lazy());
+                let collect_after = il_a.is_eager() && il_b.is_eager();
 
                 let stream_a: Stream<'_> = il_a.into();
                 let stream_b: Stream<'_> = il_b.into();

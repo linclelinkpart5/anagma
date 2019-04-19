@@ -19,6 +19,10 @@ impl<'il> IterableLike<'il> {
             &Self::Sequence(..) => false,
         }
     }
+
+    pub fn is_eager(&self) -> bool {
+        !self.is_lazy()
+    }
 }
 
 impl<'il> From<IterableLike<'il>> for Operand<'il> {
