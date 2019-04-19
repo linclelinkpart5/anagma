@@ -91,16 +91,12 @@ impl BinaryOp {
                 let il: IterableLike<'_> = operand_a.try_into()?;
                 let n: Index = operand_b.try_into()?;
 
-                if n == 0 {
-                    return Err(Error::ZeroStepSize)
-                }
-
                 let (collect_after, stream) = match il {
                     IterableLike::Sequence(s) => (true, Stream::Fixed(s.into_iter())),
                     IterableLike::Stream(s) => (false, s),
                 };
 
-                let adapted_stream = Stream::StepBy(StepByStream::new(stream, n));
+                let adapted_stream = Stream::StepBy(StepByStream::new(stream, n)?);
 
                 if collect_after {
                     Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))

@@ -15,6 +15,7 @@ pub enum Stream<'s> {
     Dedup(DedupStream<'s>),
     Unique(UniqueStream<'s>),
     StepBy(StepByStream<'s>),
+    Chain(ChainStream<'s>),
 }
 
 type StreamResult<'s> = Result<MetaVal<'s>, Error>;
@@ -31,6 +32,7 @@ impl<'s> Iterator for Stream<'s> {
             &mut Self::Dedup(ref mut it) => it.next(),
             &mut Self::Unique(ref mut it) => it.next(),
             &mut Self::StepBy(ref mut it) => it.next(),
+            &mut Self::Chain(ref mut it) => it.next(),
         }
     }
 }
@@ -136,11 +138,15 @@ pub struct StepByStream<'s> {
 }
 
 impl<'s> StepByStream<'s> {
-    pub fn new(s: Stream<'s>, n: usize) -> Self {
-        Self {
-            stream: Box::new(s),
-            curr: n,
-            n,
+    // Can fail if step size is zero.
+    pub fn new(s: Stream<'s>, n: usize) -> Result<Self, Error> {
+        if n == 0 { Err(Error::ZeroStepSize) }
+        else {
+            Ok(Self {
+                stream: Box::new(s),
+                curr: n,
+                n,
+            })
         }
     }
 }
@@ -163,6 +169,36 @@ impl<'s> Iterator for StepByStream<'s> {
                     self.next()
                 }
             }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ChainStream<'s>(Box<Stream<'s>>, Box<Stream<'s>>, bool);
+
+impl<'s> ChainStream<'s> {
+    pub fn new(s_a: Stream<'s>, s_b: Stream<'s>) -> Self {
+        Self(Box::new(s_a), Box::new(s_b), false)
+    }
+}
+
+impl<'s> Iterator for ChainStream<'s> {
+    type Item = StreamResult<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Iterate the first stream.
+        if !self.2 {
+            match self.0.next() {
+                None => {
+                    self.2 = true;
+                    self.next()
+                }
+                Some(res) => Some(res),
+            }
+        }
+        // Iterate the second stream.
+        else {
+            self.1.next()
         }
     }
 }
