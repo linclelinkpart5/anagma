@@ -4,11 +4,6 @@ pub mod binary;
 
 use crate::metadata::resolver::streams::Stream;
 use crate::metadata::types::MetaVal;
-use crate::metadata::types::MetaKey;
-use crate::metadata::types::MetaKeyPath;
-use crate::metadata::resolver::iterable_like::IterableLike;
-use crate::metadata::resolver::number_like::NumberLike;
-use crate::metadata::resolver::context::ResolverContext;
 use crate::metadata::resolver::Error;
 use crate::metadata::resolver::ops::source::Source;
 use crate::metadata::resolver::ops::unary::UnaryOp;
@@ -42,48 +37,32 @@ impl<'o> OperandStack<'o> {
         self.0.push(op)
     }
 
-    pub fn pop_iterable_like(&mut self) -> Result<IterableLike<'o>, Error> {
-        match self.pop()? {
-            Operand::Stream(s) => Ok(IterableLike::Stream(s)),
-            Operand::Value(MetaVal::Seq(s)) => Ok(IterableLike::Sequence(s)),
-            _ => Err(Error::UnexpectedOperand),
-        }
-    }
+    // pub fn pop_key_path_like(&mut self) -> Result<MetaKeyPath, Error> {
+    //     let it_like = match self.pop()? {
+    //         Operand::Stream(s) => IterableLike::Stream(s),
+    //         Operand::Value(MetaVal::Seq(s)) => IterableLike::Sequence(s),
+    //         Operand::Value(MetaVal::Str(s)) => {
+    //             // Special case, handle and return.
+    //             return Ok(s.into());
+    //         },
+    //         _ => {
+    //             return Err(Error::UnexpectedOperand);
+    //         }
+    //     };
 
-    pub fn pop_number_like(&mut self) -> Result<NumberLike, Error> {
-        match self.pop()? {
-            Operand::Value(MetaVal::Int(i)) => Ok(NumberLike::Integer(i)),
-            Operand::Value(MetaVal::Dec(d)) => Ok(NumberLike::Decimal(d)),
-            _ => Err(Error::UnexpectedOperand),
-        }
-    }
+    //     let mut mks: Vec<MetaKey> = vec![];
 
-    pub fn pop_key_path_like(&mut self) -> Result<MetaKeyPath, Error> {
-        let it_like = match self.pop()? {
-            Operand::Stream(s) => IterableLike::Stream(s),
-            Operand::Value(MetaVal::Seq(s)) => IterableLike::Sequence(s),
-            Operand::Value(MetaVal::Str(s)) => {
-                // Special case, handle and return.
-                return Ok(s.into());
-            },
-            _ => {
-                return Err(Error::UnexpectedOperand);
-            }
-        };
+    //     for mv in it_like.into_iter() {
+    //         match mv? {
+    //             MetaVal::Str(s) => {
+    //                 mks.push(s.into());
+    //             },
+    //             _ => return Err(Error::NotString),
+    //         }
+    //     }
 
-        let mut mks: Vec<MetaKey> = vec![];
-
-        for mv in it_like.into_iter() {
-            match mv? {
-                MetaVal::Str(s) => {
-                    mks.push(s.into());
-                },
-                _ => return Err(Error::NotString),
-            }
-        }
-
-        Ok(mks.into())
-    }
+    //     Ok(mks.into())
+    // }
 }
 
 pub enum Token<'o> {

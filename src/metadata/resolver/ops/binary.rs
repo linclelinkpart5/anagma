@@ -76,17 +76,13 @@ impl BinaryOp {
         Ok(match self {
             &Self::Nth => {
                 let il: IterableLike<'_> = operand_a.try_into()?;
-                let n: Index = operand_b.try_into()?;
-                let mut n = n.0;
+                let mut n: Index = operand_b.try_into()?;
 
                 for res_mv in il {
                     let mv = res_mv?;
 
-                    if n == 0 {
-                        return Ok(Operand::Value(mv));
-                    }
-
-                    n -= 1;
+                    if n == 0 { return Ok(Operand::Value(mv)); }
+                    else { n -= 1; }
                 }
 
                 return Err(Error::IndexOutOfBounds);
@@ -94,17 +90,17 @@ impl BinaryOp {
             &Self::StepBy => {
                 let il: IterableLike<'_> = operand_a.try_into()?;
                 let n: Index = operand_b.try_into()?;
-                let n = n.0;
+
+                if n == 0 {
+                    return Err(Error::ZeroStepSize)
+                }
 
                 let (collect_after, stream) = match il {
                     IterableLike::Sequence(s) => (true, Stream::Fixed(s.into_iter())),
                     IterableLike::Stream(s) => (false, s),
                 };
 
-                let adapted_stream = match self {
-                    &Self::StepBy => Stream::StepBy(StepByStream::new(stream, n)),
-                    _ => unreachable!(),
-                };
+                let adapted_stream = Stream::StepBy(StepByStream::new(stream, n));
 
                 if collect_after {
                     Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))

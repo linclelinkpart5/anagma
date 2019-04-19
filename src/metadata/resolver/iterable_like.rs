@@ -72,8 +72,7 @@ impl<'il> Iterator for IterLike<'il> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Index(pub usize);
+pub type Index = usize;
 
 impl<'a> TryFrom<Operand<'a>> for Index {
     type Error = Error;
@@ -93,10 +92,10 @@ impl<'a> TryFrom<MetaVal<'a>> for Index {
         match value {
             MetaVal::Int(i) => {
                 if i < 0 {
-                    Err(Error::NegativeIndex)
+                    Err(Error::NegativeInteger)
                 }
                 else {
-                    Ok(Self(i as usize))
+                    Ok(i as usize)
                 }
             },
             _ => Err(Error::NotIndex),

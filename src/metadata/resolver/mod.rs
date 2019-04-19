@@ -16,8 +16,9 @@ pub enum Error {
     NotString,
     NotIterable,
     NotIndex,
-    NegativeIndex,
+    NegativeInteger,
     IndexOutOfBounds,
+    ZeroStepSize,
 }
 
 impl std::fmt::Display for Error {
@@ -31,8 +32,9 @@ impl std::fmt::Display for Error {
             Self::NotString => write!(f, "non string value was found"),
             Self::NotIterable => write!(f, "non iterable value was found"),
             Self::NotIndex => write!(f, "non index value was found"),
-            Self::NegativeIndex => write!(f, "negative indexs are not allowed"),
+            Self::NegativeInteger => write!(f, "negative indexes are not allowed"),
             Self::IndexOutOfBounds => write!(f, "index is out of bounds"),
+            Self::ZeroStepSize => write!(f, "step size must be greater than zero"),
         }
     }
 }
@@ -48,8 +50,9 @@ impl std::error::Error for Error {
             Self::NotString => None,
             Self::NotIterable => None,
             Self::NotIndex => None,
-            Self::NegativeIndex => None,
+            Self::NegativeInteger => None,
             Self::IndexOutOfBounds => None,
+            Self::ZeroStepSize => None,
         }
     }
 }

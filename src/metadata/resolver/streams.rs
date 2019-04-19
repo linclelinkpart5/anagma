@@ -129,11 +129,19 @@ impl<'s> Iterator for UniqueStream<'s> {
 }
 
 #[derive(Debug)]
-pub struct StepByStream<'s>(std::iter::StepBy<Box<Stream<'s>>>);
+pub struct StepByStream<'s> {
+    stream: Box<Stream<'s>>,
+    curr: usize,
+    n: usize,
+}
 
 impl<'s> StepByStream<'s> {
     pub fn new(s: Stream<'s>, n: usize) -> Self {
-        Self(Box::new(s).step_by(n))
+        Self {
+            stream: Box::new(s),
+            curr: n,
+            n,
+        }
     }
 }
 
@@ -141,6 +149,20 @@ impl<'s> Iterator for StepByStream<'s> {
     type Item = StreamResult<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        match self.stream.next()? {
+            // Always report errors, even if they would not normally be "hit".
+            Err(err) => Some(Err(err)),
+            Ok(mv) => {
+                // Output the meta value if currently at a step point.
+                if self.curr >= self.n {
+                    self.curr = 1;
+                    Some(Ok(mv))
+                }
+                else {
+                    self.curr += 1;
+                    self.next()
+                }
+            }
+        }
     }
 }
