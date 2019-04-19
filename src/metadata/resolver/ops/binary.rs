@@ -8,6 +8,7 @@ use crate::metadata::resolver::Error;
 use crate::metadata::resolver::streams::Stream;
 use crate::metadata::resolver::streams::StepByStream;
 use crate::metadata::resolver::streams::ChainStream;
+use crate::metadata::resolver::streams::ZipStream;
 use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
@@ -114,6 +115,24 @@ impl BinaryOp {
                 let stream_b: Stream<'_> = il_b.into();
 
                 let adapted_stream = Stream::Chain(ChainStream::new(stream_a, stream_b));
+
+                if collect_after {
+                    Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))
+                }
+                else {
+                    Operand::Stream(adapted_stream)
+                }
+            },
+            &Self::Zip => {
+                let il_a: IterableLike<'_> = operand_a.try_into()?;
+                let il_b: IterableLike<'_> = operand_b.try_into()?;
+
+                let collect_after = il_a.is_eager() && il_b.is_eager();
+
+                let stream_a: Stream<'_> = il_a.into();
+                let stream_b: Stream<'_> = il_b.into();
+
+                let adapted_stream = Stream::Zip(ZipStream::new(stream_a, stream_b));
 
                 if collect_after {
                     Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))

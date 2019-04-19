@@ -17,6 +17,7 @@ pub enum Stream<'s> {
     Unique(UniqueStream<'s>),
     StepBy(StepByStream<'s>),
     Chain(ChainStream<'s>),
+    Zip(ZipStream<'s>),
 }
 
 type StreamResult<'s> = Result<MetaVal<'s>, Error>;
@@ -34,6 +35,7 @@ impl<'s> Iterator for Stream<'s> {
             &mut Self::Unique(ref mut it) => it.next(),
             &mut Self::StepBy(ref mut it) => it.next(),
             &mut Self::Chain(ref mut it) => it.next(),
+            &mut Self::Zip(ref mut it) => it.next(),
         }
     }
 }
@@ -212,3 +214,29 @@ impl<'s> Iterator for ChainStream<'s> {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct ZipStream<'s>(Box<Stream<'s>>, Box<Stream<'s>>);
+
+impl<'s> ZipStream<'s> {
+    pub fn new(s_a: Stream<'s>, s_b: Stream<'s>) -> Self {
+        Self(Box::new(s_a), Box::new(s_b))
+    }
+}
+
+impl<'s> Iterator for ZipStream<'s> {
+    type Item = StreamResult<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res_a = self.0.next()?;
+        let res_b = self.1.next()?;
+
+        match (res_a, res_b) {
+            (Err(e_a), _) => Some(Err(e_a)),
+            (_, Err(e_b)) => Some(Err(e_b)),
+            (Ok(a), Ok(b)) => Some(Ok(MetaVal::Seq(vec![a, b]))),
+        }
+    }
+}
+
+impl<'s> std::iter::FusedIterator for ZipStream<'s> {}
