@@ -21,34 +21,32 @@ use crate::metadata::resolver::iterable_like::Index;
 pub enum BinaryOp {
     // (Iterable<V>, Usize) -> V
     Nth,
-    // (Stream<V>, Usize) -> Stream<V>
     // (Sequence<V>, Usize) -> Sequence<V>
+    // (Stream<V>, Usize) -> Stream<V>
     StepBy,
     // (Sequence<V>, Sequence<V>) -> Sequence<V>
-    // (Stream<V>, Iterable<V>) -> Stream<V>
-    // (Iterable<V>, Stream<V>) -> Stream<V>
+    // (Iterable<V>, Iterable<V>) -> Stream<V>
     Chain,
     // (Sequence<V>, Sequence<V>) -> Sequence<Sequence<V>>
-    // (Stream<V>, Iterable<V>) -> Stream<Sequence<V>>
-    // (Iterable<V>, Stream<V>) -> Stream<Sequence<V>>
+    // (Iterable<V>, Iterable<V>) -> Stream<Sequence<V>>
     Zip,
-    // (Stream<V>, UnaryOp) -> Stream<V>
     // (Sequence<V>, UnaryOp) -> Sequence<V>
+    // (Stream<V>, UnaryOp) -> Stream<V>
     Map,
-    // (Stream<V>, Predicate) -> Stream<V>
     // (Sequence<V>, Predicate) -> Sequence<V>
+    // (Stream<V>, Predicate) -> Stream<V>
     Filter,
-    // (Stream<V>, Predicate) -> Stream<V>
     // (Sequence<V>, Predicate) -> Sequence<V>
+    // (Stream<V>, Predicate) -> Stream<V>
     SkipWhile,
-    // (Stream<V>, Predicate) -> Stream<V>
     // (Sequence<V>, Predicate) -> Sequence<V>
+    // (Stream<V>, Predicate) -> Stream<V>
     TakeWhile,
-    // (Stream<V>, Usize) -> Stream<V>
     // (Sequence<V>, Usize) -> Sequence<V>
+    // (Stream<V>, Usize) -> Stream<V>
     Skip,
-    // (Stream<V>, Usize) -> Stream<V>
     // (Sequence<V>, Usize) -> Sequence<V>
+    // (Stream<V>, Usize) -> Stream<V>
     Take,
     // (Iterable<V>, Predicate) -> Boolean
     All,
@@ -59,17 +57,16 @@ pub enum BinaryOp {
     // (Iterable<V>, Predicate) -> Usize
     Position,
     // (Sequence<V>, Sequence<V>) -> Sequence<V>
-    // (Stream<V>, Iterable<V>) -> Stream<V>
-    // (Iterable<V>, Stream<V>) -> Stream<V>
+    // (Iterable<V>, Iterable<V>) -> Stream<V>
     Interleave,
-    // (Stream<V>, V) -> Stream<V>
     // (Sequence<V>, V) -> Sequence<V>
+    // (Stream<V>, V) -> Stream<V>
     Intersperse,
-    // (Stream<V>, Usize) -> Stream<Sequence<V>>
     // (Sequence<V>, Usize) -> Sequence<Sequence<V>>
+    // (Stream<V>, Usize) -> Stream<Sequence<V>>
     Chunks,
-    // (Stream<V>, Usize) -> Stream<Sequence<V>>
     // (Sequence<V>, Usize) -> Sequence<Sequence<V>>
+    // (Stream<V>, Usize) -> Stream<Sequence<V>>
     Windows,
 }
 
@@ -94,16 +91,9 @@ impl BinaryOp {
                 let n: Index = operand_b.try_into()?;
 
                 let collect_after = il.is_eager();
-                let stream: Stream<'_> = il.into();
+                let adapted_stream = Stream::StepBy(StepByStream::new(il.into(), n)?);
 
-                let adapted_stream = Stream::StepBy(StepByStream::new(stream, n)?);
-
-                if collect_after {
-                    Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))
-                }
-                else {
-                    Operand::Stream(adapted_stream)
-                }
+                adapted_stream.into_operand(collect_after)?
             },
             &Self::Chain => {
                 let il_a: IterableLike<'_> = operand_a.try_into()?;
@@ -111,17 +101,9 @@ impl BinaryOp {
 
                 let collect_after = il_a.is_eager() && il_b.is_eager();
 
-                let stream_a: Stream<'_> = il_a.into();
-                let stream_b: Stream<'_> = il_b.into();
+                let adapted_stream = Stream::Chain(ChainStream::new(il_a.into(), il_b.into()));
 
-                let adapted_stream = Stream::Chain(ChainStream::new(stream_a, stream_b));
-
-                if collect_after {
-                    Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))
-                }
-                else {
-                    Operand::Stream(adapted_stream)
-                }
+                adapted_stream.into_operand(collect_after)?
             },
             &Self::Zip => {
                 let il_a: IterableLike<'_> = operand_a.try_into()?;
@@ -129,17 +111,9 @@ impl BinaryOp {
 
                 let collect_after = il_a.is_eager() && il_b.is_eager();
 
-                let stream_a: Stream<'_> = il_a.into();
-                let stream_b: Stream<'_> = il_b.into();
+                let adapted_stream = Stream::Zip(ZipStream::new(il_a.into(), il_b.into()));
 
-                let adapted_stream = Stream::Zip(ZipStream::new(stream_a, stream_b));
-
-                if collect_after {
-                    Operand::Value(MetaVal::Seq(adapted_stream.collect::<Result<Vec<_>, _>>()?))
-                }
-                else {
-                    Operand::Stream(adapted_stream)
-                }
+                adapted_stream.into_operand(collect_after)?
             },
             _ => Operand::Value(MetaVal::Nil),
         })

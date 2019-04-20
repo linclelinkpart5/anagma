@@ -23,6 +23,17 @@ pub enum Stream<'s> {
     Map(MapStream<'s>),
 }
 
+impl<'s> Stream<'s> {
+    pub fn into_operand(self, collect: bool) -> Result<Operand<'s>, Error> {
+        if collect {
+            Ok(Operand::Value(MetaVal::Seq(self.collect::<Result<Vec<_>, _>>()?)))
+        }
+        else {
+            Ok(Operand::Stream(self))
+        }
+    }
+}
+
 type StreamResult<'s> = Result<MetaVal<'s>, Error>;
 
 impl<'s> Iterator for Stream<'s> {
