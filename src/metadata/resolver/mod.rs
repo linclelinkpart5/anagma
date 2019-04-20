@@ -21,6 +21,7 @@ pub enum Error {
     ZeroStepSize,
     InvalidConverter,
     InvalidPredicate,
+    NotUnaryOp,
 }
 
 impl std::fmt::Display for Error {
@@ -39,6 +40,7 @@ impl std::fmt::Display for Error {
             Self::ZeroStepSize => write!(f, "step size must be greater than zero"),
             Self::InvalidConverter => write!(f, "invalid conversion operator"),
             Self::InvalidPredicate => write!(f, "invalid predicate operator"),
+            Self::NotUnaryOp => write!(f, "non unary operator value was found"),
         }
     }
 }
@@ -59,6 +61,7 @@ impl std::error::Error for Error {
             Self::ZeroStepSize => None,
             Self::InvalidConverter => None,
             Self::InvalidPredicate => None,
+            Self::NotUnaryOp => None,
         }
     }
 }

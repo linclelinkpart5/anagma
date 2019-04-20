@@ -269,20 +269,9 @@ impl<'s> Iterator for MapStream<'s> {
     type Item = StreamResult<'s>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0.next()? {
-            Ok(mv) => {
-                match self.1.process(Operand::Value(mv)) {
-                    Ok(operand) => {
-                        // We expect a meta value as output.
-                        match operand {
-                            Operand::Value(mv) => Some(Ok(mv)),
-                            _ => Some(Err(Error::InvalidConverter)),
-                        }
-                    },
-                    Err(err) => return Some(Err(err)),
-                }
-            },
-            Err(err) => Some(Err(err)),
-        }
+        Some(match self.0.next()? {
+            Ok(mv) => self.1.process_as_converter(Operand::Value(mv)),
+            Err(err) => Err(err),
+        })
     }
 }

@@ -9,9 +9,11 @@ use crate::metadata::resolver::streams::Stream;
 use crate::metadata::resolver::streams::StepByStream;
 use crate::metadata::resolver::streams::ChainStream;
 use crate::metadata::resolver::streams::ZipStream;
+use crate::metadata::resolver::streams::MapStream;
 use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
+use crate::metadata::resolver::ops::unary::UnaryOp;
 
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
@@ -112,6 +114,16 @@ impl BinaryOp {
                 let collect_after = il_a.is_eager() && il_b.is_eager();
 
                 let adapted_stream = Stream::Zip(ZipStream::new(il_a.into(), il_b.into()));
+
+                adapted_stream.into_operand(collect_after)?
+            },
+            &Self::Map => {
+                let il: IterableLike<'_> = operand_a.try_into()?;
+                let op: UnaryOp = operand_b.try_into()?;
+
+                let collect_after = il.is_eager();
+
+                let adapted_stream = Stream::Map(MapStream::new(il.into(), op));
 
                 adapted_stream.into_operand(collect_after)?
             },

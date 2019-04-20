@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use bigdecimal::BigDecimal;
 
@@ -65,6 +66,17 @@ pub enum UnaryOp {
     // (Sequence<V>) -> Sequence<V>
     // (Stream<V>) -> Stream<V>
     Unique,
+}
+
+impl<'o> TryFrom<Operand<'o>> for UnaryOp {
+    type Error = Error;
+
+    fn try_from(value: Operand<'o>) -> Result<Self, Self::Error> {
+        match value {
+            Operand::UnaryOp(op) => Ok(op),
+            _ => Err(Error::NotUnaryOp),
+        }
+    }
 }
 
 impl UnaryOp {
