@@ -15,6 +15,7 @@ use crate::metadata::resolver::ops::binary::BinaryOp;
 pub enum Operand<'o> {
     Stream(Stream<'o>),
     Value(MetaVal<'o>),
+    UnaryOp(UnaryOp),
 }
 
 #[derive(Debug)]

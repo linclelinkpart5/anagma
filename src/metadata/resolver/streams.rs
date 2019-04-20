@@ -5,6 +5,8 @@ use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
 use crate::metadata::resolver::iterable_like::IterableLike;
+use crate::metadata::resolver::ops::Operand;
+use crate::metadata::resolver::ops::unary::UnaryOp;
 
 /// A stream is a generalization of the different kinds of lazy sequences that can be used/produced by consumers.
 #[derive(Debug)]
@@ -18,6 +20,7 @@ pub enum Stream<'s> {
     StepBy(StepByStream<'s>),
     Chain(ChainStream<'s>),
     Zip(ZipStream<'s>),
+    Map(MapStream<'s>),
 }
 
 type StreamResult<'s> = Result<MetaVal<'s>, Error>;
@@ -36,6 +39,7 @@ impl<'s> Iterator for Stream<'s> {
             &mut Self::StepBy(ref mut it) => it.next(),
             &mut Self::Chain(ref mut it) => it.next(),
             &mut Self::Zip(ref mut it) => it.next(),
+            &mut Self::Map(ref mut it) => it.next(),
         }
     }
 }
@@ -240,3 +244,34 @@ impl<'s> Iterator for ZipStream<'s> {
 }
 
 impl<'s> std::iter::FusedIterator for ZipStream<'s> {}
+
+#[derive(Debug)]
+pub struct MapStream<'s>(Box<Stream<'s>>, UnaryOp);
+
+impl<'s> MapStream<'s> {
+    pub fn new(s: Stream<'s>, op: UnaryOp) -> Self {
+        Self(Box::new(s), op)
+    }
+}
+
+impl<'s> Iterator for MapStream<'s> {
+    type Item = StreamResult<'s>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0.next()? {
+            Ok(mv) => {
+                match self.1.process(Operand::Value(mv)) {
+                    Ok(operand) => {
+                        // We expect a meta value as output.
+                        match operand {
+                            Operand::Value(mv) => Some(Ok(mv)),
+                            _ => Some(Err(Error::InvalidMapFunc)),
+                        }
+                    },
+                    Err(err) => return Some(Err(err)),
+                }
+            },
+            Err(err) => Some(Err(err)),
+        }
+    }
+}
