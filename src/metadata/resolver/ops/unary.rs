@@ -68,6 +68,20 @@ pub enum UnaryOp {
 }
 
 impl UnaryOp {
+    pub fn process_as_predicate<'o>(&self, operand: Operand<'o>) -> Result<bool, Error> {
+        match self.process(operand)? {
+            Operand::Value(MetaVal::Bul(b)) => Ok(b),
+            _ => Err(Error::InvalidPredicate),
+        }
+    }
+
+    pub fn process_as_converter<'o>(&self, operand: Operand<'o>) -> Result<MetaVal<'o>, Error> {
+        match self.process(operand)? {
+            Operand::Value(mv) => Ok(mv),
+            _ => Err(Error::InvalidConverter),
+        }
+    }
+
     pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
         Ok(match self {
             &Self::Collect | &Self::Rev | &Self::Sort => {

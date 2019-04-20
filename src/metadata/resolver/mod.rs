@@ -19,7 +19,8 @@ pub enum Error {
     NegativeInteger,
     IndexOutOfBounds,
     ZeroStepSize,
-    InvalidMapFunc,
+    InvalidConverter,
+    InvalidPredicate,
 }
 
 impl std::fmt::Display for Error {
@@ -36,7 +37,8 @@ impl std::fmt::Display for Error {
             Self::NegativeInteger => write!(f, "negative indexes are not allowed"),
             Self::IndexOutOfBounds => write!(f, "index is out of bounds"),
             Self::ZeroStepSize => write!(f, "step size must be greater than zero"),
-            Self::InvalidMapFunc => write!(f, "invalid map function"),
+            Self::InvalidConverter => write!(f, "invalid conversion operator"),
+            Self::InvalidPredicate => write!(f, "invalid predicate operator"),
         }
     }
 }
@@ -55,7 +57,8 @@ impl std::error::Error for Error {
             Self::NegativeInteger => None,
             Self::IndexOutOfBounds => None,
             Self::ZeroStepSize => None,
-            Self::InvalidMapFunc => None,
+            Self::InvalidConverter => None,
+            Self::InvalidPredicate => None,
         }
     }
 }

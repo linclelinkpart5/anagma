@@ -265,7 +265,7 @@ impl<'s> Iterator for MapStream<'s> {
                         // We expect a meta value as output.
                         match operand {
                             Operand::Value(mv) => Some(Ok(mv)),
-                            _ => Some(Err(Error::InvalidMapFunc)),
+                            _ => Some(Err(Error::InvalidConverter)),
                         }
                     },
                     Err(err) => return Some(Err(err)),
