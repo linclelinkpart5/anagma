@@ -102,6 +102,77 @@ impl Converter {
                     _ => Err("not a sequence"),
                 }
             },
+            &Self::FirstS => {
+                match val {
+                    MetaVal::Seq(seq) => seq.into_iter().next().ok_or("empty sequence"),
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::LastS => {
+                match val {
+                    MetaVal::Seq(seq) => seq.into_iter().last().ok_or("empty sequence"),
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::MaxInS | &Self::MinInS => {
+                match val {
+                    MetaVal::Seq(seq) => {
+                        let mut it = seq.into_iter();
+
+                        match it.next() {
+                            None => Err("empty sequence"),
+                            Some(first_mv) => {
+                                let mut target_nl: NumberLike = first_mv.try_into().map_err(|_| "not a number")?;
+
+                                for mv in it {
+                                    let nl: NumberLike = mv.try_into().map_err(|_| "not a number")?;
+                                    target_nl = match self {
+                                        &Self::MaxInS => target_nl.max(nl),
+                                        &Self::MinInS => target_nl.min(nl),
+                                        _ => unreachable!(),
+                                    };
+                                }
+
+                                Ok(target_nl.into())
+                            }
+                        }
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::SumS | &Self::ProductS => {
+                let mut total = match self {
+                    &Self::SumS => NumberLike::Integer(0),
+                    &Self::ProductS => NumberLike::Integer(1),
+                    _ => unreachable!(),
+                };
+
+                match val {
+                    MetaVal::Seq(seq) => {
+                        for mv in seq {
+                            let nl: NumberLike = mv.try_into().map_err(|_| "not a number")?;
+
+                            match self {
+                                &Self::SumS => { total += nl; },
+                                &Self::ProductS => { total *= nl; },
+                                _ => unreachable!(),
+                            };
+                        }
+
+                        Ok(total.into())
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::RevS => {
+                match val {
+                    MetaVal::Seq(mut seq) => {
+                        seq.reverse();
+                        Ok(MetaVal::Seq(seq))
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
             _ => Err("not finished yet")
         }
     }
