@@ -32,6 +32,78 @@ fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> Ordering {
     }
 }
 
+/// Unary operations that take a reference to a meta value, and return a bare boolean.
+#[derive(Clone, Copy, Debug)]
+pub enum Predicate {
+    // (Sequence<V>) -> bool
+    AllEqualS,
+}
+
+/// Unary operations that take ownership of a meta value, and return a new meta value.
+/// Predicates are a subset of converters.
+#[derive(Clone, Copy, Debug)]
+pub enum Converter {
+    // (Sequence<V>) -> Usize
+    CountS,
+    // (Sequence<V>) -> V
+    FirstS,
+    LastS,
+    // (Sequence<Number>) -> Number
+    MaxInS,
+    MinInS,
+    SumS,
+    ProductS,
+    // (Sequence<V>) -> Sequence<V>
+    RevS,
+    SortS,
+    FlattenS,
+    DedupS,
+    UniqueS,
+
+    // All predicates are also converters.
+    // (V) -> Boolean
+    Predicate(Predicate),
+}
+
+/// Operations that take ownership of a stream or adapted stream, and return a single meta value.
+/// Most of these should have an alternate converter version that takes a realized sequence as input.
+#[derive(Clone, Copy, Debug)]
+pub enum StreamConsumer {
+    // (Stream<V>) -> Sequence<V>
+    Collect,
+    Rev,
+    Sort,
+    // (Stream<V>) -> Usize
+    Count,
+    // (Stream<V>) -> V
+    First,
+    Last,
+    // (Stream<Number>) -> Number
+    MaxIn,
+    MinIn,
+    Sum,
+    Product,
+    // (Stream<V>) -> Boolean
+    AllEqual,
+}
+
+/// Operations that take ownership of a stream or adapted stream, and return a new adapted stream.
+/// Most of these should have an alternate converter version that takes a realized sequence as input as produces a realized sequence as output.
+#[derive(Clone, Copy, Debug)]
+pub enum StreamAdaptor {
+    // (Stream<V>) -> Stream<V>
+    Flatten,
+    Dedup,
+    Unique,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum UOp {
+    Converter(Converter),
+    StreamConsumer(StreamConsumer),
+    StreamAdaptor(StreamAdaptor),
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
     // (Iterable<V>) -> Sequence<V>
