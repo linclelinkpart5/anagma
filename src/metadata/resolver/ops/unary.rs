@@ -39,6 +39,34 @@ pub enum Predicate {
     AllEqualS,
 }
 
+impl Predicate {
+    pub fn process<'mv>(&self, val: &MetaVal<'mv>) -> Result<bool, &'static str> {
+        match self {
+            &Self::AllEqualS => {
+                match val {
+                    &MetaVal::Seq(ref seq) => {
+                        let mut it = seq.into_iter();
+
+                        match it.next() {
+                            None => Ok(true),
+                            Some(first_mv) => {
+                                for mv in it {
+                                    if mv != first_mv {
+                                        return Ok(false);
+                                    }
+                                }
+
+                                Ok(true)
+                            },
+                        }
+                    },
+                    _ => Err("not a sequence"),
+                }
+            }
+        }
+    }
+}
+
 /// Unary operations that take ownership of a meta value, and return a new meta value.
 /// Predicates are a subset of converters.
 #[derive(Clone, Copy, Debug)]
@@ -63,6 +91,20 @@ pub enum Converter {
     // All predicates are also converters.
     // (V) -> Boolean
     Predicate(Predicate),
+}
+
+impl Converter {
+    pub fn process<'mv>(&self, val: MetaVal<'mv>) -> Result<MetaVal<'mv>, &'static str> {
+        match self {
+            &Self::CountS => {
+                match val {
+                    MetaVal::Seq(ref seq) => Ok(MetaVal::Int(seq.len() as i64)),
+                    _ => Err("not a sequence"),
+                }
+            },
+            _ => Err("not finished yet")
+        }
+    }
 }
 
 /// Operations that take ownership of a stream or adapted stream, and return a single meta value.
