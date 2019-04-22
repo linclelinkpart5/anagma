@@ -259,6 +259,104 @@ pub enum StreamConsumer {
     AllEqual,
 }
 
+impl StreamConsumer {
+    pub fn process<'s>(&self, mut stream: Stream<'s>) -> Result<MetaVal<'s>, &'static str> {
+        match self {
+            &Self::Collect | &Self::Rev | &Self::Sort => {
+                let mut seq = stream.collect::<Result<Vec<_>, _>>().map_err(|_| "error encountered in stream")?;
+
+                match self {
+                    &Self::Collect => {},
+                    &Self::Rev => { seq.reverse(); },
+                    &Self::Sort => { seq.sort_by(smart_sort_by); },
+                    _ => unreachable!(),
+                }
+
+                Ok(MetaVal::Seq(seq))
+            },
+            &Self::Count => {
+                let mut count: usize = 0;
+                for res_mv in stream {
+                    res_mv.map_err(|_| "error encountered in stream")?;
+                    count += 1;
+                }
+
+                Ok(MetaVal::Int(count as i64))
+            },
+            &Self::First => {
+                Ok(stream.next().ok_or("empty stream")?.map_err(|_| "error encountered in stream")?)
+            },
+            &Self::Last => {
+                let mut last_seen = None;
+
+                for res_mv in stream {
+                    let mv = res_mv.map_err(|_| "error encountered in stream")?;
+                    last_seen.replace(mv);
+                }
+
+                last_seen.ok_or("empty stream")
+            },
+            &Self::MaxIn | &Self::MinIn => {
+                match stream.next() {
+                    None => Err("empty sequence"),
+                    Some(Err(_)) => Err("error encountered in stream"),
+                    Some(Ok(first_mv)) => {
+                        let mut target_nl: NumberLike = first_mv.try_into().map_err(|_| "not a number")?;
+
+                        for res_mv in stream {
+                            let mv = res_mv.map_err(|_| "error encountered in stream")?;
+                            let nl: NumberLike = mv.try_into().map_err(|_| "not a number")?;
+                            target_nl = match self {
+                                &Self::MaxIn => target_nl.max(nl),
+                                &Self::MinIn => target_nl.min(nl),
+                                _ => unreachable!(),
+                            };
+                        }
+
+                        Ok(target_nl.into())
+                    },
+                }
+            },
+            &Self::Sum | &Self::Product => {
+                let mut total = match self {
+                    &Self::Sum => NumberLike::Integer(0),
+                    &Self::Product => NumberLike::Integer(1),
+                    _ => unreachable!(),
+                };
+
+                for res_mv in stream {
+                    let mv = res_mv.map_err(|_| "error encountered in stream")?;
+                    let nl: NumberLike = mv.try_into().map_err(|_| "not a number")?;
+
+                    match self {
+                        &Self::Sum => { total += nl; },
+                        &Self::Product => { total *= nl; },
+                        _ => unreachable!(),
+                    };
+                }
+
+                Ok(total.into())
+            },
+            &Self::AllEqual => {
+                match stream.next() {
+                    None => Ok(MetaVal::Bul(true)),
+                    Some(Err(_)) => Err("error encountered in stream")?,
+                    Some(Ok(first_mv)) => {
+                        for res_mv in stream {
+                            let mv = res_mv.map_err(|_| "error encountered in stream")?;
+                            if mv != first_mv {
+                                return Ok(MetaVal::Bul(false));
+                            }
+                        }
+
+                        Ok(MetaVal::Bul(true))
+                    },
+                }
+            },
+        }
+    }
+}
+
 /// Operations that take ownership of a stream or adapted stream, and return a new adapted stream.
 /// Most of these should have an alternate converter version that takes a realized sequence as input as produces a realized sequence as output.
 #[derive(Clone, Copy, Debug)]
