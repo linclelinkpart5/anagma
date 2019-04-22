@@ -3,6 +3,7 @@ use std::convert::TryInto;
 use std::convert::TryFrom;
 
 use bigdecimal::BigDecimal;
+use itertools::Itertools;
 
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
@@ -173,7 +174,51 @@ impl Converter {
                     _ => Err("not a sequence"),
                 }
             },
-            _ => Err("not finished yet")
+            &Self::SortS => {
+                match val {
+                    MetaVal::Seq(mut seq) => {
+                        seq.sort_by(smart_sort_by);
+                        Ok(MetaVal::Seq(seq))
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::FlattenS => {
+                match val {
+                    MetaVal::Seq(seq) => {
+                        let mut flattened = vec![];
+
+                        for mv in seq {
+                            match mv {
+                                MetaVal::Seq(mut seq) => flattened.append(&mut seq),
+                                mv => flattened.push(mv),
+                            }
+                        }
+                        Ok(MetaVal::Seq(flattened))
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::DedupS => {
+                match val {
+                    MetaVal::Seq(mut seq) => {
+                        seq.dedup();
+                        Ok(MetaVal::Seq(seq))
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::UniqueS => {
+                match val {
+                    MetaVal::Seq(seq) => {
+                        Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
+                    },
+                    _ => Err("not a sequence"),
+                }
+            },
+            &Self::Predicate(p) => {
+                Ok(MetaVal::Bul(p.process(&val)?))
+            },
         }
     }
 }
