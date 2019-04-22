@@ -89,6 +89,10 @@ pub enum Converter {
     DedupS,
     UniqueS,
 
+    // (String) -> String
+    Upper,
+    Lower,
+
     // All predicates are also converters.
     // (V) -> Boolean
     Predicate(Predicate),
@@ -210,10 +214,20 @@ impl Converter {
             },
             &Self::UniqueS => {
                 match val {
-                    MetaVal::Seq(seq) => {
-                        Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
-                    },
+                    MetaVal::Seq(seq) => Ok(MetaVal::Seq(seq.into_iter().unique().collect())),
                     _ => Err("not a sequence"),
+                }
+            },
+            &Self::Upper => {
+                match val {
+                    MetaVal::Str(s) => Ok(MetaVal::Str(s.to_uppercase())),
+                    _ => Err("not a string"),
+                }
+            },
+            &Self::Lower => {
+                match val {
+                    MetaVal::Str(s) => Ok(MetaVal::Str(s.to_lowercase())),
+                    _ => Err("not a string"),
                 }
             },
             &Self::Predicate(p) => {
