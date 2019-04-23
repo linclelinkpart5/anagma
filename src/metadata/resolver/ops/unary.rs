@@ -14,6 +14,7 @@ use crate::metadata::resolver::streams::UniqueStream;
 use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
+use crate::metadata::resolver::ops::predicate::Predicate;
 
 use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
@@ -30,41 +31,6 @@ fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> Ordering {
             d.cmp(&i_d)
         },
         (na, nb) => na.cmp(&nb),
-    }
-}
-
-/// Unary operations that take a reference to a meta value, and return a bare boolean.
-#[derive(Clone, Copy, Debug)]
-pub enum Predicate {
-    // (Sequence<V>) -> bool
-    AllEqualS,
-}
-
-impl Predicate {
-    pub fn process<'mv>(&self, val: &MetaVal<'mv>) -> Result<bool, &'static str> {
-        match self {
-            &Self::AllEqualS => {
-                match val {
-                    &MetaVal::Seq(ref seq) => {
-                        let mut it = seq.into_iter();
-
-                        match it.next() {
-                            None => Ok(true),
-                            Some(first_mv) => {
-                                for mv in it {
-                                    if mv != first_mv {
-                                        return Ok(false);
-                                    }
-                                }
-
-                                Ok(true)
-                            },
-                        }
-                    },
-                    _ => Err("not a sequence"),
-                }
-            }
-        }
     }
 }
 
@@ -358,7 +324,7 @@ impl StreamConsumer {
 }
 
 /// Operations that take ownership of a stream or adapted stream, and return a new adapted stream.
-/// Most of these should have an alternate converter version that takes a realized sequence as input as produces a realized sequence as output.
+/// All of these should have an alternate converter version that takes a realized sequence as input as produces a realized sequence as output.
 #[derive(Clone, Copy, Debug)]
 pub enum StreamAdaptor {
     // (Stream<V>) -> Stream<V>

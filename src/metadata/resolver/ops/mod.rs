@@ -1,6 +1,8 @@
 pub mod source;
 pub mod unary;
 pub mod binary;
+pub mod predicate;
+pub mod partial;
 
 use crate::metadata::resolver::streams::Stream;
 use crate::metadata::types::MetaVal;
