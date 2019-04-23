@@ -3,6 +3,7 @@ pub mod number_like;
 pub mod streams;
 pub mod ops;
 pub mod context;
+pub mod predicate;
 
 use crate::metadata::stream::value::Error as ValueStreamError;
 
