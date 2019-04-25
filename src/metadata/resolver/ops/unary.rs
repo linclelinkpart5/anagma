@@ -34,6 +34,40 @@ fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> Ordering {
     }
 }
 
+use std::borrow::Cow;
+
+pub fn all_equal_agnostic<'mv>(mut it: impl Iterator<Item = Result<Cow<'mv, MetaVal<'mv>>, &'static str>>) -> Result<bool, &'static str> {
+    match it.next() {
+        None => Ok(true),
+        Some(res_first_mv) => {
+            let first_mv = res_first_mv?;
+
+            for res_mv in it {
+                let mv = res_mv?;
+                if mv != first_mv {
+                    return Ok(false);
+                }
+            }
+
+            Ok(true)
+        },
+    }
+}
+
+enum TestSeqRef<'mv> {
+    Sequence(&'mv [MetaVal<'mv>]),
+    Stream(Stream<'mv>),
+}
+
+impl<'mv> TestSeqRef<'mv> {
+    fn all_equal(self) -> Result<bool, &'static str> {
+        match self {
+            Self::Sequence(seq) => all_equal_agnostic(seq.into_iter().map(Cow::Borrowed).map(Result::Ok)),
+            Self::Stream(stm) => all_equal_agnostic(stm.map(|res_mv| res_mv.map(Cow::Owned).map_err(|_| "error in stream"))),
+        }
+    }
+}
+
 /// Unary operations that take ownership of a meta value, and return a new meta value.
 /// Predicates are a subset of converters.
 #[derive(Clone, Copy, Debug)]
