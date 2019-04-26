@@ -18,5 +18,6 @@ extern crate bigdecimal;
 pub mod metadata;
 pub mod config;
 mod util;
+pub mod functions;
 
 #[cfg(test)] mod test_util;
