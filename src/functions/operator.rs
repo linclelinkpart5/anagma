@@ -1,3 +1,6 @@
+use crate::functions::operand::Operand;
+use crate::metadata::types::MetaVal;
+
 #[derive(Clone, Copy, Debug)]
 pub enum Unary {
     // (Iterable<V>) -> Sequence<V>
@@ -32,4 +35,24 @@ pub enum Unary {
     // (Sequence<V>) -> Sequence<V>
     // (Stream<V>) -> Stream<V>
     Unique,
+}
+
+impl Unary {
+    pub fn process<'o>(&self, operand: Operand<'o>) -> Result<usize, &'static str> {
+        match self {
+            &Self::AllEqual => {
+                // Only a reference is needed here for sequences.
+                match operand {
+                    Operand::Value(ref mv) => {
+                        match mv.as_ref() {
+                            &MetaVal::Seq(ref seq) => Ok(seq.len()),
+                            _ => Err("not a sequence"),
+                        }
+                    },
+                    _ => Err("not a value"),
+                }
+            },
+            _ => Err("not finished yet"),
+        }
+    }
 }
