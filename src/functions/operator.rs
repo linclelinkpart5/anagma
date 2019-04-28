@@ -1,5 +1,34 @@
+use std::borrow::Cow;
+
 use crate::functions::operand::Operand;
 use crate::metadata::types::MetaVal;
+
+#[derive(Debug, Copy, Clone)]
+pub enum Error {
+    NotIterable,
+    NotSequence,
+    InvalidOperand,
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::NotIterable => write!(f, "not an iterable"),
+            Self::NotSequence => write!(f, "not a sequence"),
+            Self::InvalidOperand => write!(f, "invalid operand"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match *self {
+            Self::NotIterable => None,
+            Self::NotSequence => None,
+            Self::InvalidOperand => None,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum Unary {
@@ -37,22 +66,59 @@ pub enum Unary {
     Unique,
 }
 
+fn operand_as_seq<'o>(operand: Operand<'o>) -> Result<Vec<MetaVal<'o>>, Error> {
+    match operand {
+        Operand::Value(mv) => {
+            match mv.into_owned() {
+                MetaVal::Seq(seq) => Ok(seq),
+                _ => Err(Error::NotSequence),
+            }
+        },
+        _ => Err(Error::InvalidOperand),
+    }
+}
+
+fn operand_as_seq_ref<'o>(operand: &'o Operand<'o>) -> Result<&'o Vec<MetaVal<'o>>, Error> {
+    match operand {
+        Operand::Value(ref mv) => {
+            match mv.as_ref() {
+                &MetaVal::Seq(ref seq) => Ok(seq),
+                _ => Err(Error::NotSequence),
+            }
+        },
+        _ => Err(Error::InvalidOperand),
+    }
+}
+
 impl Unary {
-    pub fn process<'o>(&self, operand: Operand<'o>) -> Result<usize, &'static str> {
+    pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
         match self {
-            &Self::AllEqual => {
+            // This eventually needs to operate on streams only.
+            &Self::Collect => {
+                match operand {
+                    Operand::Value(mv) => {
+                        match mv.into_owned() {
+                            MetaVal::Seq(seq) => Ok(Operand::Value(Cow::Owned(MetaVal::Seq(seq)))),
+                            _ => Err(Error::NotIterable),
+                        }
+                    },
+                    _ => Err(Error::InvalidOperand),
+                }
+            },
+            &Self::Count => {
                 // Only a reference is needed here for sequences.
                 match operand {
                     Operand::Value(ref mv) => {
                         match mv.as_ref() {
-                            &MetaVal::Seq(ref seq) => Ok(seq.len()),
-                            _ => Err("not a sequence"),
+                            &MetaVal::Seq(ref seq) => Ok(Operand::Value(Cow::Owned(MetaVal::Int(seq.len() as i64)))),
+                            _ => Err(Error::NotIterable),
                         }
                     },
-                    _ => Err("not a value"),
+                    _ => Err(Error::InvalidOperand),
                 }
             },
-            _ => Err("not finished yet"),
+            // Not finished yet!
+            _ => Ok(Operand::Value(Cow::Owned(MetaVal::Nil))),
         }
     }
 }
