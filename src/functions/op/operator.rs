@@ -1,37 +1,8 @@
 use std::borrow::Cow;
 
 use crate::functions::op::operand::Operand;
+use crate::functions::op::Error;
 use crate::metadata::types::MetaVal;
-
-#[derive(Debug, Copy, Clone)]
-pub enum Error {
-    NotIterable,
-    NotSequence,
-    InvalidOperand,
-    EmptySequence,
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::NotIterable => write!(f, "not an iterable"),
-            Self::NotSequence => write!(f, "not a sequence"),
-            Self::InvalidOperand => write!(f, "invalid operand"),
-            Self::EmptySequence => write!(f, "empty sequence"),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::NotIterable => None,
-            Self::NotSequence => None,
-            Self::InvalidOperand => None,
-            Self::EmptySequence => None,
-        }
-    }
-}
 
 #[derive(Clone, Copy, Debug)]
 pub enum Unary {
