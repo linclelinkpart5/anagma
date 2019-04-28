@@ -1,6 +1,8 @@
 use std::borrow::Cow;
+use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
+use crate::functions::util::StreamAdaptor;
 
 #[derive(Debug)]
 pub enum Error {
@@ -27,7 +29,7 @@ impl std::error::Error for Error {
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
 #[derive(Debug)]
 pub enum Operand<'o> {
-    // Stream(Stream<'o>),
+    StreamAdaptor(StreamAdaptor<'o>),
     Value(Cow<'o, MetaVal<'o>>),
 }
 
