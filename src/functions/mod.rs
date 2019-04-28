@@ -1,3 +1,2 @@
-mod operand;
-mod operator;
+mod op;
 mod util;

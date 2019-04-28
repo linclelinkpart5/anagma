@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::functions::operand::Operand;
+use crate::functions::op::operand::Operand;
 use crate::metadata::types::MetaVal;
 
 #[derive(Debug, Copy, Clone)]

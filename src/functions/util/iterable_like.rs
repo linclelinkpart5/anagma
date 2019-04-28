@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 use std::borrow::Cow;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::operand::Operand;
+use crate::functions::op::operand::Operand;
 use crate::functions::util::StreamAdaptor;
 use crate::functions::util::stream_adaptor::Error as StreamAdaptorError;
 
