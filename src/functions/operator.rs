@@ -8,6 +8,7 @@ pub enum Error {
     NotIterable,
     NotSequence,
     InvalidOperand,
+    EmptySequence,
 }
 
 impl std::fmt::Display for Error {
@@ -16,6 +17,7 @@ impl std::fmt::Display for Error {
             Self::NotIterable => write!(f, "not an iterable"),
             Self::NotSequence => write!(f, "not a sequence"),
             Self::InvalidOperand => write!(f, "invalid operand"),
+            Self::EmptySequence => write!(f, "empty sequence"),
         }
     }
 }
@@ -26,6 +28,7 @@ impl std::error::Error for Error {
             Self::NotIterable => None,
             Self::NotSequence => None,
             Self::InvalidOperand => None,
+            Self::EmptySequence => None,
         }
     }
 }
@@ -93,13 +96,12 @@ fn operand_as_seq_ref<'o>(operand: &'o Operand<'o>) -> Result<&'o Vec<MetaVal<'o
 impl Unary {
     pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
         match self {
-            // This eventually needs to operate on streams only.
             &Self::Collect => {
                 match operand {
                     Operand::Value(mv) => {
                         match mv.into_owned() {
                             MetaVal::Seq(seq) => Ok(Operand::Value(Cow::Owned(MetaVal::Seq(seq)))),
-                            _ => Err(Error::NotIterable),
+                            _ => Err(Error::NotSequence),
                         }
                     },
                     _ => Err(Error::InvalidOperand),
@@ -111,7 +113,35 @@ impl Unary {
                     Operand::Value(ref mv) => {
                         match mv.as_ref() {
                             &MetaVal::Seq(ref seq) => Ok(Operand::Value(Cow::Owned(MetaVal::Int(seq.len() as i64)))),
-                            _ => Err(Error::NotIterable),
+                            _ => Err(Error::NotSequence),
+                        }
+                    },
+                    _ => Err(Error::InvalidOperand),
+                }
+            },
+            &Self::First => {
+                match operand {
+                    Operand::Value(mv) => {
+                        match mv.into_owned() {
+                            MetaVal::Seq(seq) => {
+                                let mut it = seq.into_iter();
+                                it.next().map(Cow::Owned).map(Operand::Value).ok_or(Error::EmptySequence)
+                            },
+                            _ => Err(Error::NotSequence),
+                        }
+                    },
+                    _ => Err(Error::InvalidOperand),
+                }
+            },
+            &Self::Last => {
+                match operand {
+                    Operand::Value(mv) => {
+                        match mv.into_owned() {
+                            MetaVal::Seq(seq) => {
+                                let it = seq.into_iter();
+                                it.last().map(Cow::Owned).map(Operand::Value).ok_or(Error::EmptySequence)
+                            },
+                            _ => Err(Error::NotSequence),
                         }
                     },
                     _ => Err(Error::InvalidOperand),
