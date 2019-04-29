@@ -1,7 +1,10 @@
 use std::borrow::Cow;
+use std::convert::TryInto;
 
 use crate::functions::op::operand::Operand;
-use crate::functions::op::Error;
+use crate::functions::util::iterable_like::IterableLike;
+use crate::functions::util::number_like::NumberLike;
+use crate::functions::Error;
 use crate::metadata::types::MetaVal;
 
 #[derive(Clone, Copy, Debug)]
@@ -136,6 +139,30 @@ impl Unary {
                     },
                     _ => Err(Error::InvalidOperand),
                 }
+            },
+            &Self::MaxIn | &Self::MinIn => {
+                let mut m: Option<NumberLike> = None;
+
+                let il: IterableLike<'_> = operand.try_into()?;
+
+                for mv in il {
+                    let num: NumberLike = mv?.try_into()?;
+
+                    m = Some(
+                        match m {
+                            None => num,
+                            Some(curr_m) => {
+                                match self {
+                                    &Self::MaxIn => curr_m.max(num),
+                                    &Self::MinIn => curr_m.min(num),
+                                    _ => unreachable!(),
+                                }
+                            },
+                        }
+                    );
+                }
+
+                Ok(Operand::Value(Cow::Owned(m.ok_or(Error::EmptyIterable)?.into())))
             },
             // Not finished yet!
             _ => Ok(Operand::Value(Cow::Owned(MetaVal::Nil))),

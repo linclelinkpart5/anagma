@@ -2,10 +2,14 @@
 
 use std::ops::AddAssign;
 use std::ops::MulAssign;
+use std::borrow::Cow;
+use std::convert::TryFrom;
 
 use bigdecimal::BigDecimal;
 
 use crate::metadata::types::MetaVal;
+use crate::functions::op::operand::Operand;
+use crate::functions::Error;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NumberLike {
@@ -30,11 +34,39 @@ impl Ord for NumberLike {
     }
 }
 
+impl<'o> From<NumberLike> for Operand<'o> {
+    fn from(nl: NumberLike) -> Self {
+        Self::Value(Cow::Owned(nl.into()))
+    }
+}
+
 impl<'k> From<NumberLike> for MetaVal<'k> {
     fn from(nl: NumberLike) -> MetaVal<'k> {
         match nl {
-            NumberLike::Integer(i) => MetaVal::Int(i),
-            NumberLike::Decimal(d) => MetaVal::Dec(d),
+            NumberLike::Integer(i) => Self::Int(i),
+            NumberLike::Decimal(d) => Self::Dec(d),
+        }
+    }
+}
+impl<'k> TryFrom<Operand<'k>> for NumberLike {
+    type Error = Error;
+
+    fn try_from(value: Operand<'k>) -> Result<Self, Self::Error> {
+        match value {
+            Operand::Value(mv) => Self::try_from(mv.into_owned()),
+            _ => Err(Error::NotNumeric),
+        }
+    }
+}
+
+impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
+    type Error = Error;
+
+    fn try_from(value: MetaVal<'k>) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Int(i) => Ok(Self::Integer(i)),
+            MetaVal::Dec(d) => Ok(Self::Decimal(d)),
+            _ => Err(Error::NotNumeric),
         }
     }
 }

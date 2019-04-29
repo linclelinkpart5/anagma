@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use crate::metadata::types::MetaVal;
 use crate::functions::op::operand::Operand;
 use crate::functions::util::StreamAdaptor;
-use crate::functions::util::stream_adaptor::Error as StreamAdaptorError;
+use crate::functions::Error;
 
 pub enum IterableLike<'il> {
     StreamAdaptor(StreamAdaptor<'il>),
@@ -35,8 +35,31 @@ impl<'il> From<IterableLike<'il>> for Operand<'il> {
     }
 }
 
+impl<'il> TryFrom<Operand<'il>> for IterableLike<'il> {
+    type Error = Error;
+
+    fn try_from(value: Operand<'il>) -> Result<Self, Self::Error> {
+        match value {
+            Operand::StreamAdaptor(s) => Ok(Self::StreamAdaptor(s)),
+            Operand::Value(cow_mv) => Self::try_from(cow_mv.into_owned()),
+            _ => Err(Error::NotIterable),
+        }
+    }
+}
+
+impl<'il> TryFrom<MetaVal<'il>> for IterableLike<'il> {
+    type Error = Error;
+
+    fn try_from(value: MetaVal<'il>) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Seq(s) => Ok(Self::Sequence(s)),
+            _ => Err(Error::NotIterable),
+        }
+    }
+}
+
 impl<'il> IntoIterator for IterableLike<'il> {
-    type Item = Result<MetaVal<'il>, StreamAdaptorError>;
+    type Item = Result<MetaVal<'il>, Error>;
     type IntoIter = IterLike<'il>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -53,11 +76,11 @@ pub enum IterLike<'il> {
 }
 
 impl<'il> Iterator for IterLike<'il> {
-    type Item = Result<MetaVal<'il>, StreamAdaptorError>;
+    type Item = Result<MetaVal<'il>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::StreamAdaptor(ref mut s) => s.next(),
+            &mut Self::StreamAdaptor(ref mut s) => s.next().map(|res_mv| res_mv.map_err(Error::ValueStream)),
             &mut Self::Sequence(ref mut s) => s.next().map(Result::Ok),
         }
     }
