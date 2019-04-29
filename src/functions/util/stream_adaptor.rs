@@ -2,29 +2,8 @@ use std::collections::VecDeque;
 use std::collections::HashSet;
 
 use crate::metadata::stream::value::MetaValueStream;
-use crate::metadata::stream::value::Error as MetaValueStreamError;
+pub use crate::metadata::stream::value::Error;
 use crate::metadata::types::MetaVal;
-
-#[derive(Debug)]
-pub enum Error {
-    ValueStream(MetaValueStreamError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::ValueStream(ref err) => write!(f, "value stream error: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::ValueStream(ref err) => Some(err),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum StreamAdaptor<'s> {
@@ -45,7 +24,7 @@ impl<'s> Iterator for StreamAdaptor<'s> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv)).map(|res| res.map_err(Error::ValueStream)),
+            &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv)),
             &mut Self::Fixed(ref mut it) => it.next().map(Result::Ok),
 
             // &mut Self::Flatten(ref mut it) => it.next(),

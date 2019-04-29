@@ -75,6 +75,7 @@ impl Unary {
                             _ => Err(Error::NotSequence),
                         }
                     },
+                    Operand::StreamAdaptor(sa) => sa.collect::<Result<Vec<_>, _>>().map(MetaVal::Seq).map(Cow::Owned).map(Operand::Value).map_err(Error::ValueStream),
                     _ => Err(Error::InvalidOperand),
                 }
             },
@@ -87,6 +88,16 @@ impl Unary {
                             _ => Err(Error::NotSequence),
                         }
                     },
+                    Operand::StreamAdaptor(sa) => {
+                        let mut c: usize = 0;
+
+                        for res_mv in sa {
+                            res_mv.map_err(Error::ValueStream)?;
+                            c += 1;
+                        }
+
+                        Ok(Operand::Value(Cow::Owned(MetaVal::Int(c as i64))))
+                    },
                     _ => Err(Error::InvalidOperand),
                 }
             },
@@ -95,11 +106,13 @@ impl Unary {
                     Operand::Value(mv) => {
                         match mv.into_owned() {
                             MetaVal::Seq(seq) => {
-                                let mut it = seq.into_iter();
-                                it.next().map(Cow::Owned).map(Operand::Value).ok_or(Error::EmptySequence)
+                                seq.into_iter().next().map(Cow::Owned).map(Operand::Value).ok_or(Error::EmptySequence)
                             },
                             _ => Err(Error::NotSequence),
                         }
+                    },
+                    Operand::StreamAdaptor(mut sa) => {
+                        sa.next().ok_or(Error::EmptyStream)?.map(Cow::Owned).map(Operand::Value).map_err(Error::ValueStream)
                     },
                     _ => Err(Error::InvalidOperand),
                 }
@@ -109,11 +122,17 @@ impl Unary {
                     Operand::Value(mv) => {
                         match mv.into_owned() {
                             MetaVal::Seq(seq) => {
-                                let it = seq.into_iter();
-                                it.last().map(Cow::Owned).map(Operand::Value).ok_or(Error::EmptySequence)
+                                seq.into_iter().last().map(Cow::Owned).map(Operand::Value).ok_or(Error::EmptySequence)
                             },
                             _ => Err(Error::NotSequence),
                         }
+                    },
+                    Operand::StreamAdaptor(sa) => {
+                        let mut last = None;
+                        for res_mv in sa {
+                            last = Some(res_mv.map_err(Error::ValueStream)?);
+                        }
+                        last.ok_or(Error::EmptyStream).map(Cow::Owned).map(Operand::Value)
                     },
                     _ => Err(Error::InvalidOperand),
                 }
