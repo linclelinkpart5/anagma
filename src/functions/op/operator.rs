@@ -12,24 +12,6 @@ pub enum Predicate {
     AllEqual,
 }
 
-pub fn all_equal_agnostic<'mv>(mut it: impl Iterator<Item = Result<Cow<'mv, MetaVal<'mv>>, &'static str>>) -> Result<bool, &'static str> {
-    match it.next() {
-        None => Ok(true),
-        Some(res_first_mv) => {
-            let first_mv = res_first_mv?;
-
-            for res_mv in it {
-                let mv = res_mv?;
-                if mv != first_mv {
-                    return Ok(false);
-                }
-            }
-
-            Ok(true)
-        },
-    }
-}
-
 impl Predicate {
     pub fn process<'mv>(&self, mv: &'mv MetaVal<'mv>) -> Result<bool, Error> {
         match self {
