@@ -80,7 +80,7 @@ impl<'il> Iterator for IterLike<'il> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::StreamAdaptor(ref mut s) => s.next().map(|res_mv| res_mv.map_err(Error::ValueStream)),
+            &mut Self::StreamAdaptor(ref mut s) => s.next(),
             &mut Self::Sequence(ref mut s) => s.next().map(Result::Ok),
         }
     }

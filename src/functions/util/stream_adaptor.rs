@@ -1,8 +1,10 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
 
+use crate::functions::Error;
+use crate::functions::op::operator::Unary;
+use crate::functions::op::operand::Operand;
 use crate::metadata::stream::value::MetaValueStream;
-pub use crate::metadata::stream::value::Error;
 use crate::metadata::types::MetaVal;
 
 #[derive(Debug)]
@@ -24,7 +26,7 @@ impl<'s> Iterator for StreamAdaptor<'s> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv)),
+            &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv).map_err(Error::ValueStream)),
             &mut Self::Fixed(ref mut it) => it.next().map(Result::Ok),
 
             // &mut Self::Flatten(ref mut it) => it.next(),

@@ -8,6 +8,54 @@ use crate::functions::Error;
 use crate::metadata::types::MetaVal;
 
 #[derive(Clone, Copy, Debug)]
+pub enum Predicate {
+    AllEqual,
+}
+
+pub fn all_equal_agnostic<'mv>(mut it: impl Iterator<Item = Result<Cow<'mv, MetaVal<'mv>>, &'static str>>) -> Result<bool, &'static str> {
+    match it.next() {
+        None => Ok(true),
+        Some(res_first_mv) => {
+            let first_mv = res_first_mv?;
+
+            for res_mv in it {
+                let mv = res_mv?;
+                if mv != first_mv {
+                    return Ok(false);
+                }
+            }
+
+            Ok(true)
+        },
+    }
+}
+
+impl Predicate {
+    pub fn process<'mv>(&self, mv: &'mv MetaVal<'mv>) -> Result<bool, Error> {
+        match self {
+            &Self::AllEqual => {
+                match mv {
+                    &MetaVal::Seq(ref seq) => {
+                        let mut it = seq.into_iter();
+                        match it.next() {
+                            None => Ok(true),
+                            Some(first_mv) => {
+                                for mv in it {
+                                    if mv != first_mv { return Ok(false); }
+                                }
+
+                                Ok(true)
+                            },
+                        }
+                    },
+                    _ => Err(Error::NotSequence),
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum Unary {
     // (Iterable<V>) -> Sequence<V>
     Collect,
@@ -78,7 +126,7 @@ impl Unary {
                             _ => Err(Error::NotSequence),
                         }
                     },
-                    Operand::StreamAdaptor(sa) => sa.collect::<Result<Vec<_>, _>>().map(MetaVal::Seq).map(Cow::Owned).map(Operand::Value).map_err(Error::ValueStream),
+                    Operand::StreamAdaptor(sa) => sa.collect::<Result<Vec<_>, _>>().map(MetaVal::Seq).map(Cow::Owned).map(Operand::Value),
                     _ => Err(Error::InvalidOperand),
                 }
             },
@@ -95,7 +143,7 @@ impl Unary {
                         let mut c: usize = 0;
 
                         for res_mv in sa {
-                            res_mv.map_err(Error::ValueStream)?;
+                            res_mv?;
                             c += 1;
                         }
 
@@ -115,7 +163,7 @@ impl Unary {
                         }
                     },
                     Operand::StreamAdaptor(mut sa) => {
-                        sa.next().ok_or(Error::EmptyStream)?.map(Cow::Owned).map(Operand::Value).map_err(Error::ValueStream)
+                        sa.next().ok_or(Error::EmptyStream)?.map(Cow::Owned).map(Operand::Value)
                     },
                     _ => Err(Error::InvalidOperand),
                 }
@@ -133,7 +181,7 @@ impl Unary {
                     Operand::StreamAdaptor(sa) => {
                         let mut last = None;
                         for res_mv in sa {
-                            last = Some(res_mv.map_err(Error::ValueStream)?);
+                            last = Some(res_mv?);
                         }
                         last.ok_or(Error::EmptyStream).map(Cow::Owned).map(Operand::Value)
                     },
