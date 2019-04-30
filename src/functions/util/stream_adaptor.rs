@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::collections::HashSet;
 
 use crate::functions::Error;
+use crate::functions::op::operator::UnaryOp;
 use crate::functions::op::operator::UnaryPredicate;
 use crate::functions::op::operand::Operand;
 use crate::metadata::stream::value::MetaValueStream;
@@ -12,13 +13,7 @@ pub enum StreamAdaptor<'s> {
     Raw(MetaValueStream<'s>),
     Fixed(std::vec::IntoIter<MetaVal<'s>>),
 
-    // Flatten(FlattenStream<'s>),
-    // Dedup(DedupStream<'s>),
-    // Unique(UniqueStream<'s>),
-    // StepBy(StepByStream<'s>),
-    // Chain(ChainStream<'s>),
-    // Zip(ZipStream<'s>),
-    // Map(MapStream<'s>),
+    Filter(FilterAdaptor<'s>),
 }
 
 impl<'s> Iterator for StreamAdaptor<'s> {
@@ -29,13 +24,7 @@ impl<'s> Iterator for StreamAdaptor<'s> {
             &mut Self::Raw(ref mut it) => it.next().map(|res| res.map(|(_, mv)| mv).map_err(Error::ValueStream)),
             &mut Self::Fixed(ref mut it) => it.next().map(Result::Ok),
 
-            // &mut Self::Flatten(ref mut it) => it.next(),
-            // &mut Self::Dedup(ref mut it) => it.next(),
-            // &mut Self::Unique(ref mut it) => it.next(),
-            // &mut Self::StepBy(ref mut it) => it.next(),
-            // &mut Self::Chain(ref mut it) => it.next(),
-            // &mut Self::Zip(ref mut it) => it.next(),
-            // &mut Self::Map(ref mut it) => it.next(),
+            &mut Self::Filter(ref mut it) => it.next(),
         }
     }
 }

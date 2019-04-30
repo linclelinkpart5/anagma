@@ -74,30 +74,6 @@ pub enum UnaryOp {
     Unique,
 }
 
-fn operand_as_seq<'o>(operand: Operand<'o>) -> Result<Vec<MetaVal<'o>>, Error> {
-    match operand {
-        Operand::Value(mv) => {
-            match mv.into_owned() {
-                MetaVal::Seq(seq) => Ok(seq),
-                _ => Err(Error::NotSequence),
-            }
-        },
-        _ => Err(Error::InvalidOperand),
-    }
-}
-
-fn operand_as_seq_ref<'o>(operand: &'o Operand<'o>) -> Result<&'o Vec<MetaVal<'o>>, Error> {
-    match operand {
-        Operand::Value(ref mv) => {
-            match mv.as_ref() {
-                &MetaVal::Seq(ref seq) => Ok(seq),
-                _ => Err(Error::NotSequence),
-            }
-        },
-        _ => Err(Error::InvalidOperand),
-    }
-}
-
 impl UnaryOp {
     pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
         match self {
