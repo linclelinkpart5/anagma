@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use crate::functions::op::operand::Operand;
 use crate::functions::util::iterable_like::IterableLike;
@@ -8,11 +9,11 @@ use crate::functions::Error;
 use crate::metadata::types::MetaVal;
 
 #[derive(Clone, Copy, Debug)]
-pub enum Predicate {
+pub enum UnaryPredicate {
     AllEqual,
 }
 
-impl Predicate {
+impl UnaryPredicate {
     pub fn process<'mv>(&self, mv: &'mv MetaVal<'mv>) -> Result<bool, Error> {
         match self {
             &Self::AllEqual => {
@@ -38,7 +39,7 @@ impl Predicate {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum Unary {
+pub enum UnaryOp {
     // (Iterable<V>) -> Sequence<V>
     Collect,
     // (Iterable<V>) -> Integer
@@ -97,7 +98,7 @@ fn operand_as_seq_ref<'o>(operand: &'o Operand<'o>) -> Result<&'o Vec<MetaVal<'o
     }
 }
 
-impl Unary {
+impl UnaryOp {
     pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
         match self {
             &Self::Collect => {
@@ -196,6 +197,25 @@ impl Unary {
             },
             // Not finished yet!
             _ => Ok(Operand::Value(Cow::Owned(MetaVal::Nil))),
+        }
+    }
+}
+
+impl From<UnaryPredicate> for UnaryOp {
+    fn from(up: UnaryPredicate) -> Self {
+        match up {
+            UnaryPredicate::AllEqual => Self::AllEqual,
+        }
+    }
+}
+
+impl TryFrom<UnaryOp> for UnaryPredicate {
+    type Error = Error;
+
+    fn try_from(uo: UnaryOp) -> Result<Self, Self::Error> {
+        match uo {
+            UnaryOp::AllEqual => Ok(Self::AllEqual),
+            _ => Err(Error::NotPredicate),
         }
     }
 }

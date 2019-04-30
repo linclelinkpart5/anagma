@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::collections::HashSet;
 
 use crate::functions::Error;
-use crate::functions::op::operator::Predicate;
+use crate::functions::op::operator::UnaryPredicate;
 use crate::functions::op::operand::Operand;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
@@ -41,10 +41,10 @@ impl<'s> Iterator for StreamAdaptor<'s> {
 }
 
 #[derive(Debug)]
-pub struct FilterAdaptor<'s>(Box<StreamAdaptor<'s>>, Predicate);
+pub struct FilterAdaptor<'s>(Box<StreamAdaptor<'s>>, UnaryPredicate);
 
 impl<'s> FilterAdaptor<'s> {
-    pub fn new(s: StreamAdaptor<'s>, pred: Predicate) -> Self {
+    pub fn new(s: StreamAdaptor<'s>, pred: UnaryPredicate) -> Self {
         Self(Box::new(s), pred)
     }
 }
