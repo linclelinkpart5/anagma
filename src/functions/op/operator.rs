@@ -39,6 +39,29 @@ impl UnaryPredicate {
 }
 
 #[derive(Clone, Copy, Debug)]
+pub enum UnaryConverter {
+    // All unary predicates can be treated as unary converters.
+    Predicate(UnaryPredicate),
+
+    Count,
+}
+
+impl UnaryConverter {
+    pub fn process<'mv>(&self, mv: MetaVal<'mv>) -> Result<MetaVal<'mv>, Error> {
+        match self {
+            &Self::Predicate(pred) => pred.process(&mv).map(MetaVal::Bul),
+
+            &Self::Count => {
+                match mv {
+                    MetaVal::Seq(seq) => Ok(MetaVal::Int(seq.len() as i64)),
+                    _ => Err(Error::NotSequence),
+                }
+            },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
 pub enum UnaryOp {
     // (Iterable<V>) -> Sequence<V>
     Collect,
