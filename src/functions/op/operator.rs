@@ -8,6 +8,28 @@ use crate::functions::util::number_like::NumberLike;
 use crate::functions::Error;
 use crate::metadata::types::MetaVal;
 
+impl<'mv> TryFrom<MetaVal<'mv>> for Vec<MetaVal<'mv>> {
+    type Error = Error;
+
+    fn try_from(mv: MetaVal<'mv>) -> Result<Self, Self::Error> {
+        match mv {
+            MetaVal::Seq(seq) => Ok(seq),
+            _ => Err(Error::NotSequence),
+        }
+    }
+}
+
+impl<'mv> TryFrom<&'mv MetaVal<'mv>> for &'mv Vec<MetaVal<'mv>> {
+    type Error = Error;
+
+    fn try_from(mv: &'mv MetaVal<'mv>) -> Result<Self, Self::Error> {
+        match mv {
+            &MetaVal::Seq(ref seq) => Ok(seq),
+            _ => Err(Error::NotSequence),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum UnaryPredicate {
     AllEqual,
@@ -17,21 +39,19 @@ impl UnaryPredicate {
     pub fn process<'mv>(&self, mv: &'mv MetaVal<'mv>) -> Result<bool, Error> {
         match self {
             &Self::AllEqual => {
-                match mv {
-                    &MetaVal::Seq(ref seq) => {
-                        let mut it = seq.into_iter();
-                        match it.next() {
-                            None => Ok(true),
-                            Some(first_mv) => {
-                                for mv in it {
-                                    if mv != first_mv { return Ok(false); }
-                                }
+                let ref_seq: &Vec<_> = mv.try_into()?;
 
-                                Ok(true)
-                            },
+                let mut it = ref_seq.into_iter();
+
+                match it.next() {
+                    None => Ok(true),
+                    Some(first_mv) => {
+                        for mv in it {
+                            if mv != first_mv { return Ok(false); }
                         }
+
+                        Ok(true)
                     },
-                    _ => Err(Error::NotSequence),
                 }
             }
         }
@@ -44,6 +64,10 @@ pub enum UnaryConverter {
     Predicate(UnaryPredicate),
 
     Count,
+    First,
+    Last,
+    MaxIn,
+    MinIn,
 }
 
 impl UnaryConverter {
@@ -52,9 +76,38 @@ impl UnaryConverter {
             &Self::Predicate(pred) => pred.process(&mv).map(MetaVal::Bul),
 
             &Self::Count => {
-                match mv {
-                    MetaVal::Seq(seq) => Ok(MetaVal::Int(seq.len() as i64)),
-                    _ => Err(Error::NotSequence),
+                let ref_seq: &Vec<_> = (&mv).try_into()?;
+                Ok(MetaVal::Int(ref_seq.len() as i64))
+            },
+            &Self::First => {
+                let seq: Vec<_> = mv.try_into()?;
+                seq.into_iter().next().ok_or(Error::EmptySequence)
+            },
+            &Self::Last => {
+                let seq: Vec<_> = mv.try_into()?;
+                seq.into_iter().last().ok_or(Error::EmptySequence)
+            },
+            &Self::MaxIn | &Self::MinIn => {
+                let seq: Vec<_> = mv.try_into()?;
+
+                let mut it = seq.into_iter();
+
+                match it.next() {
+                    None => Err(Error::EmptySequence),
+                    Some(first_mv) => {
+                        let mut target_nl: NumberLike = first_mv.try_into()?;
+
+                        for mv in it {
+                            let nl: NumberLike = mv.try_into()?;
+                            target_nl = match self {
+                                &Self::MaxIn => target_nl.max(nl),
+                                &Self::MinIn => target_nl.min(nl),
+                                _ => unreachable!(),
+                            };
+                        }
+
+                        Ok(target_nl.into())
+                    }
                 }
             },
         }
