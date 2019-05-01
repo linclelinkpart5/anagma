@@ -68,6 +68,8 @@ pub enum UnaryConverter {
     Last,
     MaxIn,
     MinIn,
+    Rev,
+    Sort,
 }
 
 impl UnaryConverter {
@@ -109,6 +111,16 @@ impl UnaryConverter {
                         Ok(target_nl.into())
                     }
                 }
+            },
+            &Self::Rev => {
+                let mut seq: Vec<_> = mv.try_into()?;
+                seq.reverse();
+                Ok(MetaVal::Seq(seq))
+            },
+            &Self::Sort => {
+                let mut seq: Vec<_> = mv.try_into()?;
+                seq.sort();
+                Ok(MetaVal::Seq(seq))
             },
         }
     }
