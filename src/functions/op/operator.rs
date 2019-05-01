@@ -5,8 +5,9 @@ use std::convert::TryFrom;
 use itertools::Itertools;
 
 use crate::functions::op::operand::Operand;
-use crate::functions::util::iterable_like::IterableLike;
-use crate::functions::util::number_like::NumberLike;
+use crate::functions::util::IterableLike;
+use crate::functions::util::NumberLike;
+use crate::functions::util::StreamAdaptor;
 use crate::functions::Error;
 use crate::metadata::types::MetaVal;
 
@@ -173,6 +174,47 @@ impl UnaryConverter {
                 // TODO: Figure out equality rules.
                 Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
             },
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum UnaryStreamConsumer {
+    Collect,
+    Count,
+    First,
+    Last,
+    MaxIn,
+    MinIn,
+    Rev,
+    Sort,
+    Sum,
+    Prod,
+    AllEqual,
+}
+
+impl UnaryStreamConsumer {
+    pub fn process<'sa>(&self, mut sa: StreamAdaptor<'sa>) -> Result<MetaVal<'sa>, Error> {
+        match self {
+            &Self::Collect => sa.collect::<Result<Vec<_>, _>>().map(MetaVal::Seq),
+            &Self::Count => {
+                let mut c: usize = 0;
+
+                for res_mv in sa {
+                    res_mv?;
+                    c += 1;
+                }
+
+                Ok(MetaVal::Int(c as i64))
+            },
+            &Self::First => sa.next().ok_or(Error::EmptyStream)?,
+            &Self::Last => {
+                // This is done in order to bail if an error is encounterd midway.
+                let mut last = None;
+                for res_mv in sa { last = Some(res_mv?); }
+                last.ok_or(Error::EmptyStream)
+            }
+            _ => Ok(MetaVal::Nil),
         }
     }
 }
