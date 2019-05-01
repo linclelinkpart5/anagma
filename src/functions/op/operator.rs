@@ -2,6 +2,8 @@ use std::borrow::Cow;
 use std::convert::TryInto;
 use std::convert::TryFrom;
 
+use itertools::Itertools;
+
 use crate::functions::op::operand::Operand;
 use crate::functions::util::iterable_like::IterableLike;
 use crate::functions::util::number_like::NumberLike;
@@ -73,6 +75,8 @@ pub enum UnaryConverter {
     Sum,
     Prod,
     Flatten,
+    Dedup,
+    Unique,
 }
 
 impl UnaryConverter {
@@ -157,6 +161,17 @@ impl UnaryConverter {
                     }
                 }
                 Ok(MetaVal::Seq(flattened))
+            },
+            &Self::Dedup => {
+                let mut seq: Vec<_> = mv.try_into()?;
+                // TODO: Figure out equality rules.
+                seq.dedup();
+                Ok(MetaVal::Seq(seq))
+            },
+            &Self::Unique => {
+                let seq: Vec<_> = mv.try_into()?;
+                // TODO: Figure out equality rules.
+                Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
             },
         }
     }
