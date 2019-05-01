@@ -70,6 +70,9 @@ pub enum UnaryConverter {
     MinIn,
     Rev,
     Sort,
+    Sum,
+    Prod,
+    Flatten,
 }
 
 impl UnaryConverter {
@@ -121,6 +124,39 @@ impl UnaryConverter {
                 let mut seq: Vec<_> = mv.try_into()?;
                 seq.sort();
                 Ok(MetaVal::Seq(seq))
+            },
+            &Self::Sum | &Self::Prod => {
+                let seq: Vec<_> = mv.try_into()?;
+
+                let mut total = match self {
+                    &Self::Sum => NumberLike::Integer(0),
+                    &Self::Prod => NumberLike::Integer(1),
+                    _ => unreachable!(),
+                };
+
+                for mv in seq {
+                    let nl: NumberLike = mv.try_into()?;
+
+                    match self {
+                        &Self::Sum => { total += nl; },
+                        &Self::Prod => { total *= nl; },
+                        _ => unreachable!(),
+                    };
+                }
+
+                Ok(total.into())
+            },
+            &Self::Flatten => {
+                let seq: Vec<_> = mv.try_into()?;
+                let mut flattened = vec![];
+
+                for mv in seq {
+                    match mv {
+                        MetaVal::Seq(mut seq) => flattened.append(&mut seq),
+                        mv => flattened.push(mv),
+                    }
+                }
+                Ok(MetaVal::Seq(flattened))
             },
         }
     }
