@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use crate::functions::Error;
 use crate::functions::op::operator::UnaryOp;
 use crate::functions::op::operator::UnaryPredicate;
+use crate::functions::op::operator::UnaryConverter;
 use crate::functions::op::operand::Operand;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
@@ -14,6 +15,7 @@ pub enum StreamAdaptor<'s> {
     Fixed(std::vec::IntoIter<MetaVal<'s>>),
 
     Filter(FilterAdaptor<'s>),
+    Map(MapAdaptor<'s>),
 }
 
 impl<'s> Iterator for StreamAdaptor<'s> {
@@ -25,6 +27,7 @@ impl<'s> Iterator for StreamAdaptor<'s> {
             &mut Self::Fixed(ref mut it) => it.next().map(Result::Ok),
 
             &mut Self::Filter(ref mut it) => it.next(),
+            &mut Self::Map(ref mut it) => it.next(),
         }
     }
 }
@@ -52,6 +55,26 @@ impl<'s> Iterator for FilterAdaptor<'s> {
                     },
                 }
             },
+            Err(err) => Some(Err(err)),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct MapAdaptor<'s>(Box<StreamAdaptor<'s>>, UnaryConverter);
+
+impl<'s> MapAdaptor<'s> {
+    pub fn new(s: StreamAdaptor<'s>, conv: UnaryConverter) -> Self {
+        Self(Box::new(s), conv)
+    }
+}
+
+impl<'s> Iterator for MapAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0.next()? {
+            Ok(mv) => Some(self.1.process(mv)),
             Err(err) => Some(Err(err)),
         }
     }
