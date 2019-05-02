@@ -97,29 +97,14 @@ impl UnaryConverter {
                 let seq: Vec<_> = mv.try_into()?;
                 seq.into_iter().last().ok_or(Error::EmptySequence)
             },
-            &Self::MaxIn | &Self::MinIn => {
+            &Self::MaxIn => {
                 let seq: Vec<_> = mv.try_into()?;
-
-                let mut it = seq.into_iter();
-
-                match it.next() {
-                    None => Err(Error::EmptySequence),
-                    Some(first_mv) => {
-                        let mut target_nl: NumberLike = first_mv.try_into()?;
-
-                        for mv in it {
-                            let nl: NumberLike = mv.try_into()?;
-                            target_nl = match self {
-                                &Self::MaxIn => target_nl.max(nl),
-                                &Self::MinIn => target_nl.min(nl),
-                                _ => unreachable!(),
-                            };
-                        }
-
-                        Ok(target_nl.into())
-                    }
-                }
+                UnaryIterConsumer::MaxIn.process(seq.into_iter().map(Result::Ok))
             },
+            &Self::MinIn => {
+                let seq: Vec<_> = mv.try_into()?;
+                UnaryIterConsumer::MinIn.process(seq.into_iter().map(Result::Ok))
+            }
             &Self::Rev => {
                 let mut seq: Vec<_> = mv.try_into()?;
                 seq.reverse();
@@ -130,26 +115,13 @@ impl UnaryConverter {
                 seq.sort();
                 Ok(MetaVal::Seq(seq))
             },
-            &Self::Sum | &Self::Prod => {
+            &Self::Sum => {
                 let seq: Vec<_> = mv.try_into()?;
-
-                let mut total = match self {
-                    &Self::Sum => NumberLike::Integer(0),
-                    &Self::Prod => NumberLike::Integer(1),
-                    _ => unreachable!(),
-                };
-
-                for mv in seq {
-                    let nl: NumberLike = mv.try_into()?;
-
-                    match self {
-                        &Self::Sum => { total += nl; },
-                        &Self::Prod => { total *= nl; },
-                        _ => unreachable!(),
-                    };
-                }
-
-                Ok(total.into())
+                UnaryIterConsumer::Sum.process(seq.into_iter().map(Result::Ok))
+            },
+            &Self::Prod => {
+                let seq: Vec<_> = mv.try_into()?;
+                UnaryIterConsumer::Prod.process(seq.into_iter().map(Result::Ok))
             },
             &Self::Flatten => {
                 let seq: Vec<_> = mv.try_into()?;
