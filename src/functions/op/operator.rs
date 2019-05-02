@@ -74,7 +74,7 @@ pub enum UnaryConverter {
     Flatten,
     Dedup,
     Unique,
-    AllEqual,
+    Predicate(UnaryPredicate),
 }
 
 impl UnaryConverter {
@@ -141,7 +141,8 @@ impl UnaryConverter {
                 // TODO: Figure out equality rules.
                 Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
             },
-            &Self::AllEqual => UnaryPredicate::AllEqual.process(&mv).map(MetaVal::Bul),
+
+            &Self::Predicate(pred) => pred.process(&mv).map(MetaVal::Bul),
         }
     }
 }
@@ -253,9 +254,7 @@ impl UnaryIterConsumer {
 // All predicates are converters.
 impl From<UnaryPredicate> for UnaryConverter {
     fn from(p: UnaryPredicate) -> Self {
-        match p {
-            UnaryPredicate::AllEqual => Self::AllEqual,
-        }
+        Self::Predicate(p)
     }
 }
 
@@ -264,28 +263,23 @@ impl TryFrom<UnaryConverter> for UnaryPredicate {
 
     fn try_from(p: UnaryConverter) -> Result<Self, Self::Error> {
         match p {
-            UnaryConverter::AllEqual => Ok(Self::AllEqual),
+            UnaryConverter::Predicate(p) => Ok(p),
             _ => Err(Error::NotPredicate),
         }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
-pub enum UnaryOp {
-    Collect,
-    Count,
-    First,
-    Last,
-    MaxIn,
-    MinIn,
-    Rev,
-    Sum,
-    Product,
-    AllEqual,
-    Sort,
+pub enum UnaryIterAdaptor {
     Flatten,
     Dedup,
     Unique,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum UnaryOp {
+    Converter(UnaryConverter),
+    IterConsumer(UnaryIterConsumer),
 }
 
 impl UnaryOp {
@@ -295,20 +289,35 @@ impl UnaryOp {
 }
 
 impl From<UnaryPredicate> for UnaryOp {
-    fn from(up: UnaryPredicate) -> Self {
-        match up {
-            UnaryPredicate::AllEqual => Self::AllEqual,
-        }
+    fn from(p: UnaryPredicate) -> Self {
+        Self::Converter(UnaryConverter::Predicate(p))
     }
 }
 
 impl TryFrom<UnaryOp> for UnaryPredicate {
     type Error = Error;
 
-    fn try_from(uo: UnaryOp) -> Result<Self, Self::Error> {
-        match uo {
-            UnaryOp::AllEqual => Ok(Self::AllEqual),
+    fn try_from(op: UnaryOp) -> Result<Self, Self::Error> {
+        match op {
+            UnaryOp::Converter(UnaryConverter::Predicate(p)) => Ok(p),
             _ => Err(Error::NotPredicate),
+        }
+    }
+}
+
+impl From<UnaryConverter> for UnaryOp {
+    fn from(c: UnaryConverter) -> Self {
+        Self::Converter(c)
+    }
+}
+
+impl TryFrom<UnaryOp> for UnaryConverter {
+    type Error = Error;
+
+    fn try_from(op: UnaryOp) -> Result<Self, Self::Error> {
+        match op {
+            UnaryOp::Converter(c) => Ok(c),
+            _ => Err(Error::NotConverter),
         }
     }
 }
