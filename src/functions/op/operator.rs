@@ -74,7 +74,7 @@ pub enum UnaryConverter {
     Flatten,
     Dedup,
     Unique,
-    AllEqual,
+    Predicate(UnaryPredicate),
 }
 
 impl UnaryConverter {
@@ -141,7 +141,9 @@ impl UnaryConverter {
                 // TODO: Figure out equality rules.
                 Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
             },
-            &Self::AllEqual => UnaryPredicate::AllEqual.process(&mv).map(MetaVal::Bul),
+
+            // All predicates are implicitly converters as well.
+            &Self::Predicate(pred) => pred.process(&mv).map(MetaVal::Bul),
         }
     }
 }
@@ -253,9 +255,7 @@ impl UnaryIterConsumer {
 // All predicates are converters.
 impl From<UnaryPredicate> for UnaryConverter {
     fn from(p: UnaryPredicate) -> Self {
-        match p {
-            UnaryPredicate::AllEqual => Self::AllEqual,
-        }
+        Self::Predicate(p)
     }
 }
 
@@ -264,7 +264,7 @@ impl TryFrom<UnaryConverter> for UnaryPredicate {
 
     fn try_from(p: UnaryConverter) -> Result<Self, Self::Error> {
         match p {
-            UnaryConverter::AllEqual => Ok(Self::AllEqual),
+            UnaryConverter::Predicate(p) => Ok(p),
             _ => Err(Error::NotPredicate),
         }
     }
