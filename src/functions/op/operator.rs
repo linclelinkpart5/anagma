@@ -142,6 +142,7 @@ impl UnaryConverter {
                 Ok(MetaVal::Seq(seq.into_iter().unique().collect()))
             },
 
+            // All predicates are implicitly converters as well.
             &Self::Predicate(pred) => pred.process(&mv).map(MetaVal::Bul),
         }
     }
