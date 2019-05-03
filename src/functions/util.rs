@@ -5,3 +5,4 @@ pub mod stream_adaptor;
 pub use self::iterable_like::IterableLike;
 pub use self::number_like::NumberLike;
 pub use self::stream_adaptor::StreamAdaptor;
+pub use self::stream_adaptor::*;
