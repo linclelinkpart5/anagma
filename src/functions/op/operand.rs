@@ -24,6 +24,17 @@ impl<'o> TryInto<MetaVal<'o>> for Operand<'o> {
     }
 }
 
+impl<'o> TryInto<StreamAdaptor<'o>> for Operand<'o> {
+    type Error = Error;
+
+    fn try_into(self) -> Result<StreamAdaptor<'o>, Self::Error> {
+        match self {
+            Self::StreamAdaptor(sa) => Ok(sa),
+            _ => Err(Error::InvalidOperand),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct OperandStack<'o>(Vec<Operand<'o>>);
 

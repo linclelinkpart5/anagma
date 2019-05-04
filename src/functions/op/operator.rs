@@ -304,7 +304,14 @@ impl UnaryOp {
                 let mv: MetaVal<'_> = operand.try_into()?;
                 conv.process(mv).map(Operand::Value)
             },
-            _ => Err(Error::InvalidOperand)
+            &Self::IterConsumer(ic) => {
+                let sa: StreamAdaptor<'_> = operand.try_into()?;
+                ic.process(sa).map(Operand::Value)
+            },
+            &Self::IterAdaptor(ia) => {
+                let sa: StreamAdaptor<'_> = operand.try_into()?;
+                ia.process(sa).map(Operand::StreamAdaptor)
+            },
         }
     }
 }
