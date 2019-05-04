@@ -40,3 +40,49 @@ impl OpImpl {
         }
     }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub enum Op {
+    Count,
+    First,
+    Last,
+    MaxIn,
+    MinIn,
+    Rev,
+    Sort,
+    Sum,
+    Prod,
+    Flatten,
+    Dedup,
+    Unique,
+    Collect,
+    AllEqual,
+}
+
+impl From<Predicate> for Op {
+    fn from(pred: Predicate) -> Self {
+        match pred {
+            Predicate::AllEqual => Self::AllEqual,
+        }
+    }
+}
+
+impl From<Converter> for Op {
+    fn from(conv: Converter) -> Self {
+        match conv {
+            Converter::Count => Self::Count,
+            Converter::First => Self::First,
+            Converter::Last => Self::Last,
+            Converter::MaxIn => Self::MaxIn,
+            Converter::MinIn => Self::MinIn,
+            Converter::Rev => Self::Rev,
+            Converter::Sort => Self::Sort,
+            Converter::Sum => Self::Sum,
+            Converter::Prod => Self::Prod,
+            Converter::Flatten => Self::Flatten,
+            Converter::Dedup => Self::Dedup,
+            Converter::Unique => Self::Unique,
+            Converter::Predicate(pred) => pred.into(),
+        }
+    }
+}
