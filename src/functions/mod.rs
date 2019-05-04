@@ -16,6 +16,7 @@ pub enum Error {
     EmptySequence,
     EmptyStream,
     EmptyIterable,
+    ZeroStepSize,
 }
 
 impl std::fmt::Display for Error {
@@ -32,6 +33,7 @@ impl std::fmt::Display for Error {
             Self::EmptySequence => write!(f, "empty sequence"),
             Self::EmptyStream => write!(f, "empty stream"),
             Self::EmptyIterable => write!(f, "empty iterable"),
+            Self::ZeroStepSize => write!(f, "zero step size"),
         }
     }
 }
@@ -50,6 +52,7 @@ impl std::error::Error for Error {
             Self::EmptySequence => None,
             Self::EmptyStream => None,
             Self::EmptyIterable => None,
+            Self::ZeroStepSize => None,
         }
     }
 }

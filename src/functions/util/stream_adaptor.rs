@@ -178,3 +178,100 @@ impl<'s> Iterator for MapAdaptor<'s> {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct StepByAdaptor<'s> {
+    stream: Box<StreamAdaptor<'s>>,
+    curr: usize,
+    n: usize,
+}
+
+impl<'s> StepByAdaptor<'s> {
+    // Can fail if step size is zero.
+    pub fn new(s: StreamAdaptor<'s>, n: usize) -> Result<Self, Error> {
+        if n == 0 { Err(Error::ZeroStepSize) }
+        else {
+            Ok(Self {
+                stream: Box::new(s),
+                curr: n,
+                n,
+            })
+        }
+    }
+}
+
+impl<'s> Iterator for StepByAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.stream.next()? {
+            // Always report errors, even if they would not normally be "hit".
+            Err(err) => Some(Err(err)),
+            Ok(mv) => {
+                // Output the meta value if currently at a step point.
+                if self.curr >= self.n {
+                    self.curr = 1;
+                    Some(Ok(mv))
+                }
+                else {
+                    self.curr += 1;
+                    self.next()
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ChainStream<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>, bool);
+
+impl<'s> ChainStream<'s> {
+    pub fn new(sa_a: StreamAdaptor<'s>, sa_b: StreamAdaptor<'s>) -> Self {
+        Self(Box::new(sa_a), Box::new(sa_b), false)
+    }
+}
+
+impl<'s> Iterator for ChainStream<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Iterate the first stream.
+        if !self.2 {
+            match self.0.next() {
+                None => {
+                    self.2 = true;
+                    self.next()
+                }
+                Some(res) => Some(res),
+            }
+        }
+        // Iterate the second stream.
+        else {
+            self.1.next()
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ZipStream<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>);
+
+impl<'s> ZipStream<'s> {
+    pub fn new(s_a: StreamAdaptor<'s>, s_b: StreamAdaptor<'s>) -> Self {
+        Self(Box::new(s_a), Box::new(s_b))
+    }
+}
+
+impl<'s> Iterator for ZipStream<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res_a = self.0.next()?;
+        let res_b = self.1.next()?;
+
+        match (res_a, res_b) {
+            (Err(e_a), _) => Some(Err(e_a)),
+            (_, Err(e_b)) => Some(Err(e_b)),
+            (Ok(a), Ok(b)) => Some(Ok(MetaVal::Seq(vec![a, b]))),
+        }
+    }
+}

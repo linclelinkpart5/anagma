@@ -56,18 +56,6 @@ impl<'a, 'k> IntoIterator for &'a MetaKeyPath<'k> {
     }
 }
 
-// impl<'il> IntoIterator for IterableLike<'il> {
-//     type Item = Result<MetaVal<'il>, Error>;
-//     type IntoIter = IterLike<'il>;
-
-//     fn into_iter(self) -> Self::IntoIter {
-//         match self {
-//             Self::Stream(s) => IterLike::Stream(s),
-//             Self::Sequence(s) => IterLike::Sequence(s.into_iter()),
-//         }
-//     }
-// }
-
 impl<'k> From<MetaKey<'k>> for MetaKeyPath<'k> {
     fn from(mk: MetaKey<'k>) -> Self {
         Self(Cow::Owned(vec![mk]))
