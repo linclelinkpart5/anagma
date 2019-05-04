@@ -36,7 +36,7 @@ impl Ord for NumberLike {
 
 impl<'o> From<NumberLike> for Operand<'o> {
     fn from(nl: NumberLike) -> Self {
-        Self::Value(Cow::Owned(nl.into()))
+        Self::Value(nl.into())
     }
 }
 
@@ -53,7 +53,7 @@ impl<'k> TryFrom<Operand<'k>> for NumberLike {
 
     fn try_from(value: Operand<'k>) -> Result<Self, Self::Error> {
         match value {
-            Operand::Value(mv) => Self::try_from(mv.into_owned()),
+            Operand::Value(mv) => Self::try_from(mv),
             _ => Err(Error::NotNumeric),
         }
     }

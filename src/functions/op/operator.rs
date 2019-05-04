@@ -294,11 +294,18 @@ impl UnaryIterAdaptor {
 pub enum UnaryOp {
     Converter(UnaryConverter),
     IterConsumer(UnaryIterConsumer),
+    IterAdaptor(UnaryIterAdaptor),
 }
 
 impl UnaryOp {
     pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
-        Err(Error::InvalidOperand)
+        match self {
+            &Self::Converter(conv) => {
+                let mv: MetaVal<'_> = operand.try_into()?;
+                conv.process(mv).map(Operand::Value)
+            },
+            _ => Err(Error::InvalidOperand)
+        }
     }
 }
 

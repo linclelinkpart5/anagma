@@ -10,7 +10,18 @@ use crate::functions::Error;
 #[derive(Debug)]
 pub enum Operand<'o> {
     StreamAdaptor(StreamAdaptor<'o>),
-    Value(Cow<'o, MetaVal<'o>>),
+    Value(MetaVal<'o>),
+}
+
+impl<'o> TryInto<MetaVal<'o>> for Operand<'o> {
+    type Error = Error;
+
+    fn try_into(self) -> Result<MetaVal<'o>, Self::Error> {
+        match self {
+            Self::Value(mv) => Ok(mv),
+            _ => Err(Error::InvalidOperand),
+        }
+    }
 }
 
 #[derive(Debug)]
