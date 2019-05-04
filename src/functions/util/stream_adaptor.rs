@@ -2,10 +2,8 @@ use std::collections::VecDeque;
 use std::collections::HashSet;
 
 use crate::functions::Error;
-use crate::functions::op::operator::UnaryOp;
-use crate::functions::op::operator::UnaryPredicate;
-use crate::functions::op::operator::UnaryConverter;
-use crate::functions::op::operand::Operand;
+use crate::functions::operator::UnaryPredicate;
+use crate::functions::operator::UnaryConverter;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 

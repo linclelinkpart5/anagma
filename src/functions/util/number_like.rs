@@ -2,13 +2,12 @@
 
 use std::ops::AddAssign;
 use std::ops::MulAssign;
-use std::borrow::Cow;
 use std::convert::TryFrom;
 
 use bigdecimal::BigDecimal;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::op::operand::Operand;
+use crate::functions::operand::Operand;
 use crate::functions::Error;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

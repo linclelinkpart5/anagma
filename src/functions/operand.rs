@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
