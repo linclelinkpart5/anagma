@@ -9,6 +9,7 @@ pub use self::iter_consumer::IterConsumer;
 pub use self::iter_adaptor::IterAdaptor;
 
 use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
@@ -83,6 +84,74 @@ impl From<Converter> for Op {
             Converter::Dedup => Self::Dedup,
             Converter::Unique => Self::Unique,
             Converter::Predicate(pred) => pred.into(),
+        }
+    }
+}
+
+impl From<IterConsumer> for Op {
+    fn from(it_cons: IterConsumer) -> Self {
+        match it_cons {
+            IterConsumer::Collect => Self::Collect,
+            IterConsumer::Count => Self::Count,
+            IterConsumer::First => Self::First,
+            IterConsumer::Last => Self::Last,
+            IterConsumer::MaxIn => Self::MaxIn,
+            IterConsumer::MinIn => Self::MinIn,
+            IterConsumer::Rev => Self::Rev,
+            IterConsumer::Sort => Self::Sort,
+            IterConsumer::Sum => Self::Sum,
+            IterConsumer::Prod => Self::Prod,
+            IterConsumer::AllEqual => Self::AllEqual,
+        }
+    }
+}
+
+impl From<IterAdaptor> for Op {
+    fn from(it_adap: IterAdaptor) -> Self {
+        match it_adap {
+            IterAdaptor::Flatten => Self::Flatten,
+            IterAdaptor::Dedup => Self::Dedup,
+            IterAdaptor::Unique => Self::Unique,
+        }
+    }
+}
+
+impl TryFrom<Op> for Predicate {
+    type Error = Error;
+
+    fn try_from(op: Op) -> Result<Self, Self::Error> {
+        match op {
+            Op::AllEqual => Ok(Self::AllEqual),
+            _ => Err(Error::NotPredicate),
+        }
+    }
+}
+
+impl TryFrom<Op> for Converter {
+    type Error = Error;
+
+    fn try_from(op: Op) -> Result<Self, Self::Error> {
+        // First, try to convert to predicate.
+        let res_pred: Result<Predicate, _> = op.try_into();
+        if let Ok(pred) = res_pred {
+            Ok(Self::Predicate(pred))
+        }
+        else {
+            match op {
+                Op::Count => Ok(Self::Count),
+                Op::First => Ok(Self::First),
+                Op::Last => Ok(Self::Last),
+                Op::MaxIn => Ok(Self::MaxIn),
+                Op::MinIn => Ok(Self::MinIn),
+                Op::Rev => Ok(Self::Rev),
+                Op::Sort => Ok(Self::Sort),
+                Op::Sum => Ok(Self::Sum),
+                Op::Prod => Ok(Self::Prod),
+                Op::Flatten => Ok(Self::Flatten),
+                Op::Dedup => Ok(Self::Dedup),
+                Op::Unique => Ok(Self::Unique),
+                _ => Err(Error::NotConverter),
+            }
         }
     }
 }
