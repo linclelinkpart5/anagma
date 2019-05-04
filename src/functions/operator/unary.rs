@@ -16,13 +16,13 @@ use crate::functions::util::StreamAdaptor;
 use crate::functions::operand::Operand;
 
 #[derive(Clone, Copy, Debug)]
-pub enum UnaryOp {
+pub enum OpImpl {
     Converter(Converter),
     IterConsumer(IterConsumer),
     IterAdaptor(IterAdaptor),
 }
 
-impl UnaryOp {
+impl OpImpl {
     pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
         match self {
             &Self::Converter(conv) => {
