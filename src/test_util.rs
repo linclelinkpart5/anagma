@@ -466,46 +466,6 @@ impl TestUtil {
         FixedMetaValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
     }
 
-    pub fn create_sample_fixed_value_string_stream() -> FixedMetaValueStream<'static> {
-        FixedMetaValueStream::new(
-            vec![
-                (Path::new("dummy_0").into(), MetaVal::from("string_0")),
-                (Path::new("dummy_1").into(), MetaVal::from("string_1")),
-                (Path::new("dummy_2").into(), MetaVal::from("string_2")),
-                (Path::new("dummy_3").into(), MetaVal::from("string_3")),
-                (Path::new("dummy_4").into(), MetaVal::from("string_4")),
-            ]
-        )
-    }
-
-    pub fn create_sample_fixed_value_numbers_d_stream() -> FixedMetaValueStream<'static> {
-        FixedMetaValueStream::new(
-            vec![
-                (Path::new("dummy_0").into(), MetaVal::Int(-1)),
-                (Path::new("dummy_1").into(), MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
-                (Path::new("dummy_2").into(), MetaVal::Int(2)),
-                (Path::new("dummy_3").into(), MetaVal::Dec(BigDecimal::new((-27182).into(), 4))),
-                (Path::new("dummy_4").into(), MetaVal::Int(0)),
-                (Path::new("dummy_5").into(), MetaVal::Dec(BigDecimal::new(12345.into(), 4))),
-                (Path::new("dummy_6").into(), MetaVal::Int(1)),
-            ]
-        )
-    }
-
-    pub fn create_sample_fixed_value_numbers_i_stream() -> FixedMetaValueStream<'static> {
-        FixedMetaValueStream::new(
-            vec![
-                (Path::new("dummy_0").into(), MetaVal::Int(-9)),
-                (Path::new("dummy_1").into(), MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
-                (Path::new("dummy_2").into(), MetaVal::Int(2)),
-                (Path::new("dummy_3").into(), MetaVal::Dec(BigDecimal::new((-27182).into(), 4))),
-                (Path::new("dummy_4").into(), MetaVal::Int(0)),
-                (Path::new("dummy_5").into(), MetaVal::Dec(BigDecimal::new(12345.into(), 4))),
-                (Path::new("dummy_6").into(), MetaVal::Int(9)),
-            ]
-        )
-    }
-
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
 

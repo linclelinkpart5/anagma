@@ -1,7 +1,4 @@
-use std::cmp::Ordering;
 use std::convert::TryInto;
-
-use bigdecimal::BigDecimal;
 
 use crate::metadata::types::MetaVal;
 use crate::metadata::resolver::Error;
@@ -10,12 +7,9 @@ use crate::metadata::resolver::streams::StepByStream;
 use crate::metadata::resolver::streams::ChainStream;
 use crate::metadata::resolver::streams::ZipStream;
 use crate::metadata::resolver::streams::MapStream;
-use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
-use crate::metadata::resolver::ops::OperandStack;
 use crate::metadata::resolver::ops::unary::UnaryOp;
 
-use crate::metadata::resolver::number_like::NumberLike;
 use crate::metadata::resolver::iterable_like::IterableLike;
 use crate::metadata::resolver::iterable_like::Index;
 

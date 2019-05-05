@@ -1,5 +1,4 @@
 use crate::metadata::resolver::Error;
-use crate::metadata::resolver::ops::Op;
 use crate::metadata::resolver::ops::Operand;
 use crate::metadata::resolver::ops::OperandStack;
 use crate::metadata::resolver::context::ResolverContext;
@@ -36,7 +35,6 @@ impl Source {
 mod tests {
     use super::Source;
 
-    use crate::metadata::resolver::ops::Op;
     use crate::metadata::resolver::ops::Operand;
     use crate::metadata::resolver::ops::OperandStack;
     use crate::metadata::resolver::context::ResolverContext;
