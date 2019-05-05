@@ -107,11 +107,28 @@ mod tests {
     fn positive_cases() {
         let inputs_and_expected = vec![
             (
-                (
-                    Converter::Count,
-                    TestUtil::sample_flat_sequence(),
-                ),
+                (Converter::Count, TestUtil::sample_flat_sequence()),
                 MetaVal::Int(5),
+            ),
+            (
+                (Converter::Count, MetaVal::Seq(vec![])),
+                MetaVal::Int(0),
+            ),
+            (
+                (Converter::First, TestUtil::sample_flat_sequence()),
+                TestUtil::sample_string(),
+            ),
+            (
+                (Converter::First, MetaVal::Seq(vec![TestUtil::sample_string()])),
+                TestUtil::sample_string(),
+            ),
+            (
+                (Converter::Last, TestUtil::sample_flat_sequence()),
+                TestUtil::sample_null(),
+            ),
+            (
+                (Converter::Last, MetaVal::Seq(vec![TestUtil::sample_string()])),
+                TestUtil::sample_string(),
             ),
         ];
 
