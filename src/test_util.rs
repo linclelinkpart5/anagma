@@ -11,6 +11,7 @@ use std::borrow::Cow;
 use tempfile::Builder;
 use tempfile::TempDir;
 use bigdecimal::BigDecimal;
+use rand::seq::SliceRandom;
 
 use crate::config::meta_format::MetaFormat;
 use crate::metadata::location::MetaLocation;
@@ -402,6 +403,39 @@ impl TestUtil {
 
     pub fn sample_flat_mapping() -> MetaVal<'static> {
         MetaVal::Map(Self::core_flat_mapping())
+    }
+
+    pub fn sample_number_sequence(dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal<'static> {
+        const ABS_MAX: i64 = 9;
+
+        let mut nums = vec![];
+
+        for i in 1..=ABS_MAX {
+            nums.push(MetaVal::Int(i));
+            nums.push(MetaVal::Int(-i));
+
+            // Add -0.5 decimal values.
+            let m = (i - 1) * 10 + 5;
+            nums.push(MetaVal::Dec(BigDecimal::new(m.into(), 1)));
+            nums.push(MetaVal::Dec(BigDecimal::new((-m).into(), 1)));
+        }
+
+        if dec_extremes {
+            // These are +/-(ABS_MAX + 0.5).
+            let m = ABS_MAX * 10 + 5;
+            nums.push(MetaVal::Dec(BigDecimal::new(m.into(), 1)));
+            nums.push(MetaVal::Dec(BigDecimal::new((-m).into(), 1)));
+        }
+
+        if include_zero {
+            nums.push(MetaVal::Int(0));
+        }
+
+        if shuffle {
+            nums.shuffle(&mut rand::thread_rng());
+        }
+
+        MetaVal::Seq(nums)
     }
 
     pub fn sample_nested_sequence() -> MetaVal<'static> {
