@@ -38,40 +38,62 @@ mod tests {
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
 
-    #[test]
-    fn test_process() {
-        let mv_ne = MetaVal::Seq(vec![
-            MetaVal::Int(1),
-            MetaVal::Int(2),
-            MetaVal::Int(3),
-        ]);
-        let mv_eq = MetaVal::Seq(vec![
-            MetaVal::Int(1),
-            MetaVal::Int(1),
-            MetaVal::Int(1),
-        ]);
-
+    fn positive_cases() {
         let inputs_and_expected = vec![
-            ((Predicate::AllEqual, &mv_ne), false),
-            ((Predicate::AllEqual, &mv_eq), true),
+            (
+                (
+                    Predicate::AllEqual,
+                    MetaVal::Seq(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(2),
+                        MetaVal::Int(3),
+                    ]),
+                ),
+                false,
+            ),
+            (
+                (
+                    Predicate::AllEqual,
+                    MetaVal::Seq(vec![
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                        MetaVal::Int(1),
+                    ]),
+                ),
+                true,
+            ),
+            (
+                (
+                    Predicate::AllEqual,
+                    MetaVal::Seq(vec![]),
+                ),
+                true,
+            ),
         ];
 
         for (inputs, expected) in inputs_and_expected {
-            let (pred, seq) = inputs;
-            let produced = pred.process(seq).unwrap();
+            let (pred, mv) = inputs;
+            let produced = pred.process(&mv).unwrap();
             assert_eq!(expected, produced);
         }
+    }
 
-        let mv_bad = MetaVal::Nil;
+    fn negative_cases() {
         let not_sequence_err_cases = vec![
-            (Predicate::AllEqual, &mv_bad),
+            (Predicate::AllEqual, MetaVal::Nil),
         ];
 
         for (pred, mv) in not_sequence_err_cases {
-            match pred.process(mv) {
+            match pred.process(&mv) {
                 Err(Error::NotSequence) => {},
                 _ => panic!("expected a failure case"),
             }
         }
+    }
+
+    #[test]
+    fn test_process() {
+        positive_cases();
+        negative_cases();
     }
 }
