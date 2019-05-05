@@ -94,3 +94,40 @@ impl Converter {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Converter;
+
+    use crate::test_util::TestUtil;
+
+    use crate::metadata::types::MetaVal;
+    use crate::functions::Error;
+
+    fn positive_cases() {
+        let inputs_and_expected = vec![
+            (
+                (
+                    Converter::Count,
+                    TestUtil::sample_flat_sequence(),
+                ),
+                MetaVal::Int(5),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (conv, mv) = inputs;
+            let produced = conv.process(mv).unwrap();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    fn negative_cases() {
+    }
+
+    #[test]
+    fn test_process() {
+        positive_cases();
+        negative_cases();
+    }
+}
