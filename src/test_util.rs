@@ -405,12 +405,10 @@ impl TestUtil {
         MetaVal::Map(Self::core_flat_mapping())
     }
 
-    pub fn sample_number_sequence(dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal<'static> {
-        const ABS_MAX: i64 = 9;
-
+    pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal<'static> {
         let mut nums = vec![];
 
-        for i in 1..=ABS_MAX {
+        for i in 1..=int_max {
             nums.push(MetaVal::Int(i));
             nums.push(MetaVal::Int(-i));
 
@@ -421,8 +419,8 @@ impl TestUtil {
         }
 
         if dec_extremes {
-            // These are +/-(ABS_MAX + 0.5).
-            let m = ABS_MAX * 10 + 5;
+            // These are +/-(int_max + 0.5).
+            let m = int_max * 10 + 5;
             nums.push(MetaVal::Dec(BigDecimal::new(m.into(), 1)));
             nums.push(MetaVal::Dec(BigDecimal::new((-m).into(), 1)));
         }
@@ -623,6 +621,40 @@ mod tests {
     #[test]
     fn test_create_meta_fanout_test_dir() {
         TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3, |_, _| true);
+    }
+
+    #[test]
+    fn test_sample_number_sequence() {
+        fn i(i: i64) -> MetaVal<'static> {
+            MetaVal::Int(i)
+        }
+
+        fn d(i: i64, e: i64) -> MetaVal<'static> {
+            MetaVal::Dec(BigDecimal::new(i.into(), e))
+        }
+
+        let test_cases = vec![
+            (
+                TestUtil::sample_number_sequence(2, false, false, false),
+                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1)]),
+            ),
+            (
+                TestUtil::sample_number_sequence(2, true, false, false),
+                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1)]),
+            ),
+            (
+                TestUtil::sample_number_sequence(2, false, false, true),
+                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), i(0)]),
+            ),
+            (
+                TestUtil::sample_number_sequence(2, true, false, true),
+                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1), i(0)]),
+            ),
+        ];
+
+        for (input, expected) in test_cases {
+            assert_eq!(input, expected);
+        }
     }
 
     #[test]
