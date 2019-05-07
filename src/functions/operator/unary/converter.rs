@@ -130,6 +130,22 @@ mod tests {
                 (Converter::Last, MetaVal::Seq(vec![TestUtil::sample_string()])),
                 TestUtil::sample_string(),
             ),
+            (
+                (Converter::MaxIn, TestUtil::sample_number_sequence(2, false, true, true)),
+                MetaVal::Int(2),
+            ),
+            (
+                (Converter::MaxIn, TestUtil::sample_number_sequence(2, true, true, true)),
+                MetaVal::Dec(2.5.into()),
+            ),
+            (
+                (Converter::MinIn, TestUtil::sample_number_sequence(2, false, true, true)),
+                MetaVal::Int(-2),
+            ),
+            (
+                (Converter::MinIn, TestUtil::sample_number_sequence(2, true, true, true)),
+                MetaVal::Dec((-2.5).into()),
+            ),
         ];
 
         for (inputs, expected) in inputs_and_expected {
