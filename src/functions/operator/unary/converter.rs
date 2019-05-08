@@ -122,6 +122,7 @@ mod tests {
 
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
+    use crate::functions::operator::unary::Predicate;
 
     fn i(i: i64) -> MetaVal<'static> {
         MetaVal::Int(i)
@@ -220,6 +221,78 @@ mod tests {
             (
                 (Converter::Prod, MetaVal::Seq(vec![])),
                 i(1),
+            ),
+            (
+                (Converter::Flatten, TU::sample_flat_sequence()),
+                TU::sample_flat_sequence(),
+            ),
+            (
+                (Converter::Flatten, TU::sample_nested_sequence()),
+                MetaVal::Seq(vec![
+                    TU::sample_string(),
+                    TU::sample_integer(),
+                    TU::sample_decimal(),
+                    TU::sample_boolean(),
+                    TU::sample_null(),
+                    TU::sample_string(),
+                    TU::sample_integer(),
+                    TU::sample_decimal(),
+                    TU::sample_boolean(),
+                    TU::sample_null(),
+                    TU::sample_flat_mapping(),
+                ]),
+            ),
+            (
+                (Converter::Flatten, MetaVal::Seq(vec![])),
+                MetaVal::Seq(vec![]),
+            ),
+            (
+                (Converter::Dedup, MetaVal::Seq(vec![i(1), i(1), i(1), i(2), i(2), i(3), i(3), i(3), i(1)])),
+                MetaVal::Seq(vec![i(1), i(2), i(3), i(1)]),
+            ),
+            (
+                (Converter::Dedup, MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)])),
+                MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)]),
+            ),
+            (
+                (Converter::Dedup, MetaVal::Seq(vec![i(1), i(1), i(1), i(1), i(1)])),
+                MetaVal::Seq(vec![i(1)]),
+            ),
+            (
+                (Converter::Dedup, MetaVal::Seq(vec![])),
+                MetaVal::Seq(vec![]),
+            ),
+            (
+                (Converter::Unique, MetaVal::Seq(vec![i(1), i(1), i(1), i(2), i(2), i(3), i(3), i(3), i(1)])),
+                MetaVal::Seq(vec![i(1), i(2), i(3)]),
+            ),
+            (
+                (Converter::Unique, MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)])),
+                MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)]),
+            ),
+            (
+                (Converter::Unique, MetaVal::Seq(vec![i(1), i(1), i(1), i(1), i(1)])),
+                MetaVal::Seq(vec![i(1)]),
+            ),
+            (
+                (Converter::Unique, MetaVal::Seq(vec![])),
+                MetaVal::Seq(vec![]),
+            ),
+            (
+                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(1), i(1), i(1)])),
+                MetaVal::Bul(true),
+            ),
+            (
+                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(2), i(1), i(1)])),
+                MetaVal::Bul(false),
+            ),
+            (
+                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(1)])),
+                MetaVal::Bul(true),
+            ),
+            (
+                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![])),
+                MetaVal::Bul(true),
             ),
         ];
 
