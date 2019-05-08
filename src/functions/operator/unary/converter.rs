@@ -6,8 +6,8 @@ use bigdecimal::BigDecimal;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
-use crate::functions::operator::unary::Predicate;
-use crate::functions::operator::unary::IterConsumer;
+use super::Predicate;
+use super::IterConsumer;
 
 fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> Ordering {
     // Smooth over comparsions between integers and decimals.
