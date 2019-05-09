@@ -6,6 +6,11 @@ use crate::functions::util::NumberLike;
 
 #[derive(Clone, Copy, Debug)]
 pub enum IterConsumer {
+    Nth,
+    All,
+    Any,
+    Find,
+    Position,
 }
 
 impl IterConsumer {
