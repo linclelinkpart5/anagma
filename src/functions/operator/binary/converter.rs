@@ -10,10 +10,30 @@ use super::Predicate;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Converter {
+    Nth,
+    StepBy,
+    Chain,
+    Zip,
+    Map,
+    Filter,
+    SkipWhile,
+    TakeWhile,
+    Skip,
+    Take,
+    All,
+    Any,
+    Find,
+    Position,
+    Interleave,
+    Intersperse,
+    Chunks,
+    Windows,
+
+    Predicate(Predicate),
 }
 
 impl Converter {
-    pub fn process<'mv>(&self, mv: MetaVal<'mv>) -> Result<MetaVal<'mv>, Error> {
+    pub fn process<'mv>(&self, mv_a: MetaVal<'mv>, mv_b: MetaVal<'mv>) -> Result<MetaVal<'mv>, Error> {
         match self {
             _ => Ok(MetaVal::Nil)
         }

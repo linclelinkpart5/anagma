@@ -22,7 +22,6 @@ impl Predicate {
             &Self::Le => Ok(mv_a <= mv_b),
             &Self::Gt => Ok(mv_a > mv_b),
             &Self::Ge => Ok(mv_a >= mv_b),
-            _ => Ok(false),
         }
     }
 }
