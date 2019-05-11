@@ -1,8 +1,5 @@
-use std::convert::TryInto;
-
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
-use crate::functions::util::NumberLike;
 
 #[derive(Clone, Copy, Debug)]
 pub enum IterConsumer {

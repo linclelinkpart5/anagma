@@ -1,8 +1,4 @@
 use std::convert::TryInto;
-use std::cmp::Ordering;
-
-use itertools::Itertools;
-use bigdecimal::BigDecimal;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;

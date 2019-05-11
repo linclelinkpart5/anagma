@@ -1,5 +1,3 @@
-use std::convert::TryInto;
-
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 
