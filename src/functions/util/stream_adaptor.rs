@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
+use std::iter::FusedIterator;
 
 use crate::functions::Error;
 use crate::functions::operator::UnaryPredicate;
@@ -25,6 +26,7 @@ pub enum StreamAdaptor<'s> {
     Take(TakeAdaptor<'s>),
     SkipWhile(SkipWhileAdaptor<'s>),
     TakeWhile(TakeWhileAdaptor<'s>),
+    Intersperse(IntersperseAdaptor<'s>),
 }
 
 impl<'s> Iterator for StreamAdaptor<'s> {
@@ -48,6 +50,7 @@ impl<'s> Iterator for StreamAdaptor<'s> {
             &mut Self::Take(ref mut it) => it.next(),
             &mut Self::SkipWhile(ref mut it) => it.next(),
             &mut Self::TakeWhile(ref mut it) => it.next(),
+            &mut Self::Intersperse(ref mut it) => it.next(),
         }
     }
 }
@@ -417,3 +420,47 @@ impl<'s> Iterator for TakeWhileAdaptor<'s> {
         else { None }
     }
 }
+
+#[derive(Debug)]
+pub struct IntersperseAdaptor<'s>(Box<StreamAdaptor<'s>>, MetaVal<'s>, bool);
+
+impl<'s> IntersperseAdaptor<'s> {
+    pub fn new(s: StreamAdaptor<'s>, mv: MetaVal<'s>) -> Self {
+        Self(Box::new(s), mv, false)
+    }
+}
+
+impl<'s> Iterator for IntersperseAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.2 = !self.2;
+
+        if self.2 { self.0.next() }
+        else { Some(Ok(self.1.clone())) }
+    }
+}
+
+impl<'s> FusedIterator for IntersperseAdaptor<'s> {}
+
+#[derive(Debug)]
+pub struct InterleaveAdaptor<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>, bool);
+
+impl<'s> InterleaveAdaptor<'s> {
+    pub fn new(s_a: StreamAdaptor<'s>, s_b: StreamAdaptor<'s>) -> Self {
+        Self(Box::new(s_a), Box::new(s_b), false)
+    }
+}
+
+impl<'s> Iterator for InterleaveAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.2 = !self.2;
+
+        if self.2 { self.0.next() }
+        else { self.1.next() }
+    }
+}
+
+impl<'s> FusedIterator for InterleaveAdaptor<'s> {}

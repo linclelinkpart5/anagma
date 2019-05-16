@@ -222,8 +222,15 @@ impl Impl {
         Ok(TakeWhileAdaptor::new(sa, u_pred))
     }
 
+    pub fn intersperse<'a>(sa: StreamAdaptor<'a>, mv: MetaVal<'a>) -> Result<IntersperseAdaptor<'a>, Error> {
+        Ok(IntersperseAdaptor::new(sa, mv))
+    }
+
+    pub fn interleave<'a>(sa_a: StreamAdaptor<'a>, sa_b: StreamAdaptor<'a>) -> Result<InterleaveAdaptor<'a>, Error> {
+        Ok(InterleaveAdaptor::new(sa_a, sa_b))
+    }
+
     // Interleave,
-    // Intersperse,
     // Chunks,
     // Windows,
 }
