@@ -18,6 +18,18 @@ enum MinMax { Min, Max, }
 #[derive(Clone, Copy)]
 enum SumProd { Sum, Prod, }
 
+#[derive(Clone, Copy)]
+enum AllAny { All, Any, }
+
+impl AllAny {
+    fn target(self) -> bool {
+        match self {
+            Self::All => false,
+            Self::Any => true,
+        }
+    }
+}
+
 /// Namespace for all the implementation of various functions in this module.
 pub struct Impl;
 
@@ -148,22 +160,22 @@ impl Impl {
         Err(Error::OutOfBounds)
     }
 
-    pub fn all(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<bool, Error> {
+    fn all_any(sa: StreamAdaptor, u_pred: UnaryPredicate, flag: AllAny) -> Result<bool, Error> {
+        let target = flag.target();
         for res_mv in sa {
             let mv = res_mv?;
-            if !u_pred.process(&mv)? { return Ok(false) }
+            if u_pred.process(&mv)? == target { return Ok(target) }
         }
 
-        Ok(true)
+        Ok(!target)
+    }
+
+    pub fn all(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<bool, Error> {
+        Self::all_any(sa, u_pred, AllAny::All)
     }
 
     pub fn any(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<bool, Error> {
-        for res_mv in sa {
-            let mv = res_mv?;
-            if u_pred.process(&mv)? { return Ok(true) }
-        }
-
-        Ok(false)
+        Self::all_any(sa, u_pred, AllAny::Any)
     }
 
     pub fn find(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<Option<MetaVal>, Error> {
