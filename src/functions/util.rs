@@ -186,6 +186,14 @@ impl Impl {
         Ok(None)
     }
 
+    pub fn filter(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<FilterAdaptor, Error> {
+        Ok(FilterAdaptor::new(sa, u_pred))
+    }
+
+    pub fn map(sa: StreamAdaptor, u_conv: UnaryConverter) -> Result<MapAdaptor, Error> {
+        Ok(MapAdaptor::new(sa, u_conv))
+    }
+
     pub fn step_by(sa: StreamAdaptor, step: usize) -> Result<StepByAdaptor, Error> {
         StepByAdaptor::new(sa, step)
     }
@@ -198,18 +206,16 @@ impl Impl {
         Ok(ZipAdaptor::new(sa_a, sa_b))
     }
 
-    pub fn map(sa: StreamAdaptor, u_conv: UnaryConverter) -> Result<MapAdaptor, Error> {
-        Ok(MapAdaptor::new(sa, u_conv))
+    pub fn skip(sa: StreamAdaptor, n: usize) -> Result<SkipAdaptor, Error> {
+        Ok(SkipAdaptor::new(sa, n))
     }
 
-    pub fn filter(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<FilterAdaptor, Error> {
-        Ok(FilterAdaptor::new(sa, u_pred))
+    pub fn take(sa: StreamAdaptor, n: usize) -> Result<TakeAdaptor, Error> {
+        Ok(TakeAdaptor::new(sa, n))
     }
 
     // SkipWhile,
     // TakeWhile,
-    // Skip,
-    // Take,
     // Interleave,
     // Intersperse,
     // Chunks,

@@ -279,3 +279,66 @@ impl<'s> Iterator for ZipAdaptor<'s> {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct SkipAdaptor<'s>{
+    it: Box<StreamAdaptor<'s>>,
+    curr: usize,
+    n: usize,
+}
+
+impl<'s> SkipAdaptor<'s> {
+    pub fn new(s: StreamAdaptor<'s>, n: usize) -> Self {
+        Self {
+            it: Box::new(s),
+            curr: 0,
+            n,
+        }
+    }
+}
+
+impl<'s> Iterator for SkipAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.curr < self.n {
+            self.curr += 1;
+            let res_mv = self.it.next()?;
+
+            if let Err(e) = res_mv { return Some(Err(e)) }
+        }
+
+        self.it.next()
+    }
+}
+
+#[derive(Debug)]
+pub struct TakeAdaptor<'s>{
+    it: Box<StreamAdaptor<'s>>,
+    curr: usize,
+    n: usize,
+}
+
+impl<'s> TakeAdaptor<'s> {
+    pub fn new(s: StreamAdaptor<'s>, n: usize) -> Self {
+        Self {
+            it: Box::new(s),
+            curr: 0,
+            n,
+        }
+    }
+}
+
+impl<'s> Iterator for TakeAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.curr < self.n {
+            self.curr += 1;
+            self.it.next()
+        }
+        else {
+            None
+        }
+    }
+}
