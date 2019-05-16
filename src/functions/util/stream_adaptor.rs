@@ -27,6 +27,9 @@ pub enum StreamAdaptor<'s> {
     SkipWhile(SkipWhileAdaptor<'s>),
     TakeWhile(TakeWhileAdaptor<'s>),
     Intersperse(IntersperseAdaptor<'s>),
+    Interleave(InterleaveAdaptor<'s>),
+    // Chunks,
+    // Windows,
 }
 
 impl<'s> Iterator for StreamAdaptor<'s> {
@@ -51,6 +54,7 @@ impl<'s> Iterator for StreamAdaptor<'s> {
             &mut Self::SkipWhile(ref mut it) => it.next(),
             &mut Self::TakeWhile(ref mut it) => it.next(),
             &mut Self::Intersperse(ref mut it) => it.next(),
+            &mut Self::Interleave(ref mut it) => it.next(),
         }
     }
 }

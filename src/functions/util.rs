@@ -229,8 +229,4 @@ impl Impl {
     pub fn interleave<'a>(sa_a: StreamAdaptor<'a>, sa_b: StreamAdaptor<'a>) -> Result<InterleaveAdaptor<'a>, Error> {
         Ok(InterleaveAdaptor::new(sa_a, sa_b))
     }
-
-    // Interleave,
-    // Chunks,
-    // Windows,
 }
