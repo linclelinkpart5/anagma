@@ -18,6 +18,9 @@ pub enum StreamAdaptor<'s> {
 
     Filter(FilterAdaptor<'s>),
     Map(MapAdaptor<'s>),
+    StepBy(StepByAdaptor<'s>),
+    Chain(ChainAdaptor<'s>),
+    Zip(ZipAdaptor<'s>),
 }
 
 impl<'s> Iterator for StreamAdaptor<'s> {
@@ -34,6 +37,9 @@ impl<'s> Iterator for StreamAdaptor<'s> {
 
             &mut Self::Filter(ref mut it) => it.next(),
             &mut Self::Map(ref mut it) => it.next(),
+            &mut Self::StepBy(ref mut it) => it.next(),
+            &mut Self::Chain(ref mut it) => it.next(),
+            &mut Self::Zip(ref mut it) => it.next(),
         }
     }
 }
@@ -221,15 +227,15 @@ impl<'s> Iterator for StepByAdaptor<'s> {
 }
 
 #[derive(Debug)]
-pub struct ChainStream<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>, bool);
+pub struct ChainAdaptor<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>, bool);
 
-impl<'s> ChainStream<'s> {
+impl<'s> ChainAdaptor<'s> {
     pub fn new(sa_a: StreamAdaptor<'s>, sa_b: StreamAdaptor<'s>) -> Self {
         Self(Box::new(sa_a), Box::new(sa_b), false)
     }
 }
 
-impl<'s> Iterator for ChainStream<'s> {
+impl<'s> Iterator for ChainAdaptor<'s> {
     type Item = Result<MetaVal<'s>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -251,15 +257,15 @@ impl<'s> Iterator for ChainStream<'s> {
 }
 
 #[derive(Debug)]
-pub struct ZipStream<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>);
+pub struct ZipAdaptor<'s>(Box<StreamAdaptor<'s>>, Box<StreamAdaptor<'s>>);
 
-impl<'s> ZipStream<'s> {
+impl<'s> ZipAdaptor<'s> {
     pub fn new(s_a: StreamAdaptor<'s>, s_b: StreamAdaptor<'s>) -> Self {
         Self(Box::new(s_a), Box::new(s_b))
     }
 }
 
-impl<'s> Iterator for ZipStream<'s> {
+impl<'s> Iterator for ZipAdaptor<'s> {
     type Item = Result<MetaVal<'s>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -10,6 +10,7 @@ use std::convert::TryInto;
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::operator::UnaryPredicate;
+use crate::functions::operator::UnaryConverter;
 
 #[derive(Clone, Copy)]
 enum MinMax { Min, Max, }
@@ -165,17 +166,50 @@ impl Impl {
         Ok(false)
     }
 
-    // StepBy,
-    // Chain,
-    // Zip,
-    // Map,
-    // Filter,
+    pub fn find(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<Option<MetaVal>, Error> {
+        for res_mv in sa {
+            let mv = res_mv?;
+            if u_pred.process(&mv)? { return Ok(Some(mv)) }
+        }
+
+        Ok(None)
+    }
+
+    pub fn position(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<Option<usize>, Error> {
+        let mut i = 0;
+        for res_mv in sa {
+            let mv = res_mv?;
+            if u_pred.process(&mv)? { return Ok(Some(i)) }
+            i += 1;
+        }
+
+        Ok(None)
+    }
+
+    pub fn step_by(sa: StreamAdaptor, step: usize) -> Result<StepByAdaptor, Error> {
+        StepByAdaptor::new(sa, step)
+    }
+
+    pub fn chain<'a>(sa_a: StreamAdaptor<'a>, sa_b: StreamAdaptor<'a>) -> Result<ChainAdaptor<'a>, Error> {
+        Ok(ChainAdaptor::new(sa_a, sa_b))
+    }
+
+    pub fn zip<'a>(sa_a: StreamAdaptor<'a>, sa_b: StreamAdaptor<'a>) -> Result<ZipAdaptor<'a>, Error> {
+        Ok(ZipAdaptor::new(sa_a, sa_b))
+    }
+
+    pub fn map(sa: StreamAdaptor, u_conv: UnaryConverter) -> Result<MapAdaptor, Error> {
+        Ok(MapAdaptor::new(sa, u_conv))
+    }
+
+    pub fn filter(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<FilterAdaptor, Error> {
+        Ok(FilterAdaptor::new(sa, u_pred))
+    }
+
     // SkipWhile,
     // TakeWhile,
     // Skip,
     // Take,
-    // Find,
-    // Position,
     // Interleave,
     // Intersperse,
     // Chunks,
