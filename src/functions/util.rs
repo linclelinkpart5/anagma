@@ -107,7 +107,15 @@ impl Impl {
         Self::sum_prod(sa, SumProd::Prod)
     }
 
-    // pub fn flatten(sa: StreamAdaptor) -> Result<StreamAdaptor, Error> {}
-    // pub fn dedup(sa: StreamAdaptor) -> Result<StreamAdaptor, Error> {}
-    // pub fn unique(sa: StreamAdaptor) -> Result<StreamAdaptor, Error> {}
+    pub fn flatten(sa: StreamAdaptor) -> Result<FlattenAdaptor, Error> {
+        Ok(FlattenAdaptor::new(sa))
+    }
+
+    pub fn dedup(sa: StreamAdaptor) -> Result<DedupAdaptor, Error> {
+        Ok(DedupAdaptor::new(sa))
+    }
+
+    pub fn unique(sa: StreamAdaptor) -> Result<UniqueAdaptor, Error> {
+        Ok(UniqueAdaptor::new(sa))
+    }
 }
