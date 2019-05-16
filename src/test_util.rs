@@ -440,9 +440,9 @@ impl TestUtil {
         MetaVal::Seq(Self::core_nested_sequence())
     }
 
-    pub fn sample_nested_mapping() -> MetaVal<'static> {
-        MetaVal::Map(Self::core_nested_mapping())
-    }
+    // pub fn sample_nested_mapping() -> MetaVal<'static> {
+    //     MetaVal::Map(Self::core_nested_mapping())
+    // }
 
     pub fn sample_meta_block<'k>(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock<'k> {
         let mut map = Self::core_nested_mapping();
@@ -472,24 +472,24 @@ impl TestUtil {
         map
     }
 
-    /// Used for test scenarios where a target is not needed.
-    pub fn sample_naive_meta_block(target_name: &str, include_flag_key: bool) -> MetaBlock {
-        let mut map = Self::core_nested_mapping();
+    // /// Used for test scenarios where a target is not needed.
+    // pub fn sample_naive_meta_block(target_name: &str, include_flag_key: bool) -> MetaBlock {
+    //     let mut map = Self::core_nested_mapping();
 
-        map.insert(
-            MetaKey::from("target_file_name"),
-            MetaVal::Str(String::from(target_name)),
-        );
+    //     map.insert(
+    //         MetaKey::from("target_file_name"),
+    //         MetaVal::Str(String::from(target_name)),
+    //     );
 
-        if include_flag_key {
-            map.insert(
-                MetaKey::from("flag_key"),
-                MetaVal::Str(String::from(target_name)),
-            );
-        }
+    //     if include_flag_key {
+    //         map.insert(
+    //             MetaKey::from("flag_key"),
+    //             MetaVal::Str(String::from(target_name)),
+    //         );
+    //     }
 
-        map
-    }
+    //     map
+    // }
 
     pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedMetaValueStream<'a>
     where

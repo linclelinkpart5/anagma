@@ -121,7 +121,6 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use crate::metadata::types::MetaVal;
-    use crate::functions::Error;
     use crate::functions::operator::unary::Predicate;
 
     fn i(i: i64) -> MetaVal<'static> {
