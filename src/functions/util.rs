@@ -9,6 +9,7 @@ use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
+use crate::functions::operator::UnaryPredicate;
 
 #[derive(Clone, Copy)]
 enum MinMax { Min, Max, }
@@ -107,6 +108,21 @@ impl Impl {
         Self::sum_prod(sa, SumProd::Prod)
     }
 
+    pub fn all_equal(sa: StreamAdaptor) -> Result<bool, Error> {
+        let mut sa = sa.into_iter();
+        match sa.next() {
+            None => Ok(true),
+            Some(res_first_mv) => {
+                let first_mv = res_first_mv?;
+                for res_mv in sa {
+                    if res_mv? != first_mv { return Ok(false) }
+                }
+
+                Ok(true)
+            },
+        }
+    }
+
     pub fn flatten(sa: StreamAdaptor) -> Result<FlattenAdaptor, Error> {
         Ok(FlattenAdaptor::new(sa))
     }
@@ -118,4 +134,50 @@ impl Impl {
     pub fn unique(sa: StreamAdaptor) -> Result<UniqueAdaptor, Error> {
         Ok(UniqueAdaptor::new(sa))
     }
+
+    pub fn nth(sa: StreamAdaptor, n: usize) -> Result<MetaVal, Error> {
+        let mut i = 0;
+        for res_mv in sa {
+            let mv = res_mv?;
+
+            if i == n { return Ok(mv) }
+            else { i += 1; }
+        }
+
+        Err(Error::OutOfBounds)
+    }
+
+    pub fn all(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<bool, Error> {
+        for res_mv in sa {
+            let mv = res_mv?;
+            if !u_pred.process(&mv)? { return Ok(false) }
+        }
+
+        Ok(true)
+    }
+
+    pub fn any(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<bool, Error> {
+        for res_mv in sa {
+            let mv = res_mv?;
+            if u_pred.process(&mv)? { return Ok(true) }
+        }
+
+        Ok(false)
+    }
+
+    // StepBy,
+    // Chain,
+    // Zip,
+    // Map,
+    // Filter,
+    // SkipWhile,
+    // TakeWhile,
+    // Skip,
+    // Take,
+    // Find,
+    // Position,
+    // Interleave,
+    // Intersperse,
+    // Chunks,
+    // Windows,
 }

@@ -19,6 +19,7 @@ pub enum Error {
     EmptyStream,
     EmptyIterable,
     ZeroStepSize,
+    OutOfBounds,
 }
 
 impl std::fmt::Display for Error {
@@ -37,6 +38,7 @@ impl std::fmt::Display for Error {
             Self::EmptyStream => write!(f, "empty stream"),
             Self::EmptyIterable => write!(f, "empty iterable"),
             Self::ZeroStepSize => write!(f, "zero step size"),
+            Self::OutOfBounds => write!(f, "index out of bounds"),
         }
     }
 }
@@ -57,6 +59,7 @@ impl std::error::Error for Error {
             Self::EmptyStream => None,
             Self::EmptyIterable => None,
             Self::ZeroStepSize => None,
+            Self::OutOfBounds => None,
         }
     }
 }
