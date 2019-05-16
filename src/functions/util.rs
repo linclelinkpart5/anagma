@@ -214,8 +214,14 @@ impl Impl {
         Ok(TakeAdaptor::new(sa, n))
     }
 
-    // SkipWhile,
-    // TakeWhile,
+    pub fn skip_while(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<SkipWhileAdaptor, Error> {
+        Ok(SkipWhileAdaptor::new(sa, u_pred))
+    }
+
+    pub fn take_while(sa: StreamAdaptor, u_pred: UnaryPredicate) -> Result<TakeWhileAdaptor, Error> {
+        Ok(TakeWhileAdaptor::new(sa, u_pred))
+    }
+
     // Interleave,
     // Intersperse,
     // Chunks,

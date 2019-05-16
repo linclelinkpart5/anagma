@@ -21,6 +21,10 @@ pub enum StreamAdaptor<'s> {
     StepBy(StepByAdaptor<'s>),
     Chain(ChainAdaptor<'s>),
     Zip(ZipAdaptor<'s>),
+    Skip(SkipAdaptor<'s>),
+    Take(TakeAdaptor<'s>),
+    SkipWhile(SkipWhileAdaptor<'s>),
+    TakeWhile(TakeWhileAdaptor<'s>),
 }
 
 impl<'s> Iterator for StreamAdaptor<'s> {
@@ -40,6 +44,10 @@ impl<'s> Iterator for StreamAdaptor<'s> {
             &mut Self::StepBy(ref mut it) => it.next(),
             &mut Self::Chain(ref mut it) => it.next(),
             &mut Self::Zip(ref mut it) => it.next(),
+            &mut Self::Skip(ref mut it) => it.next(),
+            &mut Self::Take(ref mut it) => it.next(),
+            &mut Self::SkipWhile(ref mut it) => it.next(),
+            &mut Self::TakeWhile(ref mut it) => it.next(),
         }
     }
 }
@@ -281,7 +289,7 @@ impl<'s> Iterator for ZipAdaptor<'s> {
 }
 
 #[derive(Debug)]
-pub struct SkipAdaptor<'s>{
+pub struct SkipAdaptor<'s> {
     it: Box<StreamAdaptor<'s>>,
     curr: usize,
     n: usize,
@@ -313,7 +321,7 @@ impl<'s> Iterator for SkipAdaptor<'s> {
 }
 
 #[derive(Debug)]
-pub struct TakeAdaptor<'s>{
+pub struct TakeAdaptor<'s> {
     it: Box<StreamAdaptor<'s>>,
     curr: usize,
     n: usize,
@@ -340,5 +348,72 @@ impl<'s> Iterator for TakeAdaptor<'s> {
         else {
             None
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct SkipWhileAdaptor<'s>(Box<StreamAdaptor<'s>>, UnaryPredicate, bool);
+
+impl<'s> SkipWhileAdaptor<'s> {
+    pub fn new(s: StreamAdaptor<'s>, u_pred: UnaryPredicate) -> Self {
+        Self(Box::new(s), u_pred, true)
+    }
+}
+
+impl<'s> Iterator for SkipWhileAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.2 {
+            loop {
+                match self.0.next()? {
+                    Err(e) => return Some(Err(e)),
+                    Ok(mv) => {
+                        match self.1.process(&mv) {
+                            Err(e) => return Some(Err(e)),
+                            Ok(true) => continue,
+                            Ok(false) => {
+                                self.2 = false;
+                                return Some(Ok(mv))
+                            }
+                        }
+                    },
+                }
+            }
+        }
+
+        self.0.next()
+    }
+}
+
+#[derive(Debug)]
+pub struct TakeWhileAdaptor<'s>(Box<StreamAdaptor<'s>>, UnaryPredicate, bool);
+
+impl<'s> TakeWhileAdaptor<'s> {
+    pub fn new(s: StreamAdaptor<'s>, u_pred: UnaryPredicate) -> Self {
+        Self(Box::new(s), u_pred, true)
+    }
+}
+
+impl<'s> Iterator for TakeWhileAdaptor<'s> {
+    type Item = Result<MetaVal<'s>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.2 {
+            match self.0.next()? {
+                Ok(mv) => {
+                    match self.1.process(&mv) {
+                        Ok(true) => Some(Ok(mv)),
+                        Ok(false) => {
+                            self.2 = false;
+                            return None
+                        },
+                        Err(e) => Some(Err(e)),
+                    }
+                },
+                Err(e) => Some(Err(e)),
+            }
+        }
+        else { None }
     }
 }
