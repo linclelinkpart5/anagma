@@ -41,14 +41,26 @@ impl Impl {
         Ok(c)
     }
 
+    pub fn count_s(seq: Vec<MetaVal>) -> usize {
+        seq.len()
+    }
+
     pub fn first(sa: StreamAdaptor) -> Result<MetaVal, Error> {
         sa.into_iter().next().ok_or(Error::EmptyStream)?
+    }
+
+    pub fn first_s(seq: Vec<MetaVal>) -> Option<MetaVal> {
+        seq.into_iter().next()
     }
 
     pub fn last(sa: StreamAdaptor) -> Result<MetaVal, Error> {
         let mut last = None;
         for res_mv in sa { last = Some(res_mv?); }
         last.ok_or(Error::EmptyStream)
+    }
+
+    pub fn last_s(seq: Vec<MetaVal>) -> Option<MetaVal> {
+        seq.into_iter().last()
     }
 
     fn min_max(sa: StreamAdaptor, flag: MinMax) -> Result<NumberLike, Error> {
