@@ -87,26 +87,43 @@ impl Impl {
         Self::min_max(sa, MinMax::Min)
     }
 
+    pub fn min_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
+        Self::min_max(StreamAdaptor::Fixed(seq.into_iter()), MinMax::Min)
+    }
+
     pub fn max(sa: StreamAdaptor) -> Result<NumberLike, Error> {
         Self::min_max(sa, MinMax::Max)
     }
 
-    fn rev_sort(sa: StreamAdaptor, flag: RevSort) -> Result<Vec<MetaVal>, Error> {
-        let mut seq = Self::collect(sa)?;
+    pub fn max_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
+        Self::min_max(StreamAdaptor::Fixed(seq.into_iter()), MinMax::Max)
+    }
+
+    fn rev_sort(mut seq: Vec<MetaVal>, flag: RevSort) -> Vec<MetaVal> {
         match flag {
             RevSort::Rev => seq.reverse(),
             // TODO: Use proper sort by key.
             RevSort::Sort => seq.sort(),
         };
-        Ok(seq)
+        seq
     }
 
     pub fn rev(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
-        Self::rev_sort(sa, RevSort::Rev)
+        let seq = Self::collect(sa)?;
+        Ok(Self::rev_sort(seq, RevSort::Rev))
+    }
+
+    pub fn rev_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
+        Self::rev_sort(seq, RevSort::Rev)
     }
 
     pub fn sort(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
-        Self::rev_sort(sa, RevSort::Sort)
+        let seq = Self::collect(sa)?;
+        Ok(Self::rev_sort(seq, RevSort::Sort))
+    }
+
+    pub fn sort_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
+        Self::rev_sort(seq, RevSort::Sort)
     }
 
     fn sum_prod(sa: StreamAdaptor, flag: SumProd) -> Result<NumberLike, Error> {
