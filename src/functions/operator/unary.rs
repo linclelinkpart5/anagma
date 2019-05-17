@@ -9,149 +9,145 @@ pub use self::iter_consumer::IterConsumer;
 pub use self::iter_adaptor::IterAdaptor;
 
 use std::convert::TryInto;
-use std::convert::TryFrom;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::util::StreamAdaptor;
-use crate::functions::operand::Operand;
+use crate::functions::util::FlattenAdaptor;
+use crate::functions::util::DedupAdaptor;
+use crate::functions::util::UniqueAdaptor;
+use crate::functions::util::NumberLike;
 
-#[derive(Clone, Copy, Debug)]
-pub enum OpImpl {
-    Converter(Converter),
-    IterConsumer(IterConsumer),
-    IterAdaptor(IterAdaptor),
-}
+#[derive(Clone, Copy)]
+enum MinMax { Min, Max, }
 
-impl OpImpl {
-    pub fn process<'o>(&self, operand: Operand<'o>) -> Result<Operand<'o>, Error> {
-        match self {
-            &Self::Converter(conv) => {
-                let mv: MetaVal<'_> = operand.try_into()?;
-                conv.process(mv).map(Operand::Value)
-            },
-            &Self::IterConsumer(ic) => {
-                let sa: StreamAdaptor<'_> = operand.try_into()?;
-                ic.process(sa).map(Operand::Value)
-            },
-            &Self::IterAdaptor(ia) => {
-                let sa: StreamAdaptor<'_> = operand.try_into()?;
-                ia.process(sa).map(Operand::StreamAdaptor)
-            },
-        }
+#[derive(Clone, Copy)]
+enum RevSort { Rev, Sort, }
+
+#[derive(Clone, Copy)]
+enum SumProd { Sum, Prod, }
+
+/// Namespace for all the implementation of various functions in this module.
+pub struct Impl;
+
+impl Impl {
+    pub fn collect(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
+        Ok(sa.collect::<Result<Vec<_>, _>>()?)
     }
-}
 
-#[derive(Clone, Copy, Debug)]
-pub enum Op {
-    Count,
-    First,
-    Last,
-    MaxIn,
-    MinIn,
-    Rev,
-    Sort,
-    Sum,
-    Prod,
-    Flatten,
-    Dedup,
-    Unique,
-    Collect,
-    AllEqual,
-}
-
-impl From<Predicate> for Op {
-    fn from(pred: Predicate) -> Self {
-        match pred {
-            Predicate::AllEqual => Self::AllEqual,
-        }
+    pub fn count(sa: StreamAdaptor) -> Result<usize, Error> {
+        let mut c: usize = 0;
+        for res_mv in sa { res_mv?; c += 1; }
+        Ok(c)
     }
-}
 
-impl From<Converter> for Op {
-    fn from(conv: Converter) -> Self {
-        match conv {
-            Converter::Count => Self::Count,
-            Converter::First => Self::First,
-            Converter::Last => Self::Last,
-            Converter::MaxIn => Self::MaxIn,
-            Converter::MinIn => Self::MinIn,
-            Converter::Rev => Self::Rev,
-            Converter::Sort => Self::Sort,
-            Converter::Sum => Self::Sum,
-            Converter::Prod => Self::Prod,
-            Converter::Flatten => Self::Flatten,
-            Converter::Dedup => Self::Dedup,
-            Converter::Unique => Self::Unique,
-            Converter::Predicate(pred) => pred.into(),
-        }
+    pub fn first(sa: StreamAdaptor) -> Result<MetaVal, Error> {
+        sa.into_iter().next().ok_or(Error::EmptyStream)?
     }
-}
 
-impl From<IterConsumer> for Op {
-    fn from(it_cons: IterConsumer) -> Self {
-        match it_cons {
-            IterConsumer::Collect => Self::Collect,
-            IterConsumer::Count => Self::Count,
-            IterConsumer::First => Self::First,
-            IterConsumer::Last => Self::Last,
-            IterConsumer::MaxIn => Self::MaxIn,
-            IterConsumer::MinIn => Self::MinIn,
-            IterConsumer::Rev => Self::Rev,
-            IterConsumer::Sort => Self::Sort,
-            IterConsumer::Sum => Self::Sum,
-            IterConsumer::Prod => Self::Prod,
-            IterConsumer::AllEqual => Self::AllEqual,
-        }
+    pub fn last(sa: StreamAdaptor) -> Result<MetaVal, Error> {
+        let mut last = None;
+        for res_mv in sa { last = Some(res_mv?); }
+        last.ok_or(Error::EmptyStream)
     }
-}
 
-impl From<IterAdaptor> for Op {
-    fn from(it_adap: IterAdaptor) -> Self {
-        match it_adap {
-            IterAdaptor::Flatten => Self::Flatten,
-            IterAdaptor::Dedup => Self::Dedup,
-            IterAdaptor::Unique => Self::Unique,
-        }
-    }
-}
+    fn min_max(sa: StreamAdaptor, flag: MinMax) -> Result<NumberLike, Error> {
+        let mut sa = sa.into_iter();
+        match sa.next() {
+            None => Err(Error::EmptySequence),
+            Some(first_res_mv) => {
+                let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
-impl TryFrom<Op> for Predicate {
-    type Error = Error;
+                for res_mv in sa {
+                    let nl: NumberLike = res_mv?.try_into()?;
+                    target_nl = match flag {
+                        MinMax::Min => target_nl.min(nl),
+                        MinMax::Max => target_nl.max(nl),
+                    };
+                }
 
-    fn try_from(op: Op) -> Result<Self, Self::Error> {
-        match op {
-            Op::AllEqual => Ok(Self::AllEqual),
-            _ => Err(Error::NotPredicate),
-        }
-    }
-}
-
-impl TryFrom<Op> for Converter {
-    type Error = Error;
-
-    fn try_from(op: Op) -> Result<Self, Self::Error> {
-        // First, try to convert to predicate.
-        let res_pred: Result<Predicate, _> = op.try_into();
-        if let Ok(pred) = res_pred {
-            Ok(Self::Predicate(pred))
-        }
-        else {
-            match op {
-                Op::Count => Ok(Self::Count),
-                Op::First => Ok(Self::First),
-                Op::Last => Ok(Self::Last),
-                Op::MaxIn => Ok(Self::MaxIn),
-                Op::MinIn => Ok(Self::MinIn),
-                Op::Rev => Ok(Self::Rev),
-                Op::Sort => Ok(Self::Sort),
-                Op::Sum => Ok(Self::Sum),
-                Op::Prod => Ok(Self::Prod),
-                Op::Flatten => Ok(Self::Flatten),
-                Op::Dedup => Ok(Self::Dedup),
-                Op::Unique => Ok(Self::Unique),
-                _ => Err(Error::NotConverter),
+                Ok(target_nl)
             }
         }
     }
+
+    pub fn min(sa: StreamAdaptor) -> Result<NumberLike, Error> {
+        Self::min_max(sa, MinMax::Min)
+    }
+
+    pub fn max(sa: StreamAdaptor) -> Result<NumberLike, Error> {
+        Self::min_max(sa, MinMax::Max)
+    }
+
+    fn rev_sort(sa: StreamAdaptor, flag: RevSort) -> Result<Vec<MetaVal>, Error> {
+        let mut seq = Self::collect(sa)?;
+        match flag {
+            RevSort::Rev => seq.reverse(),
+            // TODO: Use proper sort by key.
+            RevSort::Sort => seq.sort(),
+        };
+        Ok(seq)
+    }
+
+    pub fn rev(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
+        Self::rev_sort(sa, RevSort::Rev)
+    }
+
+    pub fn sort(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
+        Self::rev_sort(sa, RevSort::Sort)
+    }
+
+    fn sum_prod(sa: StreamAdaptor, flag: SumProd) -> Result<NumberLike, Error> {
+        let mut total = match flag {
+            SumProd::Sum => NumberLike::Integer(0),
+            SumProd::Prod => NumberLike::Integer(1),
+        };
+
+        for res_mv in sa {
+            let nl: NumberLike = res_mv?.try_into()?;
+
+            match flag {
+                SumProd::Sum => { total += nl; },
+                SumProd::Prod => { total *= nl; },
+            };
+        }
+
+        Ok(total)
+    }
+
+    pub fn sum(sa: StreamAdaptor) -> Result<NumberLike, Error> {
+        Self::sum_prod(sa, SumProd::Sum)
+    }
+
+    pub fn prod(sa: StreamAdaptor) -> Result<NumberLike, Error> {
+        Self::sum_prod(sa, SumProd::Prod)
+    }
+
+    pub fn all_equal(sa: StreamAdaptor) -> Result<bool, Error> {
+        let mut sa = sa.into_iter();
+        match sa.next() {
+            None => Ok(true),
+            Some(res_first_mv) => {
+                let first_mv = res_first_mv?;
+                for res_mv in sa {
+                    if res_mv? != first_mv { return Ok(false) }
+                }
+
+                Ok(true)
+            },
+        }
+    }
+
+    pub fn flatten(sa: StreamAdaptor) -> Result<FlattenAdaptor, Error> {
+        Ok(FlattenAdaptor::new(sa))
+    }
+
+    pub fn dedup(sa: StreamAdaptor) -> Result<DedupAdaptor, Error> {
+        Ok(DedupAdaptor::new(sa))
+    }
+
+    pub fn unique(sa: StreamAdaptor) -> Result<UniqueAdaptor, Error> {
+        Ok(UniqueAdaptor::new(sa))
+    }
 }
+
