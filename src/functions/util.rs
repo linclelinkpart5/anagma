@@ -16,6 +16,9 @@ use crate::functions::operator::UnaryConverter;
 enum MinMax { Min, Max, }
 
 #[derive(Clone, Copy)]
+enum RevSort { Rev, Sort, }
+
+#[derive(Clone, Copy)]
 enum SumProd { Sum, Prod, }
 
 #[derive(Clone, Copy)]
@@ -82,17 +85,22 @@ impl Impl {
         Self::min_max(sa, MinMax::Max)
     }
 
-    pub fn rev(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
+    fn rev_sort(sa: StreamAdaptor, flag: RevSort) -> Result<Vec<MetaVal>, Error> {
         let mut seq = Self::collect(sa)?;
-        seq.reverse();
+        match flag {
+            RevSort::Rev => seq.reverse(),
+            // TODO: Use proper sort by key.
+            RevSort::Sort => seq.sort(),
+        };
         Ok(seq)
     }
 
+    pub fn rev(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
+        Self::rev_sort(sa, RevSort::Rev)
+    }
+
     pub fn sort(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
-        let mut seq = Self::collect(sa)?;
-        // TODO: Use proper sort by key.
-        seq.sort();
-        Ok(seq)
+        Self::rev_sort(sa, RevSort::Sort)
     }
 
     fn sum_prod(sa: StreamAdaptor, flag: SumProd) -> Result<NumberLike, Error> {
