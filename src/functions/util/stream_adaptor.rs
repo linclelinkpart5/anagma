@@ -87,7 +87,9 @@ impl<'s> Iterator for FlattenAdaptor<'s> {
             },
         }
     }
-}#[derive(Debug)]
+}
+
+#[derive(Debug)]
 pub struct DedupAdaptor<'s>(Box<StreamAdaptor<'s>>, Option<MetaVal<'s>>);
 
 impl<'s> DedupAdaptor<'s> {
