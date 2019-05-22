@@ -8,6 +8,8 @@ use crate::functions::Error;
 use crate::functions::operator::UnaryPredicate;
 use crate::functions::operator::UnaryConverter;
 
+pub trait ValueProducer<'v>: Iterator<Item = Result<MetaVal<'v>, Error>> {}
+
 #[derive(Debug)]
 pub struct Raw<'v>(MetaValueStream<'v>);
 
@@ -16,6 +18,8 @@ impl<'v> Raw<'v> {
         Self(mvs)
     }
 }
+
+impl<'v> ValueProducer<'v> for Raw<'v> {}
 
 impl<'v> Iterator for Raw<'v> {
     type Item = Result<MetaVal<'v>, Error>;
@@ -33,6 +37,8 @@ impl<'v> Fixed<'v> {
         Self(v.into_iter())
     }
 }
+
+impl<'v> ValueProducer<'v> for Fixed<'v> {}
 
 impl<'v> Iterator for Fixed<'v> {
     type Item = Result<MetaVal<'v>, Error>;
@@ -53,6 +59,11 @@ where
         Self(it, VecDeque::new())
     }
 }
+
+impl<'v, I> ValueProducer<'v> for Flatten<'v, I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
 
 impl<'v, I> Iterator for Flatten<'v, I>
 where
@@ -89,6 +100,11 @@ where
         Self(it, None)
     }
 }
+
+impl<'v, I> ValueProducer<'v> for Dedup<'v, I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
 
 impl<'v, I> Iterator for Dedup<'v, I>
 where
@@ -128,6 +144,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for Unique<'v, I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for Unique<'v, I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -165,6 +186,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for Filter<I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for Filter<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -198,6 +224,11 @@ where
         Self(it, conv)
     }
 }
+
+impl<'v, I> ValueProducer<'v> for Map<I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
 
 impl<'v, I> Iterator for Map<I>
 where
@@ -237,6 +268,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for StepBy<I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for StepBy<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -275,6 +311,12 @@ where
     }
 }
 
+impl<'v, IA, IB> ValueProducer<'v> for Chain<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
+    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, IA, IB> Iterator for Chain<IA, IB>
 where
     IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -312,6 +354,12 @@ where
         Self(it_a, it_b)
     }
 }
+
+impl<'v, IA, IB> ValueProducer<'v> for Zip<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
+    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
 
 impl<'v, IA, IB> Iterator for Zip<IA, IB>
 where
@@ -355,6 +403,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for Skip<'v, I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for Skip<'v, I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -396,6 +449,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for Take<'v, I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for Take<'v, I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -424,6 +482,11 @@ where
         Self(it, u_pred, true)
     }
 }
+
+impl<'v, I> ValueProducer<'v> for SkipWhile<I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
 
 impl<'v, I> Iterator for SkipWhile<I>
 where
@@ -466,6 +529,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for TakeWhile<I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for TakeWhile<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -504,6 +572,11 @@ where
     }
 }
 
+impl<'v, I> ValueProducer<'v> for Intersperse<'v, I>
+where
+    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
+
 impl<'v, I> Iterator for Intersperse<'v, I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -535,6 +608,12 @@ where
         Self(it_a, it_b, false)
     }
 }
+
+impl<'v, IA, IB> ValueProducer<'v> for Interleave<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
+    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
+{}
 
 impl<'v, IA, IB> Iterator for Interleave<IA, IB>
 where
