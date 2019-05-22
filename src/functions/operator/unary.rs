@@ -12,11 +12,12 @@ use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
-use crate::functions::util::StreamAdaptor;
-use crate::functions::util::FlattenAdaptor;
-use crate::functions::util::DedupAdaptor;
-use crate::functions::util::UniqueAdaptor;
 use crate::functions::util::NumberLike;
+use crate::functions::util::ValueProducer;
+use crate::functions::util::Fixed;
+use crate::functions::util::Flatten;
+use crate::functions::util::Dedup;
+use crate::functions::util::Unique;
 
 #[derive(Clone, Copy)]
 enum MinMax { Min, Max, }
@@ -31,13 +32,13 @@ enum SumProd { Sum, Prod, }
 pub struct Impl;
 
 impl Impl {
-    pub fn collect(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
-        Ok(sa.collect::<Result<Vec<_>, _>>()?)
+    pub fn collect<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Vec<MetaVal<'a>>, Error> {
+        Ok(vp.collect::<Result<Vec<_>, _>>()?)
     }
 
-    pub fn count(sa: StreamAdaptor) -> Result<usize, Error> {
+    pub fn count<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<usize, Error> {
         let mut c: usize = 0;
-        for res_mv in sa { res_mv?; c += 1; }
+        for res_mv in vp { res_mv?; c += 1; }
         Ok(c)
     }
 
@@ -45,17 +46,17 @@ impl Impl {
         seq.len()
     }
 
-    pub fn first(sa: StreamAdaptor) -> Result<MetaVal, Error> {
-        sa.into_iter().next().ok_or(Error::EmptyStream)?
+    pub fn first<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
+        vp.into_iter().next().ok_or(Error::EmptyStream)?
     }
 
     pub fn first_s(seq: Vec<MetaVal>) -> Option<MetaVal> {
         seq.into_iter().next()
     }
 
-    pub fn last(sa: StreamAdaptor) -> Result<MetaVal, Error> {
+    pub fn last<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
         let mut last = None;
-        for res_mv in sa { last = Some(res_mv?); }
+        for res_mv in vp { last = Some(res_mv?); }
         last.ok_or(Error::EmptyStream)
     }
 
@@ -63,14 +64,14 @@ impl Impl {
         seq.into_iter().last()
     }
 
-    fn min_max(sa: StreamAdaptor, flag: MinMax) -> Result<NumberLike, Error> {
-        let mut sa = sa.into_iter();
-        match sa.next() {
+    fn min_max<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {
+        let mut vp = vp.into_iter();
+        match vp.next() {
             None => Err(Error::EmptySequence),
             Some(first_res_mv) => {
                 let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
-                for res_mv in sa {
+                for res_mv in vp {
                     let nl: NumberLike = res_mv?.try_into()?;
                     target_nl = match flag {
                         MinMax::Min => target_nl.min(nl),
@@ -83,20 +84,20 @@ impl Impl {
         }
     }
 
-    pub fn min(sa: StreamAdaptor) -> Result<NumberLike, Error> {
-        Self::min_max(sa, MinMax::Min)
+    pub fn min<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+        Self::min_max(vp, MinMax::Min)
     }
 
     pub fn min_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_max(StreamAdaptor::Fixed(seq.into_iter()), MinMax::Min)
+        Self::min_max(Fixed::new(seq), MinMax::Min)
     }
 
-    pub fn max(sa: StreamAdaptor) -> Result<NumberLike, Error> {
-        Self::min_max(sa, MinMax::Max)
+    pub fn max<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+        Self::min_max(vp, MinMax::Max)
     }
 
     pub fn max_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_max(StreamAdaptor::Fixed(seq.into_iter()), MinMax::Max)
+        Self::min_max(Fixed::new(seq), MinMax::Max)
     }
 
     fn rev_sort(mut seq: Vec<MetaVal>, flag: RevSort) -> Vec<MetaVal> {
@@ -108,8 +109,8 @@ impl Impl {
         seq
     }
 
-    pub fn rev(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
-        let seq = Self::collect(sa)?;
+    pub fn rev<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Vec<MetaVal<'a>>, Error> {
+        let seq = Self::collect(vp)?;
         Ok(Self::rev_sort(seq, RevSort::Rev))
     }
 
@@ -117,8 +118,8 @@ impl Impl {
         Self::rev_sort(seq, RevSort::Rev)
     }
 
-    pub fn sort(sa: StreamAdaptor) -> Result<Vec<MetaVal>, Error> {
-        let seq = Self::collect(sa)?;
+    pub fn sort<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Vec<MetaVal<'a>>, Error> {
+        let seq = Self::collect(vp)?;
         Ok(Self::rev_sort(seq, RevSort::Sort))
     }
 
@@ -126,13 +127,13 @@ impl Impl {
         Self::rev_sort(seq, RevSort::Sort)
     }
 
-    fn sum_prod(sa: StreamAdaptor, flag: SumProd) -> Result<NumberLike, Error> {
+    fn sum_prod<'a, VP: ValueProducer<'a>>(vp: VP, flag: SumProd) -> Result<NumberLike, Error> {
         let mut total = match flag {
             SumProd::Sum => NumberLike::Integer(0),
             SumProd::Prod => NumberLike::Integer(1),
         };
 
-        for res_mv in sa {
+        for res_mv in vp {
             let nl: NumberLike = res_mv?.try_into()?;
 
             match flag {
@@ -144,21 +145,21 @@ impl Impl {
         Ok(total)
     }
 
-    pub fn sum(sa: StreamAdaptor) -> Result<NumberLike, Error> {
-        Self::sum_prod(sa, SumProd::Sum)
+    pub fn sum<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+        Self::sum_prod(vp, SumProd::Sum)
     }
 
-    pub fn prod(sa: StreamAdaptor) -> Result<NumberLike, Error> {
-        Self::sum_prod(sa, SumProd::Prod)
+    pub fn prod<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+        Self::sum_prod(vp, SumProd::Prod)
     }
 
-    pub fn all_equal(sa: StreamAdaptor) -> Result<bool, Error> {
-        let mut sa = sa.into_iter();
-        match sa.next() {
+    pub fn all_equal<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<bool, Error> {
+        let mut vp = vp.into_iter();
+        match vp.next() {
             None => Ok(true),
             Some(res_first_mv) => {
                 let first_mv = res_first_mv?;
-                for res_mv in sa {
+                for res_mv in vp {
                     if res_mv? != first_mv { return Ok(false) }
                 }
 
@@ -167,16 +168,16 @@ impl Impl {
         }
     }
 
-    pub fn flatten(sa: StreamAdaptor) -> Result<FlattenAdaptor, Error> {
-        Ok(FlattenAdaptor::new(sa))
+    pub fn flatten<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Flatten<'a, VP>, Error> {
+        Ok(Flatten::new(vp))
     }
 
-    pub fn dedup(sa: StreamAdaptor) -> Result<DedupAdaptor, Error> {
-        Ok(DedupAdaptor::new(sa))
+    pub fn dedup<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Dedup<'a, VP>, Error> {
+        Ok(Dedup::new(vp))
     }
 
-    pub fn unique(sa: StreamAdaptor) -> Result<UniqueAdaptor, Error> {
-        Ok(UniqueAdaptor::new(sa))
+    pub fn unique<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Unique<'a, VP>, Error> {
+        Ok(Unique::new(vp))
     }
 }
 

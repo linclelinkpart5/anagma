@@ -33,11 +33,11 @@ impl Ord for NumberLike {
     }
 }
 
-impl<'o> From<NumberLike> for Operand<'o> {
-    fn from(nl: NumberLike) -> Self {
-        Self::Value(nl.into())
-    }
-}
+// impl<'o> From<NumberLike> for Operand<'o> {
+//     fn from(nl: NumberLike) -> Self {
+//         Self::Value(nl.into())
+//     }
+// }
 
 impl<'k> From<NumberLike> for MetaVal<'k> {
     fn from(nl: NumberLike) -> MetaVal<'k> {
@@ -47,16 +47,17 @@ impl<'k> From<NumberLike> for MetaVal<'k> {
         }
     }
 }
-impl<'k> TryFrom<Operand<'k>> for NumberLike {
-    type Error = Error;
 
-    fn try_from(value: Operand<'k>) -> Result<Self, Self::Error> {
-        match value {
-            Operand::Value(mv) => Self::try_from(mv),
-            _ => Err(Error::NotNumeric),
-        }
-    }
-}
+// impl<'k> TryFrom<Operand<'k>> for NumberLike {
+//     type Error = Error;
+
+//     fn try_from(value: Operand<'k>) -> Result<Self, Self::Error> {
+//         match value {
+//             Operand::Value(mv) => Self::try_from(mv),
+//             _ => Err(Error::NotNumeric),
+//         }
+//     }
+// }
 
 impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
     type Error = Error;
