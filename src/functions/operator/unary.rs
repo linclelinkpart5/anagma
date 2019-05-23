@@ -195,7 +195,10 @@ impl Impl {
     }
 
     pub fn flatten_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
-        Self::flatten(Fixed::new(seq)).collect::<Result<Vec<_>, _>>().unwrap()
+        match Self::flatten(Fixed::new(seq)).collect::<Result<Vec<_>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
     }
 
     pub fn dedup<'a, VP: ValueProducer<'a>>(vp: VP) -> Dedup<'a, VP> {
@@ -203,9 +206,10 @@ impl Impl {
     }
 
     pub fn dedup_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
-        let mut seq = seq;
-        seq.dedup();
-        seq
+        match Self::dedup(Fixed::new(seq)).collect::<Result<Vec<_>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
     }
 
     pub fn unique<'a, VP: ValueProducer<'a>>(vp: VP) -> Unique<'a, VP> {
@@ -213,7 +217,24 @@ impl Impl {
     }
 
     pub fn unique_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
-        Self::unique(Fixed::new(seq)).collect::<Result<Vec<_>, _>>().unwrap()
+        match Self::unique(Fixed::new(seq)).collect::<Result<Vec<_>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
+    }
+
+    pub fn neg(number: NumberLike) -> NumberLike {
+        match number {
+            NumberLike::Integer(i) => NumberLike::Integer(-i),
+            NumberLike::Decimal(d) => NumberLike::Decimal(-d),
+        }
+    }
+
+    pub fn abs(number: NumberLike) -> NumberLike {
+        match number {
+            NumberLike::Integer(i) => NumberLike::Integer(i.abs()),
+            NumberLike::Decimal(d) => NumberLike::Decimal(d.abs()),
+        }
     }
 }
 
