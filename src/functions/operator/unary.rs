@@ -149,8 +149,16 @@ impl Impl {
         Self::sum_prod(vp, SumProd::Sum)
     }
 
+    pub fn sum_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
+        Self::sum_prod(Fixed::new(seq), SumProd::Sum)
+    }
+
     pub fn prod<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
         Self::sum_prod(vp, SumProd::Prod)
+    }
+
+    pub fn prod_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
+        Self::sum_prod(Fixed::new(seq), SumProd::Prod)
     }
 
     pub fn all_equal<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<bool, Error> {
@@ -168,16 +176,44 @@ impl Impl {
         }
     }
 
-    pub fn flatten<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Flatten<'a, VP>, Error> {
-        Ok(Flatten::new(vp))
+    pub fn all_equal_rs(ref_seq: &Vec<MetaVal>) -> bool {
+        let mut ref_seq = ref_seq.into_iter();
+        match ref_seq.next() {
+            None => true,
+            Some(first_mv) => {
+                for mv in ref_seq {
+                    if mv != first_mv { return false }
+                }
+
+                true
+            },
+        }
     }
 
-    pub fn dedup<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Dedup<'a, VP>, Error> {
-        Ok(Dedup::new(vp))
+    pub fn flatten<'a, VP: ValueProducer<'a>>(vp: VP) -> Flatten<'a, VP> {
+        Flatten::new(vp)
     }
 
-    pub fn unique<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Unique<'a, VP>, Error> {
-        Ok(Unique::new(vp))
+    pub fn flatten_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
+        Self::flatten(Fixed::new(seq)).collect::<Result<Vec<_>, _>>().unwrap()
+    }
+
+    pub fn dedup<'a, VP: ValueProducer<'a>>(vp: VP) -> Dedup<'a, VP> {
+        Dedup::new(vp)
+    }
+
+    pub fn dedup_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
+        let mut seq = seq;
+        seq.dedup();
+        seq
+    }
+
+    pub fn unique<'a, VP: ValueProducer<'a>>(vp: VP) -> Unique<'a, VP> {
+        Unique::new(vp)
+    }
+
+    pub fn unique_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
+        Self::unique(Fixed::new(seq)).collect::<Result<Vec<_>, _>>().unwrap()
     }
 }
 
