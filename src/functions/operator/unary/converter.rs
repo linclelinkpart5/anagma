@@ -112,202 +112,202 @@ impl Converter {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::Converter;
+// #[cfg(test)]
+// mod tests {
+//     use super::Converter;
 
-    use crate::test_util::TestUtil as TU;
+//     use crate::test_util::TestUtil as TU;
 
-    use bigdecimal::BigDecimal;
+//     use bigdecimal::BigDecimal;
 
-    use crate::metadata::types::MetaVal;
-    use crate::functions::operator::unary::Predicate;
+//     use crate::metadata::types::MetaVal;
+//     use crate::functions::operator::unary::Predicate;
 
-    fn i(i: i64) -> MetaVal<'static> {
-        MetaVal::Int(i)
-    }
+//     fn i(i: i64) -> MetaVal<'static> {
+//         MetaVal::Int(i)
+//     }
 
-    fn d(i: i64, e: i64) -> MetaVal<'static> {
-        MetaVal::Dec(BigDecimal::new(i.into(), e))
-    }
+//     fn d(i: i64, e: i64) -> MetaVal<'static> {
+//         MetaVal::Dec(BigDecimal::new(i.into(), e))
+//     }
 
-    fn positive_cases() {
-        let inputs_and_expected = vec![
-            (
-                (Converter::Count, TU::sample_flat_sequence()),
-                MetaVal::Int(5),
-            ),
-            (
-                (Converter::Count, MetaVal::Seq(vec![])),
-                MetaVal::Int(0),
-            ),
-            (
-                (Converter::First, TU::sample_flat_sequence()),
-                TU::sample_string(),
-            ),
-            (
-                (Converter::First, MetaVal::Seq(vec![TU::sample_string()])),
-                TU::sample_string(),
-            ),
-            (
-                (Converter::Last, TU::sample_flat_sequence()),
-                TU::sample_null(),
-            ),
-            (
-                (Converter::Last, MetaVal::Seq(vec![TU::sample_string()])),
-                TU::sample_string(),
-            ),
-            (
-                (Converter::MaxIn, TU::sample_number_sequence(2, false, true, true)),
-                MetaVal::Int(2),
-            ),
-            (
-                (Converter::MaxIn, TU::sample_number_sequence(2, true, true, true)),
-                MetaVal::Dec(2.5.into()),
-            ),
-            (
-                (Converter::MinIn, TU::sample_number_sequence(2, false, true, true)),
-                MetaVal::Int(-2),
-            ),
-            (
-                (Converter::MinIn, TU::sample_number_sequence(2, true, true, true)),
-                MetaVal::Dec((-2.5).into()),
-            ),
-            (
-                (Converter::Rev, MetaVal::Seq(vec![TU::sample_boolean(), TU::sample_decimal(), TU::sample_integer()])),
-                MetaVal::Seq(vec![TU::sample_integer(), TU::sample_decimal(), TU::sample_boolean()]),
-            ),
-            (
-                (Converter::Rev, MetaVal::Seq(vec![])),
-                MetaVal::Seq(vec![]),
-            ),
-            (
-                (Converter::Sort, TU::sample_flat_sequence()),
-                MetaVal::Seq(vec![TU::sample_null(), TU::sample_string(), TU::sample_integer(), TU::sample_boolean(), TU::sample_decimal()]),
-            ),
-            (
-                (Converter::Sort, TU::sample_number_sequence(1, true, true, true)),
-                MetaVal::Seq(vec![d(-15, 1), i(-1), d(-5, 1), i(0), d(5, 1), i(1), d(15, 1)]),
-            ),
-            (
-                (Converter::Sort, MetaVal::Seq(vec![])),
-                MetaVal::Seq(vec![]),
-            ),
-            (
-                (Converter::Sum, MetaVal::Seq(vec![i(-2), i(3), i(5), i(7)])),
-                i(-2 + 3 + 5 + 7),
-            ),
-            (
-                (Converter::Sum, MetaVal::Seq(vec![i(-2), i(3), d(55, 1), i(7)])),
-                d(135, 1),
-            ),
-            (
-                (Converter::Sum, MetaVal::Seq(vec![])),
-                i(0),
-            ),
-            (
-                (Converter::Prod, MetaVal::Seq(vec![i(-2), i(3), i(5), i(7)])),
-                i(-2 * 3 * 5 * 7),
-            ),
-            (
-                (Converter::Prod, MetaVal::Seq(vec![i(-2), i(3), d(55, 1), i(7)])),
-                d(-231, 0),
-            ),
-            (
-                (Converter::Prod, MetaVal::Seq(vec![i(0), i(-2), i(3), d(55, 1), i(7)])),
-                d(0, 0),
-            ),
-            (
-                (Converter::Prod, MetaVal::Seq(vec![])),
-                i(1),
-            ),
-            (
-                (Converter::Flatten, TU::sample_flat_sequence()),
-                TU::sample_flat_sequence(),
-            ),
-            (
-                (Converter::Flatten, TU::sample_nested_sequence()),
-                MetaVal::Seq(vec![
-                    TU::sample_string(),
-                    TU::sample_integer(),
-                    TU::sample_decimal(),
-                    TU::sample_boolean(),
-                    TU::sample_null(),
-                    TU::sample_string(),
-                    TU::sample_integer(),
-                    TU::sample_decimal(),
-                    TU::sample_boolean(),
-                    TU::sample_null(),
-                    TU::sample_flat_mapping(),
-                ]),
-            ),
-            (
-                (Converter::Flatten, MetaVal::Seq(vec![])),
-                MetaVal::Seq(vec![]),
-            ),
-            (
-                (Converter::Dedup, MetaVal::Seq(vec![i(1), i(1), i(1), i(2), i(2), i(3), i(3), i(3), i(1)])),
-                MetaVal::Seq(vec![i(1), i(2), i(3), i(1)]),
-            ),
-            (
-                (Converter::Dedup, MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)])),
-                MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)]),
-            ),
-            (
-                (Converter::Dedup, MetaVal::Seq(vec![i(1), i(1), i(1), i(1), i(1)])),
-                MetaVal::Seq(vec![i(1)]),
-            ),
-            (
-                (Converter::Dedup, MetaVal::Seq(vec![])),
-                MetaVal::Seq(vec![]),
-            ),
-            (
-                (Converter::Unique, MetaVal::Seq(vec![i(1), i(1), i(1), i(2), i(2), i(3), i(3), i(3), i(1)])),
-                MetaVal::Seq(vec![i(1), i(2), i(3)]),
-            ),
-            (
-                (Converter::Unique, MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)])),
-                MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)]),
-            ),
-            (
-                (Converter::Unique, MetaVal::Seq(vec![i(1), i(1), i(1), i(1), i(1)])),
-                MetaVal::Seq(vec![i(1)]),
-            ),
-            (
-                (Converter::Unique, MetaVal::Seq(vec![])),
-                MetaVal::Seq(vec![]),
-            ),
-            (
-                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(1), i(1), i(1)])),
-                MetaVal::Bul(true),
-            ),
-            (
-                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(2), i(1), i(1)])),
-                MetaVal::Bul(false),
-            ),
-            (
-                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(1)])),
-                MetaVal::Bul(true),
-            ),
-            (
-                (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![])),
-                MetaVal::Bul(true),
-            ),
-        ];
+//     fn positive_cases() {
+//         let inputs_and_expected = vec![
+//             (
+//                 (Converter::Count, TU::sample_flat_sequence()),
+//                 MetaVal::Int(5),
+//             ),
+//             (
+//                 (Converter::Count, MetaVal::Seq(vec![])),
+//                 MetaVal::Int(0),
+//             ),
+//             (
+//                 (Converter::First, TU::sample_flat_sequence()),
+//                 TU::sample_string(),
+//             ),
+//             (
+//                 (Converter::First, MetaVal::Seq(vec![TU::sample_string()])),
+//                 TU::sample_string(),
+//             ),
+//             (
+//                 (Converter::Last, TU::sample_flat_sequence()),
+//                 TU::sample_null(),
+//             ),
+//             (
+//                 (Converter::Last, MetaVal::Seq(vec![TU::sample_string()])),
+//                 TU::sample_string(),
+//             ),
+//             (
+//                 (Converter::MaxIn, TU::sample_number_sequence(2, false, true, true)),
+//                 MetaVal::Int(2),
+//             ),
+//             (
+//                 (Converter::MaxIn, TU::sample_number_sequence(2, true, true, true)),
+//                 MetaVal::Dec(2.5.into()),
+//             ),
+//             (
+//                 (Converter::MinIn, TU::sample_number_sequence(2, false, true, true)),
+//                 MetaVal::Int(-2),
+//             ),
+//             (
+//                 (Converter::MinIn, TU::sample_number_sequence(2, true, true, true)),
+//                 MetaVal::Dec((-2.5).into()),
+//             ),
+//             (
+//                 (Converter::Rev, MetaVal::Seq(vec![TU::sample_boolean(), TU::sample_decimal(), TU::sample_integer()])),
+//                 MetaVal::Seq(vec![TU::sample_integer(), TU::sample_decimal(), TU::sample_boolean()]),
+//             ),
+//             (
+//                 (Converter::Rev, MetaVal::Seq(vec![])),
+//                 MetaVal::Seq(vec![]),
+//             ),
+//             (
+//                 (Converter::Sort, TU::sample_flat_sequence()),
+//                 MetaVal::Seq(vec![TU::sample_null(), TU::sample_string(), TU::sample_integer(), TU::sample_boolean(), TU::sample_decimal()]),
+//             ),
+//             (
+//                 (Converter::Sort, TU::sample_number_sequence(1, true, true, true)),
+//                 MetaVal::Seq(vec![d(-15, 1), i(-1), d(-5, 1), i(0), d(5, 1), i(1), d(15, 1)]),
+//             ),
+//             (
+//                 (Converter::Sort, MetaVal::Seq(vec![])),
+//                 MetaVal::Seq(vec![]),
+//             ),
+//             (
+//                 (Converter::Sum, MetaVal::Seq(vec![i(-2), i(3), i(5), i(7)])),
+//                 i(-2 + 3 + 5 + 7),
+//             ),
+//             (
+//                 (Converter::Sum, MetaVal::Seq(vec![i(-2), i(3), d(55, 1), i(7)])),
+//                 d(135, 1),
+//             ),
+//             (
+//                 (Converter::Sum, MetaVal::Seq(vec![])),
+//                 i(0),
+//             ),
+//             (
+//                 (Converter::Prod, MetaVal::Seq(vec![i(-2), i(3), i(5), i(7)])),
+//                 i(-2 * 3 * 5 * 7),
+//             ),
+//             (
+//                 (Converter::Prod, MetaVal::Seq(vec![i(-2), i(3), d(55, 1), i(7)])),
+//                 d(-231, 0),
+//             ),
+//             (
+//                 (Converter::Prod, MetaVal::Seq(vec![i(0), i(-2), i(3), d(55, 1), i(7)])),
+//                 d(0, 0),
+//             ),
+//             (
+//                 (Converter::Prod, MetaVal::Seq(vec![])),
+//                 i(1),
+//             ),
+//             (
+//                 (Converter::Flatten, TU::sample_flat_sequence()),
+//                 TU::sample_flat_sequence(),
+//             ),
+//             (
+//                 (Converter::Flatten, TU::sample_nested_sequence()),
+//                 MetaVal::Seq(vec![
+//                     TU::sample_string(),
+//                     TU::sample_integer(),
+//                     TU::sample_decimal(),
+//                     TU::sample_boolean(),
+//                     TU::sample_null(),
+//                     TU::sample_string(),
+//                     TU::sample_integer(),
+//                     TU::sample_decimal(),
+//                     TU::sample_boolean(),
+//                     TU::sample_null(),
+//                     TU::sample_flat_mapping(),
+//                 ]),
+//             ),
+//             (
+//                 (Converter::Flatten, MetaVal::Seq(vec![])),
+//                 MetaVal::Seq(vec![]),
+//             ),
+//             (
+//                 (Converter::Dedup, MetaVal::Seq(vec![i(1), i(1), i(1), i(2), i(2), i(3), i(3), i(3), i(1)])),
+//                 MetaVal::Seq(vec![i(1), i(2), i(3), i(1)]),
+//             ),
+//             (
+//                 (Converter::Dedup, MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)])),
+//                 MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)]),
+//             ),
+//             (
+//                 (Converter::Dedup, MetaVal::Seq(vec![i(1), i(1), i(1), i(1), i(1)])),
+//                 MetaVal::Seq(vec![i(1)]),
+//             ),
+//             (
+//                 (Converter::Dedup, MetaVal::Seq(vec![])),
+//                 MetaVal::Seq(vec![]),
+//             ),
+//             (
+//                 (Converter::Unique, MetaVal::Seq(vec![i(1), i(1), i(1), i(2), i(2), i(3), i(3), i(3), i(1)])),
+//                 MetaVal::Seq(vec![i(1), i(2), i(3)]),
+//             ),
+//             (
+//                 (Converter::Unique, MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)])),
+//                 MetaVal::Seq(vec![i(1), i(2), i(3), i(4), i(5)]),
+//             ),
+//             (
+//                 (Converter::Unique, MetaVal::Seq(vec![i(1), i(1), i(1), i(1), i(1)])),
+//                 MetaVal::Seq(vec![i(1)]),
+//             ),
+//             (
+//                 (Converter::Unique, MetaVal::Seq(vec![])),
+//                 MetaVal::Seq(vec![]),
+//             ),
+//             (
+//                 (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(1), i(1), i(1)])),
+//                 MetaVal::Bul(true),
+//             ),
+//             (
+//                 (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(2), i(1), i(1)])),
+//                 MetaVal::Bul(false),
+//             ),
+//             (
+//                 (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![i(1)])),
+//                 MetaVal::Bul(true),
+//             ),
+//             (
+//                 (Converter::Predicate(Predicate::AllEqual), MetaVal::Seq(vec![])),
+//                 MetaVal::Bul(true),
+//             ),
+//         ];
 
-        for (inputs, expected) in inputs_and_expected {
-            let (conv, mv) = inputs;
-            let produced = conv.process(mv).unwrap();
-            assert_eq!(expected, produced);
-        }
-    }
+//         for (inputs, expected) in inputs_and_expected {
+//             let (conv, mv) = inputs;
+//             let produced = conv.process(mv).unwrap();
+//             assert_eq!(expected, produced);
+//         }
+//     }
 
-    fn negative_cases() {
-    }
+//     fn negative_cases() {
+//     }
 
-    #[test]
-    fn test_process() {
-        positive_cases();
-        negative_cases();
-    }
-}
+//     #[test]
+//     fn test_process() {
+//         positive_cases();
+//         negative_cases();
+//     }
+// }

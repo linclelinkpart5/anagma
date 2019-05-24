@@ -10,26 +10,26 @@ use crate::metadata::types::MetaVal;
 use crate::functions::operand::Operand;
 use crate::functions::Error;
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NumberLike {
     Integer(i64),
     Decimal(BigDecimal),
 }
 
-impl PartialOrd for NumberLike {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for NumberLike {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+impl NumberLike {
+    /// Does a comparison based on the numerical values represented.
+    /// Whole value decimals will compare as equal to their integer counterparts.
+    pub fn val_cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
             (Self::Integer(l), Self::Integer(r)) => l.cmp(r),
             (Self::Integer(l), Self::Decimal(r)) => BigDecimal::from(*l).cmp(r),
             (Self::Decimal(l), Self::Integer(r)) => l.cmp(&BigDecimal::from(*r)),
             (Self::Decimal(l), Self::Decimal(r)) => l.cmp(r),
         }
+    }
+
+    pub fn val_eq(&self, other: &Self) -> bool {
+        self.val_cmp(other) == std::cmp::Ordering::Equal
     }
 }
 
@@ -107,24 +107,61 @@ impl MulAssign for NumberLike {
 
 #[cfg(test)]
 mod tests {
-    use super::NumberLike;
+    use super::NumberLike as NL;
+
+    use std::convert::TryInto;
+
+    use rand::seq::SliceRandom;
+
+    use crate::test_util::TestUtil;
 
     #[test]
-    fn test_cmp() {
+    fn test_val_cmp() {
         for l in -3..=3 {
             for r in -3..=3 {
-                let li = NumberLike::Integer(l);
-                let ld = NumberLike::Decimal(l.into());
-                let ri = NumberLike::Integer(r);
-                let rd = NumberLike::Decimal(r.into());
+                let li = NL::Integer(l);
+                let ld = NL::Decimal(l.into());
+                let ri = NL::Integer(r);
+                let rd = NL::Decimal(r.into());
 
                 let expected = l.cmp(&r);
 
-                assert_eq!(expected, li.cmp(&ri));
-                assert_eq!(expected, li.cmp(&rd));
-                assert_eq!(expected, ld.cmp(&ri));
-                assert_eq!(expected, ld.cmp(&rd));
+                assert_eq!(expected, li.val_cmp(&ri));
+                assert_eq!(expected, li.val_cmp(&rd));
+                assert_eq!(expected, ld.val_cmp(&ri));
+                assert_eq!(expected, ld.val_cmp(&rd));
             }
         }
+
+        // Should be able to sort a list of numbers.
+        let expected = vec![
+            NL::Decimal((-2.5).into()),
+            NL::Integer(-2),
+            NL::Decimal((-1.5).into()),
+            NL::Integer(-1),
+            NL::Decimal((-0.5).into()),
+            NL::Integer(0),
+            NL::Decimal(0.5.into()),
+            NL::Integer(1),
+            NL::Decimal(1.5.into()),
+            NL::Integer(2),
+            NL::Decimal(2.5.into()),
+        ];
+
+        let mut produced = expected.clone();
+        produced.shuffle(&mut rand::thread_rng());
+
+        produced.sort_by(NL::val_cmp);
+
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn test_add_assign() {
+        let inputs_and_expetced = vec![
+            ((NL::Integer(1), NL::Integer(2)), NL::Integer(3)),
+            ((NL::Integer(-1), NL::Integer(2)), NL::Integer(1)),
+            ((NL::Integer(1), NL::Decimal(2.into())), NL::Decimal(3.into())),
+        ];
     }
 }
