@@ -13,11 +13,11 @@ use std::convert::TryInto;
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::util::NumberLike;
-use crate::functions::util::ValueProducer;
-use crate::functions::util::Fixed;
-use crate::functions::util::Flatten;
-use crate::functions::util::Dedup;
-use crate::functions::util::Unique;
+use crate::functions::util::value_producer::ValueProducer;
+use crate::functions::util::value_producer::Fixed;
+use crate::functions::util::value_producer::Flatten;
+use crate::functions::util::value_producer::Dedup;
+use crate::functions::util::value_producer::Unique;
 
 #[derive(Clone, Copy)]
 enum MinMax { Min, Max, }
@@ -50,8 +50,8 @@ impl Impl {
         vp.into_iter().next().ok_or(Error::EmptyStream)?
     }
 
-    pub fn first_s(seq: Vec<MetaVal>) -> Option<MetaVal> {
-        seq.into_iter().next()
+    pub fn first_s(seq: Vec<MetaVal>) -> Result<MetaVal, Error> {
+        seq.into_iter().next().ok_or(Error::EmptySequence)
     }
 
     pub fn last<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
@@ -60,8 +60,8 @@ impl Impl {
         last.ok_or(Error::EmptyStream)
     }
 
-    pub fn last_s(seq: Vec<MetaVal>) -> Option<MetaVal> {
-        seq.into_iter().last()
+    pub fn last_s(seq: Vec<MetaVal>) -> Result<MetaVal, Error> {
+        seq.into_iter().last().ok_or(Error::EmptySequence)
     }
 
     fn min_max<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {

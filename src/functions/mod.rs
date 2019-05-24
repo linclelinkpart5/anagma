@@ -20,6 +20,7 @@ pub enum Error {
     EmptyIterable,
     ZeroStepSize,
     OutOfBounds,
+    ItemNotFound,
 }
 
 impl std::fmt::Display for Error {
@@ -39,6 +40,7 @@ impl std::fmt::Display for Error {
             Self::EmptyIterable => write!(f, "empty iterable"),
             Self::ZeroStepSize => write!(f, "zero step size"),
             Self::OutOfBounds => write!(f, "index out of bounds"),
+            Self::ItemNotFound => write!(f, "item not found"),
         }
     }
 }
@@ -47,19 +49,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Self::ValueStream(ref err) => Some(err),
-            Self::EmptyStack => None,
-            Self::NotIterable => None,
-            Self::NotSequence => None,
-            Self::NotNumeric => None,
-            Self::NotPredicate => None,
-            Self::NotConverter => None,
-            Self::NotIndex => None,
-            Self::InvalidOperand => None,
-            Self::EmptySequence => None,
-            Self::EmptyStream => None,
-            Self::EmptyIterable => None,
-            Self::ZeroStepSize => None,
-            Self::OutOfBounds => None,
+            _ => None,
         }
     }
 }
