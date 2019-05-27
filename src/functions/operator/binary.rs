@@ -154,11 +154,9 @@ impl Impl {
     }
 
     pub fn chain_s<'a>(seq_a: Vec<MetaVal<'a>>, seq_b: Vec<MetaVal<'a>>) -> Vec<MetaVal<'a>> {
-        // Chaining cannot fail.
-        match Chain::new(Fixed::new(seq_a), Fixed::new(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
-            Err(_) => unreachable!(),
-            Ok(seq) => seq,
-        }
+        let mut seq_a = seq_a;
+        seq_a.extend(seq_b);
+        seq_a
     }
 
     pub fn zip<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Zip<VPA, VPB> {
@@ -193,15 +191,41 @@ impl Impl {
         SkipWhile::new(vp, u_pred)
     }
 
+    pub fn skip_while_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<Vec<MetaVal>, Error> {
+        // It is possible for the predicate to fail.
+        SkipWhile::new(Fixed::new(seq), u_pred).collect()
+    }
+
     pub fn take_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> TakeWhile<VP> {
         TakeWhile::new(vp, u_pred)
+    }
+
+    pub fn take_while_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<Vec<MetaVal>, Error> {
+        // It is possible for the predicate to fail.
+        TakeWhile::new(Fixed::new(seq), u_pred).collect()
     }
 
     pub fn intersperse<'a, VP: ValueProducer<'a>>(vp: VP, mv: MetaVal<'a>) -> Intersperse<'a, VP> {
         Intersperse::new(vp, mv)
     }
 
+    pub fn intersperse_s<'a>(seq: Vec<MetaVal<'a>>, mv: MetaVal<'a>) -> Vec<MetaVal<'a>> {
+        // Interspersing cannot fail.
+        match Intersperse::new(Fixed::new(seq), mv).collect::<Result<Vec<MetaVal>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
+    }
+
     pub fn interleave<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Interleave<VPA, VPB> {
         Interleave::new(vp_a, vp_b)
+    }
+
+    pub fn interleave_s<'a>(seq_a: Vec<MetaVal<'a>>, seq_b: Vec<MetaVal<'a>>) -> Vec<MetaVal<'a>> {
+        // Interleaving cannot fail.
+        match Interleave::new(Fixed::new(seq_a), Fixed::new(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
     }
 }
