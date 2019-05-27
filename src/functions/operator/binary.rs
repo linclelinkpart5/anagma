@@ -99,6 +99,10 @@ impl Impl {
         Err(Error::ItemNotFound)
     }
 
+    pub fn find_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<MetaVal, Error> {
+        Self::find(Fixed::new(seq), u_pred)
+    }
+
     pub fn position<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Result<usize, Error> {
         let mut i = 0;
         for res_mv in vp {
@@ -110,32 +114,79 @@ impl Impl {
         Err(Error::ItemNotFound)
     }
 
+    pub fn position_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<usize, Error> {
+        Self::position(Fixed::new(seq), u_pred)
+    }
+
     pub fn filter<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Filter<VP> {
         Filter::new(vp, u_pred)
+    }
+
+    pub fn filter_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<Vec<MetaVal>, Error> {
+        // It is possible for the predicate to fail.
+        Filter::new(Fixed::new(seq), u_pred).collect()
     }
 
     pub fn map<'a, VP: ValueProducer<'a>>(vp: VP, u_conv: UnaryConverter) -> Map<VP> {
         Map::new(vp, u_conv)
     }
 
+    pub fn map_s(seq: Vec<MetaVal>, u_conv: UnaryConverter) -> Result<Vec<MetaVal>, Error> {
+        // It is possible for the converter to fail.
+        Map::new(Fixed::new(seq), u_conv).collect()
+    }
+
     pub fn step_by<'a, VP: ValueProducer<'a>>(vp: VP, step: usize) -> Result<StepBy<VP>, Error> {
         StepBy::new(vp, step)
+    }
+
+    pub fn step_by_s(seq: Vec<MetaVal>, step: usize) -> Result<Vec<MetaVal>, Error> {
+        // It is possible for the step by producer creation to fail.
+        // NOTE: The match is not needed, but it seems desirable to make explicit that the collect cannot fail.
+        match StepBy::new(Fixed::new(seq), step)?.collect::<Result<Vec<MetaVal>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => Ok(seq),
+        }
     }
 
     pub fn chain<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Chain<VPA, VPB> {
         Chain::new(vp_a, vp_b)
     }
 
+    pub fn chain_s<'a>(seq_a: Vec<MetaVal<'a>>, seq_b: Vec<MetaVal<'a>>) -> Vec<MetaVal<'a>> {
+        // Chaining cannot fail.
+        match Chain::new(Fixed::new(seq_a), Fixed::new(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
+    }
+
     pub fn zip<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Zip<VPA, VPB> {
         Zip::new(vp_a, vp_b)
+    }
+
+    pub fn zip_s<'a>(seq_a: Vec<MetaVal<'a>>, seq_b: Vec<MetaVal<'a>>) -> Vec<MetaVal<'a>> {
+        // Zipping cannot fail.
+        match Zip::new(Fixed::new(seq_a), Fixed::new(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
+            Err(_) => unreachable!(),
+            Ok(seq) => seq,
+        }
     }
 
     pub fn skip<'a, VP: ValueProducer<'a>>(vp: VP, n: usize) -> Skip<'a, VP> {
         Skip::new(vp, n)
     }
 
+    pub fn skip_s(seq: Vec<MetaVal>, n: usize) -> Vec<MetaVal> {
+        seq.into_iter().skip(n).collect()
+    }
+
     pub fn take<'a, VP: ValueProducer<'a>>(vp: VP, n: usize) -> Take<'a, VP> {
         Take::new(vp, n)
+    }
+
+    pub fn take_s(seq: Vec<MetaVal>, n: usize) -> Vec<MetaVal> {
+        seq.into_iter().take(n).collect()
     }
 
     pub fn skip_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> SkipWhile<VP> {
