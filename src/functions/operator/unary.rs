@@ -257,7 +257,7 @@ impl Impl {
 mod tests {
     use super::Impl;
 
-    use crate::test_util::TestUtil;
+    use crate::test_util::TestUtil as TU;
 
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
@@ -273,8 +273,8 @@ mod tests {
                 Ok(vec![]),
             ),
             (
-                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-                Ok(TestUtil::core_nested_sequence()),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(TU::core_nested_sequence()),
             ),
             (
                 vec![Err(Error::Sentinel)],
@@ -300,7 +300,7 @@ mod tests {
                 Ok(0),
             ),
             (
-                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
                 Ok(7),
             ),
             (
@@ -324,8 +324,8 @@ mod tests {
         let inputs_and_expected = vec![
             (vec![], 0usize),
             (vec![MetaVal::Bul(true)], 1),
-            (TestUtil::core_flat_sequence(), 5),
-            (TestUtil::core_nested_sequence(), 7),
+            (TU::core_flat_sequence(), 5),
+            (TU::core_nested_sequence(), 7),
         ];
 
         for (input, expected) in inputs_and_expected {
@@ -342,8 +342,8 @@ mod tests {
                 Err(ErrorKind::EmptyProducer),
             ),
             (
-                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-                Ok(TestUtil::core_nested_sequence()[0].clone()),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(TU::core_nested_sequence()[0].clone()),
             ),
             (
                 vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false))],
@@ -369,8 +369,8 @@ mod tests {
                 Err(ErrorKind::EmptySequence),
             ),
             (
-                TestUtil::core_nested_sequence(),
-                Ok(TestUtil::core_nested_sequence()[0].clone()),
+                TU::core_nested_sequence(),
+                Ok(TU::core_nested_sequence()[0].clone()),
             ),
             (
                 vec![MetaVal::Bul(true), MetaVal::Bul(false)],
@@ -392,8 +392,8 @@ mod tests {
                 Err(ErrorKind::EmptyProducer),
             ),
             (
-                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-                Ok(TestUtil::core_nested_sequence().pop().unwrap()),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(TU::core_nested_sequence().pop().unwrap()),
             ),
             (
                 vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false))],
@@ -423,8 +423,8 @@ mod tests {
                 Err(ErrorKind::EmptySequence),
             ),
             (
-                TestUtil::core_nested_sequence(),
-                Ok(TestUtil::core_nested_sequence().pop().unwrap()),
+                TU::core_nested_sequence(),
+                Ok(TU::core_nested_sequence().pop().unwrap()),
             ),
             (
                 vec![MetaVal::Bul(true), MetaVal::Bul(false)],
@@ -446,23 +446,23 @@ mod tests {
                 Err(ErrorKind::EmptyProducer),
             ),
             (
-                TestUtil::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
+                TU::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
                 Ok(NumberLike::Integer(-2)),
             ),
             (
-                TestUtil::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
-                Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
+                TU::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Decimal(TU::d_raw(-25, 1))),
             ),
             (
-                vec![Ok(TestUtil::i(1))],
+                vec![Ok(TU::i(1))],
                 Ok(NumberLike::Integer(1)),
             ),
             (
-                vec![Ok(TestUtil::i(1)), Ok(MetaVal::Bul(false))],
+                vec![Ok(TU::i(1)), Ok(MetaVal::Bul(false))],
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
                 Err(ErrorKind::Sentinel),
             ),
         ];
@@ -481,19 +481,19 @@ mod tests {
                 Err(ErrorKind::EmptySequence),
             ),
             (
-                TestUtil::core_number_sequence(2, false, true, false),
+                TU::core_number_sequence(2, false, true, false),
                 Ok(NumberLike::Integer(-2)),
             ),
             (
-                TestUtil::core_number_sequence(2, true, true, false),
-                Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
+                TU::core_number_sequence(2, true, true, false),
+                Ok(NumberLike::Decimal(TU::d_raw(-25, 1))),
             ),
             (
-                vec![TestUtil::i(1)],
+                vec![TU::i(1)],
                 Ok(NumberLike::Integer(1)),
             ),
             (
-                vec![TestUtil::i(1), MetaVal::Bul(true)],
+                vec![TU::i(1), MetaVal::Bul(true)],
                 Err(ErrorKind::NotNumeric),
             ),
         ];
@@ -512,23 +512,23 @@ mod tests {
                 Err(ErrorKind::EmptyProducer),
             ),
             (
-                TestUtil::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
+                TU::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
                 Ok(NumberLike::Integer(2)),
             ),
             (
-                TestUtil::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
-                Ok(NumberLike::Decimal(TestUtil::d_raw(25, 1))),
+                TU::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Decimal(TU::d_raw(25, 1))),
             ),
             (
-                vec![Ok(TestUtil::i(1))],
+                vec![Ok(TU::i(1))],
                 Ok(NumberLike::Integer(1)),
             ),
             (
-                vec![Ok(TestUtil::i(1)), Ok(MetaVal::Bul(false))],
+                vec![Ok(TU::i(1)), Ok(MetaVal::Bul(false))],
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
                 Err(ErrorKind::Sentinel),
             ),
         ];
@@ -547,19 +547,19 @@ mod tests {
                 Err(ErrorKind::EmptySequence),
             ),
             (
-                TestUtil::core_number_sequence(2, false, true, false),
+                TU::core_number_sequence(2, false, true, false),
                 Ok(NumberLike::Integer(2)),
             ),
             (
-                TestUtil::core_number_sequence(2, true, true, false),
-                Ok(NumberLike::Decimal(TestUtil::d_raw(25, 1))),
+                TU::core_number_sequence(2, true, true, false),
+                Ok(NumberLike::Decimal(TU::d_raw(25, 1))),
             ),
             (
-                vec![TestUtil::i(1)],
+                vec![TU::i(1)],
                 Ok(NumberLike::Integer(1)),
             ),
             (
-                vec![TestUtil::i(1), MetaVal::Bul(true)],
+                vec![TU::i(1), MetaVal::Bul(true)],
                 Err(ErrorKind::NotNumeric),
             ),
         ];
@@ -578,15 +578,15 @@ mod tests {
                 Ok(vec![]),
             ),
             (
-                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-                Ok({ let mut s = TestUtil::core_nested_sequence(); s.reverse(); s }),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok({ let mut s = TU::core_nested_sequence(); s.reverse(); s }),
             ),
             (
-                vec![Ok(TestUtil::i(1))],
-                Ok(vec![TestUtil::i(1)]),
+                vec![Ok(TU::i(1))],
+                Ok(vec![TU::i(1)]),
             ),
             (
-                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
                 Err(ErrorKind::Sentinel),
             ),
         ];
@@ -605,12 +605,12 @@ mod tests {
                 vec![],
             ),
             (
-                TestUtil::core_nested_sequence(),
-                { let mut s = TestUtil::core_nested_sequence(); s.reverse(); s },
+                TU::core_nested_sequence(),
+                { let mut s = TU::core_nested_sequence(); s.reverse(); s },
             ),
             (
-                vec![TestUtil::i(1)],
-                vec![TestUtil::i(1)],
+                vec![TU::i(1)],
+                vec![TU::i(1)],
             ),
         ];
 
@@ -628,15 +628,15 @@ mod tests {
                 Ok(vec![]),
             ),
             (
-                TestUtil::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
-                Ok(vec![TestUtil::i(-2), TestUtil::d(-15, 1), TestUtil::i(-1), TestUtil::d(-5, 1), TestUtil::i(0), TestUtil::d(5, 1), TestUtil::i(1), TestUtil::d(15, 1), TestUtil::i(2)]),
+                TU::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
+                Ok(vec![TU::i(-2), TU::d(-15, 1), TU::i(-1), TU::d(-5, 1), TU::i(0), TU::d(5, 1), TU::i(1), TU::d(15, 1), TU::i(2)]),
             ),
             (
-                vec![Ok(TestUtil::i(1))],
-                Ok(vec![TestUtil::i(1)]),
+                vec![Ok(TU::i(1))],
+                Ok(vec![TU::i(1)]),
             ),
             (
-                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
                 Err(ErrorKind::Sentinel),
             ),
         ];
@@ -655,12 +655,12 @@ mod tests {
                 vec![],
             ),
             (
-                TestUtil::core_number_sequence(2, false, true, true),
-                vec![TestUtil::i(-2), TestUtil::d(-15, 1), TestUtil::i(-1), TestUtil::d(-5, 1), TestUtil::i(0), TestUtil::d(5, 1), TestUtil::i(1), TestUtil::d(15, 1), TestUtil::i(2)],
+                TU::core_number_sequence(2, false, true, true),
+                vec![TU::i(-2), TU::d(-15, 1), TU::i(-1), TU::d(-5, 1), TU::i(0), TU::d(5, 1), TU::i(1), TU::d(15, 1), TU::i(2)],
             ),
             (
-                vec![TestUtil::i(1)],
-                vec![TestUtil::i(1)],
+                vec![TU::i(1)],
+                vec![TU::i(1)],
             ),
         ];
 
