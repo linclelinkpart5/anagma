@@ -64,10 +64,10 @@ impl Impl {
         seq.into_iter().last().ok_or(Error::EmptySequence)
     }
 
-    fn min_in_max_in<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {
+    fn min_in_max_in<'a, VP: ValueProducer<'a>, EF: FnOnce() -> Error>(vp: VP, flag: MinMax, ef: EF) -> Result<NumberLike, Error> {
         let mut vp = vp.into_iter();
         match vp.next() {
-            None => Err(Error::EmptyProducer),
+            None => Err(ef()),
             Some(first_res_mv) => {
                 let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
@@ -85,19 +85,19 @@ impl Impl {
     }
 
     pub fn min_in<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
-        Self::min_in_max_in(vp, MinMax::Min)
+        Self::min_in_max_in(vp, MinMax::Min, || Error::EmptyProducer)
     }
 
     pub fn min_in_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_in_max_in(Fixed::new(seq), MinMax::Min)
+        Self::min_in_max_in(Fixed::new(seq), MinMax::Min, || Error::EmptySequence)
     }
 
     pub fn max_in<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
-        Self::min_in_max_in(vp, MinMax::Max)
+        Self::min_in_max_in(vp, MinMax::Max, || Error::EmptyProducer)
     }
 
     pub fn max_in_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_in_max_in(Fixed::new(seq), MinMax::Max)
+        Self::min_in_max_in(Fixed::new(seq), MinMax::Max, || Error::EmptySequence)
     }
 
     fn rev_sort(mut seq: Vec<MetaVal>, flag: RevSort) -> Vec<MetaVal> {
@@ -454,30 +454,30 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_min_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Err(ErrorKind::EmptySequence),
-    //         ),
-    //         (
-    //             TestUtil::core_number_sequence(2, false, true, false),
-    //             Ok(NumberLike::Integer(-2)),
-    //         ),
-    //         (
-    //             TestUtil::core_number_sequence(2, true, true, false),
-    //             Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
-    //         ),
-    //         (
-    //             vec![TestUtil::i(1), MetaVal::Bul(true)],
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //     ];
+    #[test]
+    fn test_min_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Err(ErrorKind::EmptySequence),
+            ),
+            (
+                TestUtil::core_number_sequence(2, false, true, false),
+                Ok(NumberLike::Integer(-2)),
+            ),
+            (
+                TestUtil::core_number_sequence(2, true, true, false),
+                Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
+            ),
+            (
+                vec![TestUtil::i(1), MetaVal::Bul(true)],
+                Err(ErrorKind::NotNumeric),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = Impl::min_in_s(input).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::min_in_s(input).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 }
