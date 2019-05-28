@@ -33,6 +33,40 @@ impl NumberLike {
     }
 }
 
+pub(crate) struct NumberLikeOrd(NumberLike);
+
+impl PartialOrd for NumberLikeOrd {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for NumberLikeOrd {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.val_cmp(&other.0)
+    }
+}
+
+impl PartialEq for NumberLikeOrd {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.val_eq(&other.0)
+    }
+}
+
+impl Eq for NumberLikeOrd {}
+
+impl From<NumberLike> for NumberLikeOrd {
+    fn from(nl: NumberLike) -> Self {
+        Self(nl)
+    }
+}
+
+impl From<NumberLikeOrd> for NumberLike {
+    fn from(nlo: NumberLikeOrd) -> Self {
+        nlo.0
+    }
+}
+
 // impl<'o> From<NumberLike> for Operand<'o> {
 //     fn from(nl: NumberLike) -> Self {
 //         Self::Value(nl.into())

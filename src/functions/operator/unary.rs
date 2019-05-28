@@ -67,7 +67,7 @@ impl Impl {
     fn min_max<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {
         let mut vp = vp.into_iter();
         match vp.next() {
-            None => Err(Error::EmptySequence),
+            None => Err(Error::EmptyStream),
             Some(first_res_mv) => {
                 let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
@@ -247,8 +247,8 @@ mod tests {
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
     use crate::functions::ErrorKind;
-    use crate::functions::util::value_producer::Fixed;
     use crate::functions::util::value_producer::Raw;
+    use crate::functions::util::NumberLike;
 
     #[test]
     fn test_collect() {
@@ -422,4 +422,62 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    // #[test]
+    // fn test_min() {
+    //     let inputs_and_expected = vec![
+    //         (
+    //             vec![],
+    //             Err(ErrorKind::EmptyStream),
+    //         ),
+    //         (
+    //             TestUtil::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
+    //             Ok(NumberLike::Integer(-2)),
+    //         ),
+    //         (
+    //             TestUtil::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
+    //             Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
+    //         ),
+    //         (
+    //             vec![Ok(TestUtil::i(1)), Ok(MetaVal::Bul(false))],
+    //             Err(ErrorKind::NotNumeric),
+    //         ),
+    //         (
+    //             vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+    //             Err(ErrorKind::Sentinel),
+    //         ),
+    //     ];
+
+    //     for (input, expected) in inputs_and_expected {
+    //         let produced = Impl::min(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+    //         assert_eq!(expected, produced);
+    //     }
+    // }
+
+    // #[test]
+    // fn test_min_s() {
+    //     let inputs_and_expected = vec![
+    //         (
+    //             vec![],
+    //             Err(ErrorKind::EmptySequence),
+    //         ),
+    //         (
+    //             TestUtil::core_number_sequence(2, false, true, false),
+    //             Ok(NumberLike::Integer(-2)),
+    //         ),
+    //         (
+    //             TestUtil::core_number_sequence(2, true, true, false),
+    //             Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
+    //         ),
+    //         (
+    //             vec![TestUtil::i(1), MetaVal::Bul(true)],
+    //             Err(ErrorKind::NotNumeric),
+    //         ),
+    //     ];
+
+    //     for (input, expected) in inputs_and_expected {
+    //         let produced = Impl::min_s(input).map_err(Into::<ErrorKind>::into);
+    //         assert_eq!(expected, produced);
+    //     }
+    // }
 }

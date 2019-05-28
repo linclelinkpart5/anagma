@@ -405,7 +405,7 @@ impl TestUtil {
         MetaVal::Map(Self::core_flat_mapping())
     }
 
-    pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal<'static> {
+    pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Vec<MetaVal<'static>> {
         let mut nums = vec![];
 
         for i in 1..=int_max {
@@ -433,7 +433,11 @@ impl TestUtil {
             nums.shuffle(&mut rand::thread_rng());
         }
 
-        MetaVal::Seq(nums)
+        nums
+    }
+
+    pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal<'static> {
+        MetaVal::Seq(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
     }
 
     pub fn sample_nested_sequence() -> MetaVal<'static> {
@@ -606,6 +610,18 @@ impl TestUtil {
         std::thread::sleep(Duration::from_millis(1));
         root_dir
     }
+
+    pub fn i(i: i64) -> MetaVal<'static> {
+        MetaVal::Int(i)
+    }
+
+    pub fn d_raw(i: i64, e: i64) -> BigDecimal {
+        BigDecimal::new(i.into(), e)
+    }
+
+    pub fn d(i: i64, e: i64) -> MetaVal<'static> {
+        MetaVal::Dec(Self::d_raw(i, e))
+    }
 }
 
 #[cfg(test)]
@@ -625,13 +641,8 @@ mod tests {
 
     #[test]
     fn test_sample_number_sequence() {
-        fn i(i: i64) -> MetaVal<'static> {
-            MetaVal::Int(i)
-        }
-
-        fn d(i: i64, e: i64) -> MetaVal<'static> {
-            MetaVal::Dec(BigDecimal::new(i.into(), e))
-        }
+        let i = TestUtil::i;
+        let d = TestUtil::d;
 
         let test_cases = vec![
             (
