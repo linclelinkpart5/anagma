@@ -46,12 +46,12 @@ impl IterConsumer {
 
                 Ok(MetaVal::Int(c as i64))
             },
-            &Self::First => it.next().ok_or(Error::EmptyStream)?,
+            &Self::First => it.next().ok_or(Error::EmptyProducer)?,
             &Self::Last => {
                 // This is done in order to bail if an error is encounterd midway.
                 let mut last = None;
                 for res_mv in it { last = Some(res_mv?); }
-                last.ok_or(Error::EmptyStream)
+                last.ok_or(Error::EmptyProducer)
             },
             // &Self::MaxIn | &Self::MinIn => {
             //     match it.next() {

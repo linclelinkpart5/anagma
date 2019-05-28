@@ -47,7 +47,7 @@ impl Impl {
     }
 
     pub fn first<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
-        vp.into_iter().next().ok_or(Error::EmptyStream)?
+        vp.into_iter().next().ok_or(Error::EmptyProducer)?
     }
 
     pub fn first_s(seq: Vec<MetaVal>) -> Result<MetaVal, Error> {
@@ -57,7 +57,7 @@ impl Impl {
     pub fn last<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
         let mut last = None;
         for res_mv in vp { last = Some(res_mv?); }
-        last.ok_or(Error::EmptyStream)
+        last.ok_or(Error::EmptyProducer)
     }
 
     pub fn last_s(seq: Vec<MetaVal>) -> Result<MetaVal, Error> {
@@ -67,7 +67,7 @@ impl Impl {
     fn min_in_max_in<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {
         let mut vp = vp.into_iter();
         match vp.next() {
-            None => Err(Error::EmptyStream),
+            None => Err(Error::EmptyProducer),
             Some(first_res_mv) => {
                 let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
@@ -324,7 +324,7 @@ mod tests {
         let inputs_and_expected = vec![
             (
                 vec![],
-                Err(ErrorKind::EmptyStream),
+                Err(ErrorKind::EmptyProducer),
             ),
             (
                 TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
@@ -374,7 +374,7 @@ mod tests {
         let inputs_and_expected = vec![
             (
                 vec![],
-                Err(ErrorKind::EmptyStream),
+                Err(ErrorKind::EmptyProducer),
             ),
             (
                 TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
@@ -428,7 +428,7 @@ mod tests {
         let inputs_and_expected = vec![
             (
                 vec![],
-                Err(ErrorKind::EmptyStream),
+                Err(ErrorKind::EmptyProducer),
             ),
             (
                 TestUtil::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
