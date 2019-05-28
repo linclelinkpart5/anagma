@@ -21,6 +21,7 @@ pub enum Error {
     ZeroStepSize,
     OutOfBounds,
     ItemNotFound,
+    #[cfg(test)] Sentinel,
 }
 
 impl std::fmt::Display for Error {
@@ -41,6 +42,7 @@ impl std::fmt::Display for Error {
             Self::ZeroStepSize => write!(f, "zero step size"),
             Self::OutOfBounds => write!(f, "index out of bounds"),
             Self::ItemNotFound => write!(f, "item not found"),
+            #[cfg(test)] Self::Sentinel => write!(f, "sentinel error, only for testing"),
         }
     }
 }

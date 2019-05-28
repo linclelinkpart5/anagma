@@ -244,19 +244,35 @@ mod tests {
 
     use crate::test_util::TestUtil;
 
+    use crate::metadata::types::MetaVal;
+    use crate::functions::Error;
+    use crate::functions::util::value_producer::ValueProducer;
     use crate::functions::util::value_producer::Fixed;
+    use crate::functions::util::value_producer::Raw;
 
     #[test]
     fn test_collect() {
-        let inputs = vec![
-            TestUtil::core_flat_sequence(),
-            TestUtil::core_nested_sequence(),
+        let positive_test_cases = vec![
+            (TestUtil::core_flat_sequence(), TestUtil::core_flat_sequence()),
+            (TestUtil::core_nested_sequence(), TestUtil::core_nested_sequence()),
         ];
 
-        for input in inputs {
-            let expected = input.clone();
+        for (input, expected) in positive_test_cases {
             let produced = Impl::collect(Fixed::new(input)).unwrap();
             assert_eq!(expected, produced);
+        }
+
+        let negative_test_cases = vec![
+            vec![Ok(MetaVal::Bul(true)), Err(Error::Sentinel)],
+        ];
+
+        for input in negative_test_cases {
+            let produced = Impl::collect(Raw::new(input));
+            match produced {
+                Ok(_) => panic!("expected an error"),
+                Err(Error::Sentinel) => {},
+                Err(err) => panic!("unexpected error: {}", err),
+            }
         }
     }
 }
