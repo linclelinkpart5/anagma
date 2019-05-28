@@ -318,4 +318,108 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_first() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Err(ErrorKind::EmptyStream),
+            ),
+            (
+                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(TestUtil::core_nested_sequence()[0].clone()),
+            ),
+            (
+                vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false))],
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false)), Err(Error::Sentinel)],
+                Ok(MetaVal::Bul(true)),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::first(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_first_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Err(ErrorKind::EmptySequence),
+            ),
+            (
+                TestUtil::core_nested_sequence(),
+                Ok(TestUtil::core_nested_sequence()[0].clone()),
+            ),
+            (
+                vec![MetaVal::Bul(true), MetaVal::Bul(false)],
+                Ok(MetaVal::Bul(true)),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::first_s(input).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_last() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Err(ErrorKind::EmptyStream),
+            ),
+            (
+                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(TestUtil::core_nested_sequence().pop().unwrap()),
+            ),
+            (
+                vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false))],
+                Ok(MetaVal::Bul(false)),
+            ),
+            (
+                vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false))],
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(false)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::last(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_last_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Err(ErrorKind::EmptySequence),
+            ),
+            (
+                TestUtil::core_nested_sequence(),
+                Ok(TestUtil::core_nested_sequence().pop().unwrap()),
+            ),
+            (
+                vec![MetaVal::Bul(true), MetaVal::Bul(false)],
+                Ok(MetaVal::Bul(false)),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::last_s(input).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 }
