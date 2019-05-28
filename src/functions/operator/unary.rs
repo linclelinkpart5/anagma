@@ -669,4 +669,78 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_sum() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(NumberLike::Integer(0)),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))],
+                Ok(NumberLike::Integer(13)),
+            ),
+            (
+                vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))],
+                Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
+            ),
+            (
+                vec![Ok(TU::i(1))],
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))],
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::sum(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_sum_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(NumberLike::Integer(0)),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)],
+                Ok(NumberLike::Integer(13)),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)],
+                Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
+            ),
+            (
+                vec![TU::i(1)],
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                vec![TU::i(1), MetaVal::Bul(true)],
+                Err(ErrorKind::NotNumeric),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::sum_s(input).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 }
