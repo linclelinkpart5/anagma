@@ -246,33 +246,76 @@ mod tests {
 
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
-    use crate::functions::util::value_producer::ValueProducer;
+    use crate::functions::ErrorKind;
     use crate::functions::util::value_producer::Fixed;
     use crate::functions::util::value_producer::Raw;
 
     #[test]
     fn test_collect() {
-        let positive_test_cases = vec![
-            (TestUtil::core_flat_sequence(), TestUtil::core_flat_sequence()),
-            (TestUtil::core_nested_sequence(), TestUtil::core_nested_sequence()),
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(vec![]),
+            ),
+            (
+                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(TestUtil::core_nested_sequence()),
+            ),
+            (
+                vec![Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
         ];
 
-        for (input, expected) in positive_test_cases {
-            let produced = Impl::collect(Fixed::new(input)).unwrap();
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::collect(Raw::new(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
+    }
 
-        let negative_test_cases = vec![
-            vec![Ok(MetaVal::Bul(true)), Err(Error::Sentinel)],
+    #[test]
+    fn test_count() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(0),
+            ),
+            (
+                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok(7),
+            ),
+            (
+                vec![Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
         ];
 
-        for input in negative_test_cases {
-            let produced = Impl::collect(Raw::new(input));
-            match produced {
-                Ok(_) => panic!("expected an error"),
-                Err(Error::Sentinel) => {},
-                Err(err) => panic!("unexpected error: {}", err),
-            }
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::count(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_count_s() {
+        let inputs_and_expected = vec![
+            (vec![], 0usize),
+            (vec![MetaVal::Bul(true)], 1),
+            (TestUtil::core_flat_sequence(), 5),
+            (TestUtil::core_nested_sequence(), 7),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::count_s(input);
+            assert_eq!(expected, produced);
         }
     }
 }

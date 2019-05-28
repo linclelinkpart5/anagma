@@ -14,6 +14,8 @@ extern crate itertools;
 extern crate bigdecimal;
 
 #[cfg(test)] extern crate tempfile;
+#[cfg(test)] extern crate strum;
+#[cfg(test)] #[macro_use] extern crate strum_macros;
 
 pub mod metadata;
 pub mod config;

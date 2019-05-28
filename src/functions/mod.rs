@@ -5,6 +5,8 @@ pub mod util;
 use crate::metadata::stream::value::Error as MetaValueStreamError;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(EnumDiscriminants))]
+#[cfg_attr(test, strum_discriminants(name(ErrorKind)))]
 pub enum Error {
     ValueStream(MetaValueStreamError),
     EmptyStack,

@@ -18,3 +18,5 @@ bigdecimal = { version = "0.0.15", features = ["serde"] }
 [dev-dependencies]
 tempfile = "3"
 rand = "*"
+strum = "0.15.0"
+strum_macros = "0.15.0"
