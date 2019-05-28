@@ -100,11 +100,26 @@ impl Impl {
         Self::min_in_max_in(Fixed::new(seq), MinMax::Max, || Error::EmptySequence)
     }
 
+    fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> std::cmp::Ordering {
+        // Smooth over comparsions between integers and decimals.
+        match (a, b) {
+            (&MetaVal::Int(ref i), &MetaVal::Dec(ref d)) => {
+                let i_d = (*i).into();
+                // NOTE: Do this to avoid having to import other modules just for type inference.
+                d.cmp(&i_d).reverse()
+            },
+            (&MetaVal::Dec(ref d), &MetaVal::Int(ref i)) => {
+                let i_d = (*i).into();
+                d.cmp(&i_d)
+            },
+            (na, nb) => na.cmp(&nb),
+        }
+    }
+
     fn rev_sort(mut seq: Vec<MetaVal>, flag: RevSort) -> Vec<MetaVal> {
         match flag {
             RevSort::Rev => seq.reverse(),
-            // TODO: Use proper sort by key.
-            RevSort::Sort => seq.sort(),
+            RevSort::Sort => seq.sort_by(Self::smart_sort_by),
         };
         seq
     }
@@ -551,6 +566,106 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let produced = Impl::max_in_s(input).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_rev() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(vec![]),
+            ),
+            (
+                TestUtil::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                Ok({ let mut s = TestUtil::core_nested_sequence(); s.reverse(); s }),
+            ),
+            (
+                vec![Ok(TestUtil::i(1))],
+                Ok(vec![TestUtil::i(1)]),
+            ),
+            (
+                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::rev(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_rev_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TestUtil::core_nested_sequence(),
+                { let mut s = TestUtil::core_nested_sequence(); s.reverse(); s },
+            ),
+            (
+                vec![TestUtil::i(1)],
+                vec![TestUtil::i(1)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::rev_s(input);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_sort() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(vec![]),
+            ),
+            (
+                TestUtil::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
+                Ok(vec![TestUtil::i(-2), TestUtil::d(-15, 1), TestUtil::i(-1), TestUtil::d(-5, 1), TestUtil::i(0), TestUtil::d(5, 1), TestUtil::i(1), TestUtil::d(15, 1), TestUtil::i(2)]),
+            ),
+            (
+                vec![Ok(TestUtil::i(1))],
+                Ok(vec![TestUtil::i(1)]),
+            ),
+            (
+                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::sort(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_sort_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TestUtil::core_number_sequence(2, false, true, true),
+                vec![TestUtil::i(-2), TestUtil::d(-15, 1), TestUtil::i(-1), TestUtil::d(-5, 1), TestUtil::i(0), TestUtil::d(5, 1), TestUtil::i(1), TestUtil::d(15, 1), TestUtil::i(2)],
+            ),
+            (
+                vec![TestUtil::i(1)],
+                vec![TestUtil::i(1)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::sort_s(input);
             assert_eq!(expected, produced);
         }
     }
