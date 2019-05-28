@@ -238,3 +238,25 @@ impl Impl {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::Impl;
+
+    use crate::test_util::TestUtil;
+
+    use crate::functions::util::value_producer::Fixed;
+
+    #[test]
+    fn test_collect() {
+        let inputs = vec![
+            TestUtil::core_flat_sequence(),
+            TestUtil::core_nested_sequence(),
+        ];
+
+        for input in inputs {
+            let expected = input.clone();
+            let produced = Impl::collect(Fixed::new(input)).unwrap();
+            assert_eq!(expected, produced);
+        }
+    }
+}

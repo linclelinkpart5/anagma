@@ -11,17 +11,17 @@ use crate::functions::operator::UnaryConverter;
 pub trait ValueProducer<'v>: Iterator<Item = Result<MetaVal<'v>, Error>> {}
 
 #[derive(Debug)]
-pub struct Raw<'v>(MetaValueStream<'v>);
+pub struct Source<'v>(MetaValueStream<'v>);
 
-impl<'v> Raw<'v> {
+impl<'v> Source<'v> {
     pub fn new(mvs: MetaValueStream<'v>) -> Self {
         Self(mvs)
     }
 }
 
-impl<'v> ValueProducer<'v> for Raw<'v> {}
+impl<'v> ValueProducer<'v> for Source<'v> {}
 
-impl<'v> Iterator for Raw<'v> {
+impl<'v> Iterator for Source<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -45,6 +45,25 @@ impl<'v> Iterator for Fixed<'v> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(Result::Ok)
+    }
+}
+
+#[derive(Debug)]
+pub struct Raw<'v>(std::vec::IntoIter<Result<MetaVal<'v>, Error>>);
+
+impl<'v> Raw<'v> {
+    pub fn new(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+        Self(v.into_iter())
+    }
+}
+
+impl<'v> ValueProducer<'v> for Raw<'v> {}
+
+impl<'v> Iterator for Raw<'v> {
+    type Item = Result<MetaVal<'v>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }
 

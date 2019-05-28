@@ -359,7 +359,7 @@ impl TestUtil {
         MetaVal::Nil
     }
 
-    fn core_flat_sequence() -> Vec<MetaVal<'static>> {
+    pub fn core_flat_sequence() -> Vec<MetaVal<'static>> {
         vec![
             Self::sample_string(),
             Self::sample_integer(),
@@ -369,7 +369,7 @@ impl TestUtil {
         ]
     }
 
-    fn core_nested_sequence() -> Vec<MetaVal<'static>> {
+    pub fn core_nested_sequence() -> Vec<MetaVal<'static>> {
         let mut seq = Self::core_flat_sequence();
 
         seq.push(Self::sample_flat_sequence());
@@ -378,7 +378,7 @@ impl TestUtil {
         seq
     }
 
-    fn core_flat_mapping() -> BTreeMap<MetaKey<'static>, MetaVal<'static>> {
+    pub fn core_flat_mapping() -> BTreeMap<MetaKey<'static>, MetaVal<'static>> {
         btreemap![
             MetaKey::from(Self::STRING_KEY) => Self::sample_string(),
             MetaKey::from(Self::INTEGER_KEY) => Self::sample_integer(),
@@ -388,7 +388,7 @@ impl TestUtil {
         ]
     }
 
-    fn core_nested_mapping() -> BTreeMap<MetaKey<'static>, MetaVal<'static>> {
+    pub fn core_nested_mapping() -> BTreeMap<MetaKey<'static>, MetaVal<'static>> {
         let mut map = Self::core_flat_mapping();
 
         map.insert(MetaKey::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
