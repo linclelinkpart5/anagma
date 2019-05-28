@@ -12,8 +12,8 @@ pub enum IterConsumer {
     Count,
     First,
     Last,
-    MaxIn,
-    MinIn,
+    // MaxIn,
+    // MinIn,
     Sum,
     Prod,
     AllEqual,
@@ -53,25 +53,25 @@ impl IterConsumer {
                 for res_mv in it { last = Some(res_mv?); }
                 last.ok_or(Error::EmptyStream)
             },
-            &Self::MaxIn | &Self::MinIn => {
-                match it.next() {
-                    None => Err(Error::EmptySequence),
-                    Some(first_res_mv) => {
-                        let mut target_nl: NumberLike = first_res_mv?.try_into()?;
+            // &Self::MaxIn | &Self::MinIn => {
+            //     match it.next() {
+            //         None => Err(Error::EmptySequence),
+            //         Some(first_res_mv) => {
+            //             let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
-                        for res_mv in it {
-                            let nl: NumberLike = res_mv?.try_into()?;
-                            target_nl = match self {
-                                &Self::MaxIn => target_nl.max(nl),
-                                &Self::MinIn => target_nl.min(nl),
-                                _ => unreachable!(),
-                            };
-                        }
+            //             for res_mv in it {
+            //                 let nl: NumberLike = res_mv?.try_into()?;
+            //                 target_nl = match self {
+            //                     &Self::MaxIn => target_nl.max(nl),
+            //                     &Self::MinIn => target_nl.min(nl),
+            //                     _ => unreachable!(),
+            //                 };
+            //             }
 
-                        Ok(target_nl.into())
-                    }
-                }
-            },
+            //             Ok(target_nl.into())
+            //         }
+            //     }
+            // },
             &Self::Sum | &Self::Prod => {
                 let mut total = match self {
                     &Self::Sum => NumberLike::Integer(0),

@@ -29,8 +29,8 @@ pub enum Converter {
     Count,
     First,
     Last,
-    MaxIn,
-    MinIn,
+    // MaxIn,
+    // MinIn,
     Rev,
     Sort,
     Sum,
@@ -56,14 +56,14 @@ impl Converter {
                 let seq: Vec<_> = mv.try_into()?;
                 seq.into_iter().last().ok_or(Error::EmptySequence)
             },
-            &Self::MaxIn => {
-                let seq: Vec<_> = mv.try_into()?;
-                IterConsumer::MaxIn.process(seq.into_iter().map(Result::Ok))
-            },
-            &Self::MinIn => {
-                let seq: Vec<_> = mv.try_into()?;
-                IterConsumer::MinIn.process(seq.into_iter().map(Result::Ok))
-            }
+            // &Self::MaxIn => {
+            //     let seq: Vec<_> = mv.try_into()?;
+            //     IterConsumer::MaxIn.process(seq.into_iter().map(Result::Ok))
+            // },
+            // &Self::MinIn => {
+            //     let seq: Vec<_> = mv.try_into()?;
+            //     IterConsumer::MinIn.process(seq.into_iter().map(Result::Ok))
+            // }
             &Self::Rev => {
                 let mut seq: Vec<_> = mv.try_into()?;
                 seq.reverse();

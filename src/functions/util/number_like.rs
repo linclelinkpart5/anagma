@@ -3,6 +3,7 @@
 use std::ops::AddAssign;
 use std::ops::MulAssign;
 use std::convert::TryFrom;
+use std::cmp::Ordering;
 
 use bigdecimal::BigDecimal;
 
@@ -10,7 +11,7 @@ use crate::metadata::types::MetaVal;
 use crate::functions::operand::Operand;
 use crate::functions::Error;
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NumberLike {
     Integer(i64),
     Decimal(BigDecimal),
@@ -19,7 +20,7 @@ pub enum NumberLike {
 impl NumberLike {
     /// Does a comparison based on the numerical values represented.
     /// Whole value decimals will compare as equal to their integer counterparts.
-    pub fn val_cmp(&self, other: &Self) -> std::cmp::Ordering {
+    pub fn val_cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Integer(l), Self::Integer(r)) => l.cmp(r),
             (Self::Integer(l), Self::Decimal(r)) => BigDecimal::from(*l).cmp(r),
@@ -29,49 +30,27 @@ impl NumberLike {
     }
 
     pub fn val_eq(&self, other: &Self) -> bool {
-        self.val_cmp(other) == std::cmp::Ordering::Equal
+        self.val_cmp(other) == Ordering::Equal
+    }
+
+    /// Returns the larger of two number-likes, based on their numerical values.
+    /// If equal, returns the second value, to match Rust's behavior.
+    pub fn val_max(self, other: Self) -> Self {
+        match self.val_cmp(&other) {
+            Ordering::Equal | Ordering::Less => other,
+            Ordering::Greater => self,
+        }
+    }
+
+    /// Returns the smaller of two number-likes, based on their numerical values.
+    /// If equal, returns the first value, to match Rust's behavior.
+    pub fn val_min(self, other: Self) -> Self {
+        match self.val_cmp(&other) {
+            Ordering::Greater => other,
+            Ordering::Equal | Ordering::Less => self,
+        }
     }
 }
-
-pub(crate) struct NumberLikeOrd(NumberLike);
-
-impl PartialOrd for NumberLikeOrd {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for NumberLikeOrd {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.0.val_cmp(&other.0)
-    }
-}
-
-impl PartialEq for NumberLikeOrd {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.val_eq(&other.0)
-    }
-}
-
-impl Eq for NumberLikeOrd {}
-
-impl From<NumberLike> for NumberLikeOrd {
-    fn from(nl: NumberLike) -> Self {
-        Self(nl)
-    }
-}
-
-impl From<NumberLikeOrd> for NumberLike {
-    fn from(nlo: NumberLikeOrd) -> Self {
-        nlo.0
-    }
-}
-
-// impl<'o> From<NumberLike> for Operand<'o> {
-//     fn from(nl: NumberLike) -> Self {
-//         Self::Value(nl.into())
-//     }
-// }
 
 impl<'k> From<NumberLike> for MetaVal<'k> {
     fn from(nl: NumberLike) -> MetaVal<'k> {
@@ -81,17 +60,6 @@ impl<'k> From<NumberLike> for MetaVal<'k> {
         }
     }
 }
-
-// impl<'k> TryFrom<Operand<'k>> for NumberLike {
-//     type Error = Error;
-
-//     fn try_from(value: Operand<'k>) -> Result<Self, Self::Error> {
-//         match value {
-//             Operand::Value(mv) => Self::try_from(mv),
-//             _ => Err(Error::NotNumeric),
-//         }
-//     }
-// }
 
 impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
     type Error = Error;

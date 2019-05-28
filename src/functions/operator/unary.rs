@@ -64,7 +64,7 @@ impl Impl {
         seq.into_iter().last().ok_or(Error::EmptySequence)
     }
 
-    fn min_max<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {
+    fn min_in_max_in<'a, VP: ValueProducer<'a>>(vp: VP, flag: MinMax) -> Result<NumberLike, Error> {
         let mut vp = vp.into_iter();
         match vp.next() {
             None => Err(Error::EmptyStream),
@@ -74,8 +74,8 @@ impl Impl {
                 for res_mv in vp {
                     let nl: NumberLike = res_mv?.try_into()?;
                     target_nl = match flag {
-                        MinMax::Min => target_nl.min(nl),
-                        MinMax::Max => target_nl.max(nl),
+                        MinMax::Min => target_nl.val_min(nl),
+                        MinMax::Max => target_nl.val_max(nl),
                     };
                 }
 
@@ -84,20 +84,20 @@ impl Impl {
         }
     }
 
-    pub fn min<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
-        Self::min_max(vp, MinMax::Min)
+    pub fn min_in<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+        Self::min_in_max_in(vp, MinMax::Min)
     }
 
-    pub fn min_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_max(Fixed::new(seq), MinMax::Min)
+    pub fn min_in_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
+        Self::min_in_max_in(Fixed::new(seq), MinMax::Min)
     }
 
-    pub fn max<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
-        Self::min_max(vp, MinMax::Max)
+    pub fn max_in<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+        Self::min_in_max_in(vp, MinMax::Max)
     }
 
-    pub fn max_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_max(Fixed::new(seq), MinMax::Max)
+    pub fn max_in_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
+        Self::min_in_max_in(Fixed::new(seq), MinMax::Max)
     }
 
     fn rev_sort(mut seq: Vec<MetaVal>, flag: RevSort) -> Vec<MetaVal> {
@@ -423,36 +423,36 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_min() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Err(ErrorKind::EmptyStream),
-    //         ),
-    //         (
-    //             TestUtil::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
-    //             Ok(NumberLike::Integer(-2)),
-    //         ),
-    //         (
-    //             TestUtil::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
-    //             Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
-    //         ),
-    //         (
-    //             vec![Ok(TestUtil::i(1)), Ok(MetaVal::Bul(false))],
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
-    //             Err(ErrorKind::Sentinel),
-    //         ),
-    //     ];
+    #[test]
+    fn test_min() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Err(ErrorKind::EmptyStream),
+            ),
+            (
+                TestUtil::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Integer(-2)),
+            ),
+            (
+                TestUtil::core_number_sequence(2, true, true, false).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Decimal(TestUtil::d_raw(-25, 1))),
+            ),
+            (
+                vec![Ok(TestUtil::i(1)), Ok(MetaVal::Bul(false))],
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                vec![Ok(TestUtil::i(1)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = Impl::min(Raw::new(input)).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::min_in(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 
     // #[test]
     // fn test_min_s() {
@@ -476,7 +476,7 @@ mod tests {
     //     ];
 
     //     for (input, expected) in inputs_and_expected {
-    //         let produced = Impl::min_s(input).map_err(Into::<ErrorKind>::into);
+    //         let produced = Impl::min_in_s(input).map_err(Into::<ErrorKind>::into);
     //         assert_eq!(expected, produced);
     //     }
     // }
