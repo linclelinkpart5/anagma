@@ -743,4 +743,86 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_prod() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
+                Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
+            ),
+            (
+                vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))],
+                Ok(NumberLike::Integer(-210)),
+            ),
+            (
+                vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))],
+                Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
+            ),
+            (
+                vec![Ok(TU::i(1))],
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))],
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::prod(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_prod_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, false),
+                Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)],
+                Ok(NumberLike::Integer(-210)),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)],
+                Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
+            ),
+            (
+                vec![TU::i(1)],
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                vec![TU::i(1), MetaVal::Bul(true)],
+                Err(ErrorKind::NotNumeric),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::prod_s(input).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 }
