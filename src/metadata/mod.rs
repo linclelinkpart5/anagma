@@ -6,7 +6,6 @@ pub mod reader;
 pub mod plexer;
 pub mod processor;
 pub mod stream;
-// pub mod resolver;
 
 use crate::metadata::processor::Error as ProcessorError;
 
