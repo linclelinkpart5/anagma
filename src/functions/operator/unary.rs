@@ -825,4 +825,184 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_all_equal() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                Ok(true),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))],
+                Ok(true),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2))],
+                Ok(false),
+            ),
+            (
+                vec![Ok(TU::i(1))],
+                Ok(true),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))],
+                Ok(false),
+            ),
+            (
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::all_equal(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_all_equal_rs() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                true,
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1)],
+                true,
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(2)],
+                false,
+            ),
+            (
+                vec![TU::i(1)],
+                true,
+            ),
+            (
+                vec![TU::i(1), MetaVal::Bul(true)],
+                false,
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::all_equal_rs(&input);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_flatten() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
+                TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                {
+                    let mut s = TU::core_flat_sequence();
+                    s.extend(TU::core_flat_sequence());
+                    s.push(TU::sample_flat_mapping());
+                    s
+                }.into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::flatten(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_dedup() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
+                TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(1))],
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(1))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))],
+                vec![Ok(TU::i(1))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::dedup(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_unique() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
+                TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(1))],
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(2)), Ok(TU::i(1))],
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))],
+                vec![Ok(TU::i(1))],
+            ),
+            (
+                vec![Ok(TU::i(1)), Err(Error::Sentinel)],
+                vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::unique(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
 }
