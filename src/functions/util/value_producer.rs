@@ -5,12 +5,11 @@ use std::iter::FusedIterator;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
-use crate::functions::operator::UnaryPredicate;
-use crate::functions::operator::UnaryConverter;
+use crate::functions::util::UnaryPred;
+use crate::functions::util::UnaryConv;
 
 pub trait ValueProducer<'v>: Iterator<Item = Result<MetaVal<'v>, Error>> {}
 
-#[derive(Debug)]
 pub struct Source<'v>(MetaValueStream<'v>);
 
 impl<'v> Source<'v> {
@@ -29,7 +28,6 @@ impl<'v> Iterator for Source<'v> {
     }
 }
 
-#[derive(Debug)]
 pub struct Fixed<'v>(std::vec::IntoIter<MetaVal<'v>>);
 
 impl<'v> Fixed<'v> {
@@ -48,7 +46,6 @@ impl<'v> Iterator for Fixed<'v> {
     }
 }
 
-#[derive(Debug)]
 pub struct Raw<'v>(std::vec::IntoIter<Result<MetaVal<'v>, Error>>);
 
 impl<'v> Raw<'v> {
@@ -67,7 +64,6 @@ impl<'v> Iterator for Raw<'v> {
     }
 }
 
-#[derive(Debug)]
 pub struct Flatten<'v, I>(I, VecDeque<MetaVal<'v>>);
 
 impl<'v, I> Flatten<'v, I>
@@ -108,7 +104,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Dedup<'v, I>(I, Option<MetaVal<'v>>);
 
 impl<'v, I> Dedup<'v, I>
@@ -151,7 +146,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Unique<'v, I>(I, HashSet<MetaVal<'v>>);
 
 impl<'v, I> Unique<'v, I>
@@ -193,14 +187,13 @@ where
     }
 }
 
-#[derive(Debug)]
-pub struct Filter<I>(I, UnaryPredicate);
+pub struct Filter<I>(I, UnaryPred);
 
 impl<'v, I> Filter<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
 {
-    pub fn new(it: I, pred: UnaryPredicate) -> Self {
+    pub fn new(it: I, pred: UnaryPred) -> Self {
         Self(it, pred)
     }
 }
@@ -219,7 +212,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         match self.0.next()? {
             Ok(mv) => {
-                match self.1.process(&mv) {
+                match self.1(&mv) {
                     Err(err) => Some(Err(err)),
                     Ok(b) => {
                         if b { Some(Ok(mv)) }
@@ -232,14 +225,13 @@ where
     }
 }
 
-#[derive(Debug)]
-pub struct Map<I>(I, UnaryConverter);
+pub struct Map<I>(I, UnaryConv);
 
 impl<'v, I> Map<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
 {
-    pub fn new(it: I, conv: UnaryConverter) -> Self {
+    pub fn new(it: I, conv: UnaryConv) -> Self {
         Self(it, conv)
     }
 }
@@ -257,13 +249,12 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.0.next()? {
-            Ok(mv) => Some(self.1.process(mv)),
+            Ok(mv) => Some(self.1(mv)),
             Err(err) => Some(Err(err)),
         }
     }
 }
 
-#[derive(Debug)]
 pub struct StepBy<I> {
     stream: I,
     curr: usize,
@@ -317,7 +308,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Chain<IA, IB>(IA, IB, bool);
 
 impl<'v, IA, IB> Chain<IA, IB>
@@ -361,7 +351,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Zip<IA, IB>(IA, IB);
 
 impl<'v, IA, IB> Zip<IA, IB>
@@ -399,7 +388,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Skip<'v, I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -445,7 +433,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Take<'v, I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
@@ -490,14 +477,13 @@ where
     }
 }
 
-#[derive(Debug)]
-pub struct SkipWhile<I>(I, UnaryPredicate, bool);
+pub struct SkipWhile<I>(I, UnaryPred, bool);
 
 impl<'v, I> SkipWhile<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
 {
-    pub fn new(it: I, u_pred: UnaryPredicate) -> Self {
+    pub fn new(it: I, u_pred: UnaryPred) -> Self {
         Self(it, u_pred, true)
     }
 }
@@ -519,7 +505,7 @@ where
                 match self.0.next()? {
                     Err(e) => return Some(Err(e)),
                     Ok(mv) => {
-                        match self.1.process(&mv) {
+                        match self.1(&mv) {
                             Err(e) => return Some(Err(e)),
                             Ok(true) => continue,
                             Ok(false) => {
@@ -536,14 +522,13 @@ where
     }
 }
 
-#[derive(Debug)]
-pub struct TakeWhile<I>(I, UnaryPredicate, bool);
+pub struct TakeWhile<I>(I, UnaryPred, bool);
 
 impl<'v, I> TakeWhile<I>
 where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
 {
-    pub fn new(it: I, u_pred: UnaryPredicate) -> Self {
+    pub fn new(it: I, u_pred: UnaryPred) -> Self {
         Self(it, u_pred, true)
     }
 }
@@ -563,7 +548,7 @@ where
         if self.2 {
             match self.0.next()? {
                 Ok(mv) => {
-                    match self.1.process(&mv) {
+                    match self.1(&mv) {
                         Ok(true) => Some(Ok(mv)),
                         Ok(false) => {
                             self.2 = false;
@@ -579,7 +564,6 @@ where
     }
 }
 
-#[derive(Debug)]
 pub struct Intersperse<'v, I>(I, MetaVal<'v>, bool);
 
 impl<'v, I> Intersperse<'v, I>
@@ -615,7 +599,6 @@ where
     I: Iterator<Item = Result<MetaVal<'v>, Error>>,
 {}
 
-#[derive(Debug)]
 pub struct Interleave<IA, IB>(IA, IB, bool);
 
 impl<'v, IA, IB> Interleave<IA, IB>

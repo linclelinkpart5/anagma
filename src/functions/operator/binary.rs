@@ -10,8 +10,6 @@ pub use self::iter_adaptor::IterAdaptor;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
-use crate::functions::operator::UnaryConverter;
-use crate::functions::operator::UnaryPredicate;
 use crate::functions::util::value_producer::ValueProducer;
 use crate::functions::util::value_producer::Fixed;
 use crate::functions::util::value_producer::Filter;
@@ -25,6 +23,8 @@ use crate::functions::util::value_producer::SkipWhile;
 use crate::functions::util::value_producer::TakeWhile;
 use crate::functions::util::value_producer::Intersperse;
 use crate::functions::util::value_producer::Interleave;
+use crate::functions::util::UnaryPred;
+use crate::functions::util::UnaryConv;
 
 #[derive(Clone, Copy)]
 enum AllAny { All, Any, }
@@ -58,80 +58,80 @@ impl Impl {
         seq.into_iter().nth(n).ok_or(Error::OutOfBounds)
     }
 
-    fn all_any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate, flag: AllAny) -> Result<bool, Error> {
+    fn all_any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred, flag: AllAny) -> Result<bool, Error> {
         let target = flag.target();
         for res_mv in vp {
             let mv = res_mv?;
-            if u_pred.process(&mv)? == target { return Ok(target) }
+            if u_pred(&mv)? == target { return Ok(target) }
         }
 
         Ok(!target)
     }
 
-    pub fn all<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Result<bool, Error> {
+    pub fn all<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<bool, Error> {
         Self::all_any(vp, u_pred, AllAny::All)
     }
 
-    pub fn all_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> bool {
+    pub fn all_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> bool {
         match Self::all_any(Fixed::new(seq), u_pred, AllAny::All) {
             Err(_) => unreachable!(),
             Ok(b) => b,
         }
     }
 
-    pub fn any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Result<bool, Error> {
+    pub fn any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<bool, Error> {
         Self::all_any(vp, u_pred, AllAny::Any)
     }
 
-    pub fn any_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> bool {
+    pub fn any_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> bool {
         match Self::all_any(Fixed::new(seq), u_pred, AllAny::Any) {
             Err(_) => unreachable!(),
             Ok(b) => b,
         }
     }
 
-    pub fn find<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Result<MetaVal<'a>, Error> {
+    pub fn find<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<MetaVal<'a>, Error> {
         for res_mv in vp {
             let mv = res_mv?;
-            if u_pred.process(&mv)? { return Ok(mv) }
+            if u_pred(&mv)? { return Ok(mv) }
         }
 
         Err(Error::ItemNotFound)
     }
 
-    pub fn find_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<MetaVal, Error> {
+    pub fn find_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<MetaVal, Error> {
         Self::find(Fixed::new(seq), u_pred)
     }
 
-    pub fn position<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Result<usize, Error> {
+    pub fn position<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<usize, Error> {
         let mut i = 0;
         for res_mv in vp {
             let mv = res_mv?;
-            if u_pred.process(&mv)? { return Ok(i) }
+            if u_pred(&mv)? { return Ok(i) }
             i += 1;
         }
 
         Err(Error::ItemNotFound)
     }
 
-    pub fn position_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<usize, Error> {
+    pub fn position_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<usize, Error> {
         Self::position(Fixed::new(seq), u_pred)
     }
 
-    pub fn filter<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> Filter<VP> {
+    pub fn filter<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Filter<VP> {
         Filter::new(vp, u_pred)
     }
 
-    pub fn filter_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<Vec<MetaVal>, Error> {
+    pub fn filter_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the predicate to fail.
         Filter::new(Fixed::new(seq), u_pred).collect()
     }
 
-    pub fn map<'a, VP: ValueProducer<'a>>(vp: VP, u_conv: UnaryConverter) -> Map<VP> {
+    pub fn map<'a, VP: ValueProducer<'a>>(vp: VP, u_conv: UnaryConv) -> Map<VP> {
         Map::new(vp, u_conv)
     }
 
-    pub fn map_s(seq: Vec<MetaVal>, u_conv: UnaryConverter) -> Result<Vec<MetaVal>, Error> {
+    pub fn map_s(seq: Vec<MetaVal>, u_conv: UnaryConv) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the converter to fail.
         Map::new(Fixed::new(seq), u_conv).collect()
     }
@@ -187,20 +187,20 @@ impl Impl {
         seq.into_iter().take(n).collect()
     }
 
-    pub fn skip_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> SkipWhile<VP> {
+    pub fn skip_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> SkipWhile<VP> {
         SkipWhile::new(vp, u_pred)
     }
 
-    pub fn skip_while_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<Vec<MetaVal>, Error> {
+    pub fn skip_while_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the predicate to fail.
         SkipWhile::new(Fixed::new(seq), u_pred).collect()
     }
 
-    pub fn take_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPredicate) -> TakeWhile<VP> {
+    pub fn take_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> TakeWhile<VP> {
         TakeWhile::new(vp, u_pred)
     }
 
-    pub fn take_while_s(seq: Vec<MetaVal>, u_pred: UnaryPredicate) -> Result<Vec<MetaVal>, Error> {
+    pub fn take_while_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the predicate to fail.
         TakeWhile::new(Fixed::new(seq), u_pred).collect()
     }
