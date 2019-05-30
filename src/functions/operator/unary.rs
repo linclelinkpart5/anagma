@@ -925,6 +925,34 @@ mod tests {
     }
 
     #[test]
+    fn test_flatten_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TU::core_flat_sequence(),
+                TU::core_flat_sequence(),
+            ),
+            (
+                TU::core_nested_sequence(),
+                {
+                    let mut s = TU::core_flat_sequence();
+                    s.extend(TU::core_flat_sequence());
+                    s.push(TU::sample_flat_mapping());
+                    s
+                },
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::flatten_s(input);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
     fn test_dedup() {
         let inputs_and_expected = vec![
             (
@@ -959,6 +987,41 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let produced = Impl::dedup(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_dedup_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TU::core_flat_sequence(),
+                TU::core_flat_sequence(),
+            ),
+            (
+                TU::core_nested_sequence(),
+                TU::core_nested_sequence(),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)],
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(1)],
+            ),
+            (
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)],
+                vec![TU::i(1)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::dedup_s(input);
             assert_eq!(expected, produced);
         }
     }
@@ -1002,6 +1065,45 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let produced = Impl::unique(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_unique_s() {
+        let inputs_and_expected = vec![
+            (
+                vec![],
+                vec![],
+            ),
+            (
+                TU::core_flat_sequence(),
+                TU::core_flat_sequence(),
+            ),
+            (
+                TU::core_nested_sequence(),
+                TU::core_nested_sequence(),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)],
+                vec![TU::i(1), TU::i(2), TU::i(3)],
+            ),
+            (
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(3), TU::i(2), TU::i(1)],
+                vec![TU::i(1), TU::i(2), TU::i(3)],
+            ),
+            (
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)],
+                vec![TU::i(1)],
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::unique_s(input);
             assert_eq!(expected, produced);
         }
     }
