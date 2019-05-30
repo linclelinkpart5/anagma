@@ -5,7 +5,7 @@ use std::ops::MulAssign;
 use std::convert::TryFrom;
 use std::cmp::Ordering;
 
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::operand::Operand;
@@ -14,7 +14,7 @@ use crate::functions::Error;
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub enum NumberLike {
     Integer(i64),
-    Decimal(BigDecimal),
+    Decimal(Decimal),
 }
 
 impl NumberLike {
@@ -23,8 +23,8 @@ impl NumberLike {
     pub fn val_cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (Self::Integer(l), Self::Integer(r)) => l.cmp(r),
-            (Self::Integer(l), Self::Decimal(r)) => BigDecimal::from(*l).cmp(r),
-            (Self::Decimal(l), Self::Integer(r)) => l.cmp(&BigDecimal::from(*r)),
+            (Self::Integer(l), Self::Decimal(r)) => Decimal::from(*l).cmp(r),
+            (Self::Decimal(l), Self::Integer(r)) => l.cmp(&Decimal::from(*r)),
             (Self::Decimal(l), Self::Decimal(r)) => l.cmp(r),
         }
     }
@@ -79,8 +79,8 @@ impl From<i64> for NumberLike {
     }
 }
 
-impl From<BigDecimal> for NumberLike {
-    fn from(n: BigDecimal) -> Self {
+impl From<Decimal> for NumberLike {
+    fn from(n: Decimal) -> Self {
         Self::Decimal(n)
     }
 }
@@ -89,8 +89,8 @@ impl AddAssign for NumberLike {
     fn add_assign(&mut self, other: Self) {
         *self = match (&self, other) {
             (&Self::Integer(ref l), Self::Integer(r)) => Self::Integer(l + r),
-            (&Self::Integer(ref l), Self::Decimal(ref r)) => Self::Decimal(BigDecimal::from(*l) + r),
-            (&Self::Decimal(ref l), Self::Integer(r)) => Self::Decimal(l + BigDecimal::from(r)),
+            (&Self::Integer(ref l), Self::Decimal(ref r)) => Self::Decimal(Decimal::from(*l) + r),
+            (&Self::Decimal(ref l), Self::Integer(r)) => Self::Decimal(l + Decimal::from(r)),
             (&Self::Decimal(ref l), Self::Decimal(ref r)) => Self::Decimal(l + r),
         };
     }
@@ -100,8 +100,8 @@ impl MulAssign for NumberLike {
     fn mul_assign(&mut self, other: Self) {
         *self = match (&self, other) {
             (&Self::Integer(ref l), Self::Integer(r)) => Self::Integer(l * r),
-            (&Self::Integer(ref l), Self::Decimal(ref r)) => Self::Decimal(BigDecimal::from(*l) * r),
-            (&Self::Decimal(ref l), Self::Integer(r)) => Self::Decimal(l * BigDecimal::from(r)),
+            (&Self::Integer(ref l), Self::Decimal(ref r)) => Self::Decimal(Decimal::from(*l) * r),
+            (&Self::Decimal(ref l), Self::Integer(r)) => Self::Decimal(l * Decimal::from(r)),
             (&Self::Decimal(ref l), Self::Decimal(ref r)) => Self::Decimal(l * r),
         };
     }
@@ -137,17 +137,17 @@ mod tests {
 
         // Should be able to sort a list of numbers.
         let expected = vec![
-            NL::Decimal((-2.5).into()),
+            NL::Decimal(dec!(-2.5)),
             NL::Integer(-2),
-            NL::Decimal((-1.5).into()),
+            NL::Decimal(dec!(-1.5)),
             NL::Integer(-1),
-            NL::Decimal((-0.5).into()),
+            NL::Decimal(dec!(-0.5)),
             NL::Integer(0),
-            NL::Decimal(0.5.into()),
+            NL::Decimal(dec!(0.5)),
             NL::Integer(1),
-            NL::Decimal(1.5.into()),
+            NL::Decimal(dec!(1.5)),
             NL::Integer(2),
-            NL::Decimal(2.5.into()),
+            NL::Decimal(dec!(2.5)),
         ];
 
         let mut produced = expected.clone();

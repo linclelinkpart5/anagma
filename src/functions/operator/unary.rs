@@ -241,7 +241,7 @@ impl Impl {
     pub fn neg(number: NumberLike) -> NumberLike {
         match number {
             NumberLike::Integer(i) => NumberLike::Integer(-i),
-            NumberLike::Decimal(d) => NumberLike::Decimal(-d),
+            NumberLike::Decimal(d) => NumberLike::Decimal(if d == dec!(0) { d } else { -d }),
         }
     }
 

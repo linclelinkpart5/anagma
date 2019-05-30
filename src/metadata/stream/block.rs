@@ -169,7 +169,7 @@ mod tests {
     use std::collections::VecDeque;
     use crate::test_util::TestUtil;
 
-    use bigdecimal::BigDecimal;
+    use rust_decimal::Decimal;
 
     use crate::metadata::types::MetaKey;
     use crate::metadata::types::MetaVal;
@@ -184,7 +184,7 @@ mod tests {
     fn test_fixed_meta_block_stream() {
         let mb_a = btreemap![
             MetaKey::from("key_a") => MetaVal::Bul(true),
-            MetaKey::from("key_b") => MetaVal::Dec(BigDecimal::from(3.1415)),
+            MetaKey::from("key_b") => MetaVal::Dec(dec!(3.1415)),
         ];
         let mb_b = btreemap![
             MetaKey::from("key_a") => MetaVal::Int(-1),

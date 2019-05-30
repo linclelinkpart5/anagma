@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::cmp::Ordering;
 
 use itertools::Itertools;
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
@@ -13,11 +13,11 @@ fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> Ordering {
     // Smooth over comparsions between integers and decimals.
     match (a, b) {
         (&MetaVal::Int(ref i), &MetaVal::Dec(ref d)) => {
-            let i_d: BigDecimal = (*i).into();
+            let i_d: Decimal = (*i).into();
             i_d.cmp(&d)
         },
         (&MetaVal::Dec(ref d), &MetaVal::Int(ref i)) => {
-            let i_d: BigDecimal = (*i).into();
+            let i_d: Decimal = (*i).into();
             d.cmp(&i_d)
         },
         (na, nb) => na.cmp(&nb),
@@ -118,7 +118,7 @@ impl Converter {
 
 //     use crate::test_util::TestUtil as TU;
 
-//     use bigdecimal::BigDecimal;
+//     use rust_decimal::Decimal;
 
 //     use crate::metadata::types::MetaVal;
 //     use crate::functions::operator::unary::Predicate;
@@ -128,7 +128,7 @@ impl Converter {
 //     }
 
 //     fn d(i: i64, e: i64) -> MetaVal<'static> {
-//         MetaVal::Dec(BigDecimal::new(i.into(), e))
+//         MetaVal::Dec(Decimal::new(i.into(), e))
 //     }
 
 //     fn positive_cases() {

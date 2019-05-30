@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 
 use crate::metadata::types::key::MetaKey;
 use crate::metadata::types::key::MetaKeyPath;
@@ -16,7 +16,7 @@ pub enum MetaVal<'k> {
     Map(BTreeMap<MetaKey<'k>, MetaVal<'k>>),
     Int(i64),
     Bul(bool),
-    Dec(BigDecimal),
+    Dec(Decimal),
 }
 
 impl<'k> MetaVal<'k> {
@@ -77,8 +77,8 @@ impl<'k> From<bool> for MetaVal<'k> {
     }
 }
 
-impl<'k> From<BigDecimal> for MetaVal<'k> {
-    fn from(d: BigDecimal) -> Self {
+impl<'k> From<Decimal> for MetaVal<'k> {
+    fn from(d: Decimal) -> Self {
         Self::Dec(d)
     }
 }
@@ -87,7 +87,7 @@ impl<'k> From<BigDecimal> for MetaVal<'k> {
 mod tests {
     use super::MetaVal;
 
-    use bigdecimal::BigDecimal;
+    use rust_decimal::Decimal;
 
     use crate::metadata::types::key::MetaKey;
     use crate::metadata::types::key::MetaKeyPath;
@@ -99,8 +99,8 @@ mod tests {
             (r#""string""#, MetaVal::Str(String::from("string"))),
             ("27", MetaVal::Int(27)),
             ("-27", MetaVal::Int(-27)),
-            ("3.1415", MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
-            ("-3.1415", MetaVal::Dec(-BigDecimal::new(31415.into(), 4))),
+            ("3.1415", MetaVal::Dec(Decimal::new(31415.into(), 4))),
+            ("-3.1415", MetaVal::Dec(-Decimal::new(31415.into(), 4))),
             ("true", MetaVal::Bul(true)),
             ("false", MetaVal::Bul(false)),
             (
@@ -134,8 +134,8 @@ mod tests {
             ("string", MetaVal::Str(String::from("string"))),
             ("27", MetaVal::Int(27)),
             ("-27", MetaVal::Int(-27)),
-            ("3.1415", MetaVal::Dec(BigDecimal::new(31415.into(), 4))),
-            ("-3.1415", MetaVal::Dec(-BigDecimal::new(31415.into(), 4))),
+            ("3.1415", MetaVal::Dec(Decimal::new(31415.into(), 4))),
+            ("-3.1415", MetaVal::Dec(-Decimal::new(31415.into(), 4))),
             ("true", MetaVal::Bul(true)),
             ("false", MetaVal::Bul(false)),
             (

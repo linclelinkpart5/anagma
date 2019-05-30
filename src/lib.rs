@@ -11,7 +11,8 @@ extern crate serde_json;
 extern crate globset;
 extern crate itertools;
 #[macro_use] extern crate log;
-extern crate bigdecimal;
+extern crate rust_decimal;
+#[macro_use] extern crate rust_decimal_macros;
 
 #[cfg(test)] extern crate tempfile;
 #[cfg(test)] extern crate strum;

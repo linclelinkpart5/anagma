@@ -10,7 +10,7 @@ use std::borrow::Cow;
 
 use tempfile::Builder;
 use tempfile::TempDir;
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 use rand::seq::SliceRandom;
 
 use crate::config::meta_format::MetaFormat;
@@ -348,7 +348,7 @@ impl TestUtil {
     }
 
     pub fn sample_decimal() -> MetaVal<'static> {
-        MetaVal::Dec(BigDecimal::new(31415.into(), 4))
+        MetaVal::Dec(Decimal::new(31415.into(), 4))
     }
 
     pub fn sample_boolean() -> MetaVal<'static> {
@@ -414,15 +414,15 @@ impl TestUtil {
 
             // Add -0.5 decimal values.
             let m = (i - 1) * 10 + 5;
-            nums.push(MetaVal::Dec(BigDecimal::new(m.into(), 1)));
-            nums.push(MetaVal::Dec(BigDecimal::new((-m).into(), 1)));
+            nums.push(MetaVal::Dec(Decimal::new(m.into(), 1)));
+            nums.push(MetaVal::Dec(Decimal::new((-m).into(), 1)));
         }
 
         if dec_extremes {
             // These are +/-(int_max + 0.5).
             let m = int_max * 10 + 5;
-            nums.push(MetaVal::Dec(BigDecimal::new(m.into(), 1)));
-            nums.push(MetaVal::Dec(BigDecimal::new((-m).into(), 1)));
+            nums.push(MetaVal::Dec(Decimal::new(m.into(), 1)));
+            nums.push(MetaVal::Dec(Decimal::new((-m).into(), 1)));
         }
 
         if include_zero {
@@ -615,11 +615,11 @@ impl TestUtil {
         MetaVal::Int(i)
     }
 
-    pub fn d_raw(i: i64, e: i64) -> BigDecimal {
-        BigDecimal::new(i.into(), e)
+    pub fn d_raw(i: i64, e: u32) -> Decimal {
+        Decimal::new(i.into(), e)
     }
 
-    pub fn d(i: i64, e: i64) -> MetaVal<'static> {
+    pub fn d(i: i64, e: u32) -> MetaVal<'static> {
         MetaVal::Dec(Self::d_raw(i, e))
     }
 }
@@ -629,7 +629,7 @@ mod tests {
     use super::TestUtil;
     use super::TestSerialize;
 
-    use bigdecimal::BigDecimal;
+    use rust_decimal::Decimal;
 
     use crate::config::meta_format::MetaFormat;
     use crate::metadata::types::MetaVal;
@@ -670,7 +670,7 @@ mod tests {
 
     #[test]
     fn test_to_serialized_chunk() {
-        let dec = BigDecimal::new(31415.into(), 4);
+        let dec = Decimal::new(31415.into(), 4);
 
         let seq_a = MetaVal::Seq(vec![MetaVal::Int(27), MetaVal::Str("string".into())]);
         let seq_b = MetaVal::Seq(vec![MetaVal::Bul(false), MetaVal::Nil, MetaVal::Dec(dec)]);
