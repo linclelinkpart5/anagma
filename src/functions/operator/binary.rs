@@ -229,3 +229,76 @@ impl Impl {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Impl;
+
+    use crate::test_util::TestUtil as TU;
+
+    use crate::metadata::types::MetaVal;
+    use crate::functions::Error;
+    use crate::functions::ErrorKind;
+    use crate::functions::util::value_producer::Raw;
+    use crate::functions::util::NumberLike;
+
+    #[test]
+    fn test_nth() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], 1usize),
+                Err(ErrorKind::OutOfBounds),
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), 0),
+                Ok(TU::sample_string()),
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), 100),
+                Err(ErrorKind::OutOfBounds),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true)), Err(Error::Sentinel)], 1),
+                Ok(MetaVal::Bul(true)),
+            ),
+            (
+                (vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true))], 1),
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::nth(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_nth_s() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], 1usize),
+                Err(ErrorKind::OutOfBounds),
+            ),
+            (
+                (TU::core_nested_sequence(), 0),
+                Ok(TU::sample_string()),
+            ),
+            (
+                (TU::core_nested_sequence(), 100),
+                Err(ErrorKind::OutOfBounds),
+            ),
+            (
+                (vec![MetaVal::Bul(true), MetaVal::Bul(true)], 1),
+                Ok(MetaVal::Bul(true)),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::nth_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+}
