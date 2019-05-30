@@ -1107,4 +1107,74 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_neg() {
+        let inputs_and_expected = vec![
+            (
+                NumberLike::Integer(1),
+                NumberLike::Integer(-1),
+            ),
+            (
+                NumberLike::Integer(-1),
+                NumberLike::Integer(1),
+            ),
+            (
+                NumberLike::Integer(0),
+                NumberLike::Integer(0),
+            ),
+            (
+                NumberLike::Decimal(TU::d_raw(314, 2)),
+                NumberLike::Decimal(TU::d_raw(-314, 2)),
+            ),
+            (
+                NumberLike::Decimal(TU::d_raw(-314, 2)),
+                NumberLike::Decimal(TU::d_raw(314, 2)),
+            ),
+            (
+                NumberLike::Decimal(TU::d_raw(0, 0)),
+                NumberLike::Decimal(TU::d_raw(0, 0)),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::neg(input);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_abs() {
+        let inputs_and_expected = vec![
+            (
+                NumberLike::Integer(1),
+                NumberLike::Integer(1),
+            ),
+            (
+                NumberLike::Integer(-1),
+                NumberLike::Integer(1),
+            ),
+            (
+                NumberLike::Integer(0),
+                NumberLike::Integer(0),
+            ),
+            (
+                NumberLike::Decimal(TU::d_raw(314, 2)),
+                NumberLike::Decimal(TU::d_raw(314, 2)),
+            ),
+            (
+                NumberLike::Decimal(TU::d_raw(-314, 2)),
+                NumberLike::Decimal(TU::d_raw(314, 2)),
+            ),
+            (
+                NumberLike::Decimal(TU::d_raw(0, 0)),
+                NumberLike::Decimal(TU::d_raw(0, 0)),
+            ),
+        ];
+
+        for (input, expected) in inputs_and_expected {
+            let produced = Impl::abs(input);
+            assert_eq!(expected, produced);
+        }
+    }
 }
