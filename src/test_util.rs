@@ -622,6 +622,10 @@ impl TestUtil {
     pub fn d(i: i64, e: u32) -> MetaVal<'static> {
         MetaVal::Dec(Self::d_raw(i, e))
     }
+
+    pub fn s<S: Into<String>>(s: S) -> MetaVal<'static> {
+        MetaVal::Str(s.into())
+    }
 }
 
 #[cfg(test)]

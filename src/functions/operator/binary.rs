@@ -264,6 +264,30 @@ mod tests {
         }
     }
 
+    fn conv_repr(mv: MetaVal) -> Result<MetaVal, Error> {
+        Ok(
+            MetaVal::Str(
+                match mv {
+                    MetaVal::Bul(..) => "boolean",
+                    MetaVal::Dec(..) => "decimal",
+                    MetaVal::Int(..) => "integer",
+                    MetaVal::Map(..) => "mapping",
+                    MetaVal::Nil => "null",
+                    MetaVal::Seq(..) => "sequence",
+                    MetaVal::Str(..) => "string",
+                }.to_string()
+            )
+        )
+    }
+
+    fn conv_add_3(mv: MetaVal) -> Result<MetaVal, Error> {
+        match mv {
+            MetaVal::Dec(d) => Ok(MetaVal::Dec(d + dec!(3))),
+            MetaVal::Int(i) => Ok(MetaVal::Int(i + 3)),
+            _ => Err(Error::NotNumeric),
+        }
+    }
+
     #[test]
     fn test_nth() {
         let inputs_and_expected = vec![
@@ -800,6 +824,80 @@ mod tests {
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
             let produced = Impl::filter_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_map() {
+        let inputs_and_expected: Vec<((_, fn(MetaVal) -> Result<MetaVal, Error>), _)> = vec![
+            (
+                (vec![], conv_repr),
+                vec![],
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), conv_repr),
+                vec![
+                    Ok(TU::s("string")), Ok(TU::s("integer")), Ok(TU::s("decimal")), Ok(TU::s("boolean")),
+                    Ok(TU::s("null")), Ok(TU::s("sequence")), Ok(TU::s("mapping")),
+                ],
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)], conv_repr),
+                vec![Ok(TU::s("boolean")), Ok(TU::s("integer")), Err(ErrorKind::Sentinel)],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Ok(MetaVal::Bul(false)), Ok(MetaVal::Int(1))], conv_repr),
+                vec![Err(ErrorKind::Sentinel), Ok(TU::s("boolean")), Ok(TU::s("integer"))],
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))], conv_add_3),
+                vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Ok(TU::i(4+3)), Ok(TU::i(6+3)), Ok(TU::i(8+3))],
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(MetaVal::Bul(false)), Ok(TU::i(6)), Ok(TU::i(8))], conv_add_3),
+                vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Err(ErrorKind::NotNumeric), Ok(TU::i(6+3)), Ok(TU::i(8+3))],
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::map(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_map_s() {
+        let inputs_and_expected: Vec<((_, fn(MetaVal) -> Result<MetaVal, Error>), _)> = vec![
+            (
+                (vec![], conv_repr),
+                Ok(vec![]),
+            ),
+            (
+                (TU::core_nested_sequence(), conv_repr),
+                Ok(vec![
+                    TU::s("string"), TU::s("integer"), TU::s("decimal"), TU::s("boolean"),
+                    TU::s("null"), TU::s("sequence"), TU::s("mapping"),
+                ]),
+            ),
+            (
+                (vec![MetaVal::Bul(false), MetaVal::Int(1)], conv_repr),
+                Ok(vec![TU::s("boolean"), TU::s("integer")]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)], conv_add_3),
+                Ok(vec![TU::i(0+3), TU::i(2+3), TU::i(4+3), TU::i(6+3), TU::i(8+3)]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), MetaVal::Bul(false), TU::i(6), TU::i(8)], conv_add_3),
+                Err(ErrorKind::NotNumeric),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::map_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
