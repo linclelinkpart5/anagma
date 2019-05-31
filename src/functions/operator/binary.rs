@@ -901,4 +901,114 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_step_by() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], 1),
+                Ok(vec![]),
+            ),
+            (
+                (vec![], 2),
+                Ok(vec![]),
+            ),
+            (
+                (vec![], 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), 1),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), 2),
+                Ok(TU::core_nested_sequence().into_iter().step_by(2).map(Result::Ok).collect()),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)], 10),
+                Ok(vec![Ok(MetaVal::Bul(false)), Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                // TODO: Does this case make sense?
+                //       Emitting leading errors, but not counting them as "stepped", and then emitting the first non-error item.
+                (vec![Err(Error::Sentinel), Ok(MetaVal::Bul(false)), Ok(MetaVal::Int(1))], 10),
+                Ok(vec![Err(ErrorKind::Sentinel), Ok(MetaVal::Bul(false))]),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 1),
+                Ok((0i64..=100).into_iter().step_by(1).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 2),
+                Ok((0i64..=100).into_iter().step_by(2).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 4),
+                Ok((0i64..=100).into_iter().step_by(4).map(TU::i).map(Result::Ok).collect()),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::step_by(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into).map(|it| it.map(|r| r.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>());
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_step_by_s() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], 1),
+                Ok(vec![]),
+            ),
+            (
+                (vec![], 2),
+                Ok(vec![]),
+            ),
+            (
+                (vec![], 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                (TU::core_nested_sequence(), 1),
+                Ok(TU::core_nested_sequence()),
+            ),
+            (
+                (TU::core_nested_sequence(), 2),
+                Ok(TU::core_nested_sequence().into_iter().step_by(2).collect()),
+            ),
+            (
+                (vec![MetaVal::Bul(false), MetaVal::Int(1)], 10),
+                Ok(vec![MetaVal::Bul(false)]),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect(), 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect(), 1),
+                Ok((0i64..=100).into_iter().step_by(1).map(TU::i).collect()),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect(), 2),
+                Ok((0i64..=100).into_iter().step_by(2).map(TU::i).collect()),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect(), 4),
+                Ok((0i64..=100).into_iter().step_by(4).map(TU::i).collect()),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::step_by_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 }
