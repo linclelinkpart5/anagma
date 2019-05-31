@@ -72,22 +72,16 @@ impl Impl {
         Self::all_any(vp, u_pred, AllAny::All)
     }
 
-    pub fn all_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> bool {
-        match Self::all_any(Fixed::new(seq), u_pred, AllAny::All) {
-            Err(_) => unreachable!(),
-            Ok(b) => b,
-        }
+    pub fn all_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<bool, Error> {
+        Self::all_any(Fixed::new(seq), u_pred, AllAny::All)
     }
 
     pub fn any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<bool, Error> {
         Self::all_any(vp, u_pred, AllAny::Any)
     }
 
-    pub fn any_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> bool {
-        match Self::all_any(Fixed::new(seq), u_pred, AllAny::Any) {
-            Err(_) => unreachable!(),
-            Ok(b) => b,
-        }
+    pub fn any_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<bool, Error> {
+        Self::all_any(Fixed::new(seq), u_pred, AllAny::Any)
     }
 
     pub fn find<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<MetaVal<'a>, Error> {
@@ -242,6 +236,20 @@ mod tests {
     use crate::functions::util::value_producer::Raw;
     use crate::functions::util::NumberLike;
 
+    fn is_even_int(mv: &MetaVal) -> Result<bool, Error> {
+        match mv {
+            MetaVal::Int(i) => Ok(i % 2 == 0),
+            _ => Err(Error::NotNumeric),
+        }
+    }
+
+    fn is_boolean(mv: &MetaVal) -> Result<bool, Error> {
+        match mv {
+            MetaVal::Bul(..) => Ok(true),
+            _ => Ok(false),
+        }
+    }
+
     #[test]
     fn test_nth() {
         let inputs_and_expected = vec![
@@ -298,6 +306,206 @@ mod tests {
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
             let produced = Impl::nth_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_all() {
+        let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+            (
+                (vec![], is_boolean),
+                Ok(true),
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), is_boolean),
+                Ok(false),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true)), Err(Error::Sentinel)], is_boolean),
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                (vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true))], is_boolean),
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Int(0)), Err(Error::Sentinel)], is_boolean),
+                Ok(false),
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(5)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
+                Ok(false),
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7)), Ok(TU::i(9))], is_even_int),
+                Ok(false),
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(MetaVal::Bul(false)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(3)), Ok(MetaVal::Bul(false)), Ok(TU::i(7)), Ok(TU::i(9))], is_even_int),
+                Ok(false),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::all(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_all_s() {
+        let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+            (
+                (vec![], is_boolean),
+                Ok(true),
+            ),
+            (
+                (TU::core_nested_sequence(), is_boolean),
+                Ok(false),
+            ),
+            (
+                (vec![MetaVal::Bul(true), MetaVal::Bul(true)], is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![MetaVal::Bul(true), MetaVal::Int(0)], is_boolean),
+                Ok(false),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)], is_even_int),
+                Ok(false),
+            ),
+            (
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)], is_even_int),
+                Ok(false),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), MetaVal::Bul(false), TU::i(6), TU::i(8)], is_even_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (vec![TU::i(1), TU::i(3), MetaVal::Bul(false), TU::i(7), TU::i(9)], is_even_int),
+                Ok(false),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::all_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_any() {
+        let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+            (
+                (vec![], is_boolean),
+                Ok(false),
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true)), Err(Error::Sentinel)], is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true)), Ok(MetaVal::Bul(true))], is_boolean),
+                Err(ErrorKind::Sentinel),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(true)), Ok(MetaVal::Int(0)), Err(Error::Sentinel)], is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(5)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7)), Ok(TU::i(9))], is_even_int),
+                Ok(false),
+            ),
+            (
+                (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(MetaVal::Bul(false)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(3)), Ok(MetaVal::Bul(false)), Ok(TU::i(7)), Ok(TU::i(9))], is_even_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::any(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_any_s() {
+        let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+            (
+                (vec![], is_boolean),
+                Ok(false),
+            ),
+            (
+                (TU::core_nested_sequence(), is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![MetaVal::Bul(true), MetaVal::Bul(true)], is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![MetaVal::Bul(true), MetaVal::Int(0)], is_boolean),
+                Ok(true),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)], is_even_int),
+                Ok(false),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), MetaVal::Bul(false), TU::i(6), TU::i(8)], is_even_int),
+                Ok(true),
+            ),
+            (
+                (vec![TU::i(1), TU::i(3), MetaVal::Bul(false), TU::i(7), TU::i(9)], is_even_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::any_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
