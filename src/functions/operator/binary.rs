@@ -1328,4 +1328,108 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_take() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], 0),
+                vec![],
+            ),
+            (
+                (vec![], 1),
+                vec![],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 0),
+                vec![],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 1),
+                vec![Ok(TU::i(1))],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 2),
+                vec![Ok(TU::i(1)), Ok(TU::i(2))],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 4),
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 8),
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 0),
+                vec![],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 1),
+                vec![Err(ErrorKind::Sentinel)],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 2),
+                vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel)],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 3),
+                vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3))],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 4),
+                vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4))],
+            ),
+            (
+                (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 6),
+                vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::take(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_take_s() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], 0),
+                vec![],
+            ),
+            (
+                (vec![], 1),
+                vec![],
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 0),
+                vec![],
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 1),
+                vec![TU::i(1)],
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 2),
+                vec![TU::i(1), TU::i(2)],
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 4),
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)],
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 8),
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::take_s(input_a, input_b);
+            assert_eq!(expected, produced);
+        }
+    }
 }
