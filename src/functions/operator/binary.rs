@@ -1011,4 +1011,68 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_chain() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], vec![]),
+                vec![],
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+                TU::core_nested_sequence().into_iter().chain(TU::core_flat_sequence()).map(Result::Ok).collect(),
+            ),
+            (
+                (vec![Ok(MetaVal::Bul(false)), Err(Error::Sentinel)], vec![Err(Error::Sentinel), Ok(MetaVal::Bul(true))]),
+                vec![Ok(MetaVal::Bul(false)), Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(MetaVal::Bul(true))],
+            ),
+            (
+                (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), vec![]),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+            (
+                (vec![], TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+                TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::chain(Raw::new(input_a), Raw::new(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_chain_s() {
+        let inputs_and_expected = vec![
+            (
+                (vec![], vec![]),
+                vec![],
+            ),
+            (
+                (TU::core_nested_sequence(), TU::core_flat_sequence()),
+                TU::core_nested_sequence().into_iter().chain(TU::core_flat_sequence()).collect(),
+            ),
+            (
+                (vec![MetaVal::Bul(false), TU::i(1)], vec![TU::i(1), MetaVal::Bul(true)]),
+                vec![MetaVal::Bul(false), TU::i(1), TU::i(1), MetaVal::Bul(true)],
+            ),
+            (
+                (TU::core_nested_sequence(), vec![]),
+                TU::core_nested_sequence(),
+            ),
+            (
+                (vec![], TU::core_nested_sequence()),
+                TU::core_nested_sequence(),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::chain_s(input_a, input_b);
+            assert_eq!(expected, produced);
+        }
+    }
 }
