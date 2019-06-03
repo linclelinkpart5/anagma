@@ -1519,4 +1519,84 @@ mod tests {
             assert_eq!(expected, produced);
         }
     }
+
+    #[test]
+    fn test_take_while() {
+        let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+            (
+                (vec![], is_lt_4_int),
+                vec![],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))], is_lt_4_int),
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                (vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))], is_lt_4_int),
+                vec![],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))], is_lt_4_int),
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], is_lt_4_int),
+                vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)], is_lt_4_int),
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                (vec![Ok(TU::s("a")), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], is_lt_4_int),
+                vec![Err(ErrorKind::NotNumeric), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+            (
+                (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))], is_lt_4_int),
+                vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::take_while(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            assert_eq!(expected, produced);
+        }
+    }
+
+    #[test]
+    fn test_take_while_s() {
+        let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+            (
+                (vec![], is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3)], is_lt_4_int),
+                Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
+            ),
+            (
+                (vec![TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
+                Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
+            ),
+            (
+                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], is_lt_4_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")], is_lt_4_int),
+                Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
+            ),
+        ];
+
+        for (inputs, expected) in inputs_and_expected {
+            let (input_a, input_b) = inputs;
+            let produced = Impl::take_while_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
+            assert_eq!(expected, produced);
+        }
+    }
 }
