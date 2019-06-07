@@ -3,6 +3,7 @@
 use std::ops::AddAssign;
 use std::ops::MulAssign;
 use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::cmp::Ordering;
 
 use rust_decimal::Decimal;
@@ -68,6 +69,23 @@ impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
         match value {
             MetaVal::Int(i) => Ok(Self::Integer(i)),
             MetaVal::Dec(d) => Ok(Self::Decimal(d)),
+            _ => Err(Error::NotNumeric),
+        }
+    }
+}
+
+impl<'k> From<NumberLike> for Operand<'k> {
+    fn from(nl: NumberLike) -> Operand<'k> {
+        Operand::Value(nl.into())
+    }
+}
+
+impl<'k> TryFrom<Operand<'k>> for NumberLike {
+    type Error = Error;
+
+    fn try_from(operand: Operand<'k>) -> Result<Self, Self::Error> {
+        match operand {
+            Operand::Value(mv) => mv.try_into(),
             _ => Err(Error::NotNumeric),
         }
     }

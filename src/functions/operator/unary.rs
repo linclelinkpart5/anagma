@@ -37,6 +37,7 @@ pub enum Op {
     Unique,
     Neg,
     Abs,
+    // Not,
 }
 
 impl Op {
@@ -47,48 +48,85 @@ impl Op {
                 .map(Operand::Value)
             ,
             &Self::Count => {
-                let it: IterableLike = o.try_into()?;
-                match it {
+                match o.try_into()? {
                     IterableLike::Sequence(s) => Ok(Impl::count_s(s)),
                     IterableLike::Producer(p) => Impl::count(p),
                 }.map(Operand::Usize)
             },
             &Self::First => {
-                let it: IterableLike = o.try_into()?;
-                match it {
+                match o.try_into()? {
                     IterableLike::Sequence(s) => Impl::first_s(s),
                     IterableLike::Producer(p) => Impl::first(p),
                 }.map(Operand::Value)
             },
             &Self::Last => {
-                let it: IterableLike = o.try_into()?;
-                match it {
+                match o.try_into()? {
                     IterableLike::Sequence(s) => Impl::last_s(s),
                     IterableLike::Producer(p) => Impl::last(p),
                 }.map(Operand::Value)
             },
             &Self::MinIn => {
-                let it: IterableLike = o.try_into()?;
-                match it {
+                match o.try_into()? {
                     IterableLike::Sequence(s) => Impl::min_in_s(s),
                     IterableLike::Producer(p) => Impl::min_in(p),
                 }.map(MetaVal::from).map(Operand::Value)
             },
             &Self::MaxIn => {
-                let it: IterableLike = o.try_into()?;
-                match it {
+                match o.try_into()? {
                     IterableLike::Sequence(s) => Impl::max_in_s(s),
                     IterableLike::Producer(p) => Impl::max_in(p),
                 }.map(MetaVal::from).map(Operand::Value)
             },
             &Self::Rev => {
-                let it: IterableLike = o.try_into()?;
-                match it {
-                    IterableLike::Sequence(s) => Impl::max_in_s(s),
-                    IterableLike::Producer(p) => Impl::max_in(p),
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Ok(Impl::rev_s(s)),
+                    IterableLike::Producer(p) => Impl::rev(p),
+                }.map(MetaVal::Seq).map(Operand::Value)
+            },
+            &Self::Sort => {
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Ok(Impl::sort_s(s)),
+                    IterableLike::Producer(p) => Impl::sort(p),
+                }.map(MetaVal::Seq).map(Operand::Value)
+            },
+            &Self::Sum => {
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Impl::sum_s(s),
+                    IterableLike::Producer(p) => Impl::sum(p),
                 }.map(MetaVal::from).map(Operand::Value)
             },
-            _ => Ok(Operand::Value(MetaVal::Nil)),
+            &Self::Prod => {
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Impl::prod_s(s),
+                    IterableLike::Producer(p) => Impl::prod(p),
+                }.map(MetaVal::from).map(Operand::Value)
+            },
+            &Self::AllEqual => {
+                match o.try_into()? {
+                    IterableLike::Sequence(ref s) => Ok(Impl::all_equal_rs(s)),
+                    IterableLike::Producer(p) => Impl::all_equal(p),
+                }.map(MetaVal::Bul).map(Operand::Value)
+            },
+            &Self::Flatten => {
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::flatten_s(s)))),
+                    IterableLike::Producer(p) => Ok(Operand::Producer(ValueProducer::Flatten(Impl::flatten(p)))),
+                }
+            },
+            &Self::Dedup => {
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::dedup_s(s)))),
+                    IterableLike::Producer(p) => Ok(Operand::Producer(ValueProducer::Dedup(Impl::dedup(p)))),
+                }
+            },
+            &Self::Unique => {
+                match o.try_into()? {
+                    IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::unique_s(s)))),
+                    IterableLike::Producer(p) => Ok(Operand::Producer(ValueProducer::Unique(Impl::unique(p)))),
+                }
+            },
+            &Self::Neg => Ok(Impl::neg(o.try_into()?).into()),
+            &Self::Abs => Ok(Impl::abs(o.try_into()?).into()),
         }
     }
 }

@@ -45,6 +45,12 @@ impl<'v> TryFrom<ValueProducer<'v>> for Vec<MetaVal<'v>> {
     type Error = Error;
 
     fn try_from(vp: ValueProducer<'v>) -> Result<Self, Self::Error> {
+        vp.collect::<Result<Vec<_>, _>>()
+    }
+}
+
+impl<'v> From<ValueProducer<'v>> for Vec<Result<MetaVal<'v>, Error>> {
+    fn from(vp: ValueProducer<'v>) -> Self {
         vp.collect()
     }
 }
