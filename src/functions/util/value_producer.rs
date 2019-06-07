@@ -8,7 +8,61 @@ use crate::functions::Error;
 use crate::functions::util::UnaryPred;
 use crate::functions::util::UnaryConv;
 
-pub trait ValueProducer<'v>: Iterator<Item = Result<MetaVal<'v>, Error>> {}
+pub enum ValueProducer<'v> {
+    Source(Source<'v>),
+    Fixed(Fixed<'v>),
+    Raw(Raw<'v>),
+    Flatten(Flatten<'v>),
+    Dedup(Dedup<'v>),
+    Unique(Unique<'v>),
+    Filter(Filter<'v>),
+    Map(Map<'v>),
+    StepBy(StepBy<'v>),
+    Chain(Chain<'v>),
+    Zip(Zip<'v>),
+    Skip(Skip<'v>),
+    Take(Take<'v>),
+    SkipWhile(SkipWhile<'v>),
+    TakeWhile(TakeWhile<'v>),
+    Intersperse(Intersperse<'v>),
+    Interleave(Interleave<'v>),
+}
+
+impl<'v> ValueProducer<'v> {
+    pub fn fixed(v: Vec<MetaVal<'v>>) -> Self {
+        Self::Fixed(Fixed::new(v))
+    }
+
+    pub fn raw(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+        Self::Raw(Raw::new(v))
+    }
+}
+
+impl<'v> Iterator for ValueProducer<'v> {
+    type Item = Result<MetaVal<'v>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            &mut Self::Source(ref mut s) => s.next(),
+            &mut Self::Fixed(ref mut s) => s.next(),
+            &mut Self::Raw(ref mut s) => s.next(),
+            &mut Self::Flatten(ref mut s) => s.next(),
+            &mut Self::Dedup(ref mut s) => s.next(),
+            &mut Self::Unique(ref mut s) => s.next(),
+            &mut Self::Filter(ref mut s) => s.next(),
+            &mut Self::Map(ref mut s) => s.next(),
+            &mut Self::StepBy(ref mut s) => s.next(),
+            &mut Self::Chain(ref mut s) => s.next(),
+            &mut Self::Zip(ref mut s) => s.next(),
+            &mut Self::Skip(ref mut s) => s.next(),
+            &mut Self::Take(ref mut s) => s.next(),
+            &mut Self::SkipWhile(ref mut s) => s.next(),
+            &mut Self::TakeWhile(ref mut s) => s.next(),
+            &mut Self::Intersperse(ref mut s) => s.next(),
+            &mut Self::Interleave(ref mut s) => s.next(),
+        }
+    }
+}
 
 pub struct Source<'v>(MetaValueStream<'v>);
 
@@ -17,8 +71,6 @@ impl<'v> Source<'v> {
         Self(mvs)
     }
 }
-
-impl<'v> ValueProducer<'v> for Source<'v> {}
 
 impl<'v> Iterator for Source<'v> {
     type Item = Result<MetaVal<'v>, Error>;
@@ -36,8 +88,6 @@ impl<'v> Fixed<'v> {
     }
 }
 
-impl<'v> ValueProducer<'v> for Fixed<'v> {}
-
 impl<'v> Iterator for Fixed<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
@@ -54,8 +104,6 @@ impl<'v> Raw<'v> {
     }
 }
 
-impl<'v> ValueProducer<'v> for Raw<'v> {}
-
 impl<'v> Iterator for Raw<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
@@ -64,26 +112,15 @@ impl<'v> Iterator for Raw<'v> {
     }
 }
 
-pub struct Flatten<'v, I>(I, VecDeque<MetaVal<'v>>);
+pub struct Flatten<'v>(Box<ValueProducer<'v>>, VecDeque<MetaVal<'v>>);
 
-impl<'v, I> Flatten<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I) -> Self {
-        Self(it, VecDeque::new())
+impl<'v> Flatten<'v> {
+    pub fn new(vp: ValueProducer<'v>) -> Self {
+        Self(Box::new(vp), VecDeque::new())
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Flatten<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Flatten<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Flatten<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -104,26 +141,15 @@ where
     }
 }
 
-pub struct Dedup<'v, I>(I, Option<MetaVal<'v>>);
+pub struct Dedup<'v>(Box<ValueProducer<'v>>, Option<MetaVal<'v>>);
 
-impl<'v, I> Dedup<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I) -> Self {
-        Self(it, None)
+impl<'v> Dedup<'v> {
+    pub fn new(vp: ValueProducer<'v>) -> Self {
+        Self(Box::new(vp), None)
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Dedup<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Dedup<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Dedup<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -146,26 +172,15 @@ where
     }
 }
 
-pub struct Unique<'v, I>(I, HashSet<MetaVal<'v>>);
+pub struct Unique<'v>(Box<ValueProducer<'v>>, HashSet<MetaVal<'v>>);
 
-impl<'v, I> Unique<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I) -> Self {
-        Self(it, HashSet::new())
+impl<'v> Unique<'v> {
+    pub fn new(vp: ValueProducer<'v>) -> Self {
+        Self(Box::new(vp), HashSet::new())
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Unique<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Unique<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Unique<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -187,26 +202,15 @@ where
     }
 }
 
-pub struct Filter<I>(I, UnaryPred);
+pub struct Filter<'v>(Box<ValueProducer<'v>>, UnaryPred);
 
-impl<'v, I> Filter<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, pred: UnaryPred) -> Self {
-        Self(it, pred)
+impl<'v> Filter<'v> {
+    pub fn new(vp: ValueProducer<'v>, pred: UnaryPred) -> Self {
+        Self(Box::new(vp), pred)
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Filter<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Filter<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Filter<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -225,26 +229,15 @@ where
     }
 }
 
-pub struct Map<I>(I, UnaryConv);
+pub struct Map<'v>(Box<ValueProducer<'v>>, UnaryConv);
 
-impl<'v, I> Map<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, conv: UnaryConv) -> Self {
-        Self(it, conv)
+impl<'v> Map<'v> {
+    pub fn new(vp: ValueProducer<'v>, conv: UnaryConv) -> Self {
+        Self(Box::new(vp), conv)
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Map<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Map<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Map<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -255,22 +248,19 @@ where
     }
 }
 
-pub struct StepBy<I> {
-    stream: I,
+pub struct StepBy<'v> {
+    vp: Box<ValueProducer<'v>>,
     curr: usize,
     n: usize,
 }
 
-impl<'v, I> StepBy<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> StepBy<'v> {
     // Can fail if step size is zero.
-    pub fn new(it: I, n: usize) -> Result<Self, Error> {
+    pub fn new(vp: ValueProducer<'v>, n: usize) -> Result<Self, Error> {
         if n == 0 { Err(Error::ZeroStepSize) }
         else {
             Ok(Self {
-                stream: it,
+                vp: Box::new(vp),
                 curr: n,
                 n,
             })
@@ -278,19 +268,11 @@ where
     }
 }
 
-impl<'v, I> ValueProducer<'v> for StepBy<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for StepBy<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for StepBy<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.stream.next()? {
+        match self.vp.next()? {
             // Always report errors, even if they would not normally be "hit".
             Err(err) => Some(Err(err)),
             Ok(mv) => {
@@ -308,29 +290,15 @@ where
     }
 }
 
-pub struct Chain<IA, IB>(IA, IB, bool);
+pub struct Chain<'v>(Box<ValueProducer<'v>>, Box<ValueProducer<'v>>, bool);
 
-impl<'v, IA, IB> Chain<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it_a: IA, it_b: IB) -> Self {
-        Self(it_a, it_b, false)
+impl<'v> Chain<'v> {
+    pub fn new(vp_a: ValueProducer<'v>, vp_b: ValueProducer<'v>) -> Self {
+        Self(Box::new(vp_a), Box::new(vp_b), false)
     }
 }
 
-impl<'v, IA, IB> ValueProducer<'v> for Chain<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, IA, IB> Iterator for Chain<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Chain<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -351,29 +319,15 @@ where
     }
 }
 
-pub struct Zip<IA, IB>(IA, IB);
+pub struct Zip<'v>(Box<ValueProducer<'v>>, Box<ValueProducer<'v>>);
 
-impl<'v, IA, IB> Zip<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it_a: IA, it_b: IB) -> Self {
-        Self(it_a, it_b)
+impl<'v> Zip<'v> {
+    pub fn new(vp_a: ValueProducer<'v>, vp_b: ValueProducer<'v>) -> Self {
+        Self(Box::new(vp_a), Box::new(vp_b))
     }
 }
 
-impl<'v, IA, IB> ValueProducer<'v> for Zip<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, IA, IB> Iterator for Zip<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Zip<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -388,88 +342,60 @@ where
     }
 }
 
-pub struct Skip<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    it: I,
+pub struct Skip<'v> {
+    vp: Box<ValueProducer<'v>>,
     curr: usize,
     n: usize,
 }
 
-impl<'v, I> Skip<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, n: usize) -> Self {
+impl<'v> Skip<'v> {
+    pub fn new(vp: ValueProducer<'v>, n: usize) -> Self {
         Self {
-            it: it,
+            vp: Box::new(vp),
             curr: 0,
             n,
         }
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Skip<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Skip<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Skip<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.curr < self.n {
             self.curr += 1;
-            let res_mv = self.it.next()?;
+            let res_mv = self.vp.next()?;
 
             if let Err(e) = res_mv { return Some(Err(e)) }
         }
 
-        self.it.next()
+        self.vp.next()
     }
 }
 
-pub struct Take<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    it: I,
+pub struct Take<'v> {
+    vp: Box<ValueProducer<'v>>,
     curr: usize,
     n: usize,
 }
 
-impl<'v, I> Take<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, n: usize) -> Self {
+impl<'v> Take<'v> {
+    pub fn new(vp: ValueProducer<'v>, n: usize) -> Self {
         Self {
-            it: it,
+            vp: Box::new(vp),
             curr: 0,
             n,
         }
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Take<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Take<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Take<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.curr < self.n {
             self.curr += 1;
-            self.it.next()
+            self.vp.next()
         }
         else {
             None
@@ -477,26 +403,15 @@ where
     }
 }
 
-pub struct SkipWhile<I>(I, UnaryPred, bool);
+pub struct SkipWhile<'v>(Box<ValueProducer<'v>>, UnaryPred, bool);
 
-impl<'v, I> SkipWhile<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, u_pred: UnaryPred) -> Self {
-        Self(it, u_pred, true)
+impl<'v> SkipWhile<'v> {
+    pub fn new(vp: ValueProducer<'v>, u_pred: UnaryPred) -> Self {
+        Self(Box::new(vp), u_pred, true)
     }
 }
 
-impl<'v, I> ValueProducer<'v> for SkipWhile<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for SkipWhile<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for SkipWhile<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -522,26 +437,15 @@ where
     }
 }
 
-pub struct TakeWhile<I>(I, UnaryPred, bool);
+pub struct TakeWhile<'v>(Box<ValueProducer<'v>>, UnaryPred, bool);
 
-impl<'v, I> TakeWhile<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, u_pred: UnaryPred) -> Self {
-        Self(it, u_pred, true)
+impl<'v> TakeWhile<'v> {
+    pub fn new(vp: ValueProducer<'v>, u_pred: UnaryPred) -> Self {
+        Self(Box::new(vp), u_pred, true)
     }
 }
 
-impl<'v, I> ValueProducer<'v> for TakeWhile<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for TakeWhile<I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for TakeWhile<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -564,26 +468,15 @@ where
     }
 }
 
-pub struct Intersperse<'v, I>(I, MetaVal<'v>, bool);
+pub struct Intersperse<'v>(Box<ValueProducer<'v>>, MetaVal<'v>, bool);
 
-impl<'v, I> Intersperse<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it: I, mv: MetaVal<'v>) -> Self {
-        Self(it, mv, false)
+impl<'v> Intersperse<'v> {
+    pub fn new(vp: ValueProducer<'v>, mv: MetaVal<'v>) -> Self {
+        Self(Box::new(vp), mv, false)
     }
 }
 
-impl<'v, I> ValueProducer<'v> for Intersperse<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, I> Iterator for Intersperse<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Intersperse<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -594,34 +487,17 @@ where
     }
 }
 
-impl<'v, I> FusedIterator for Intersperse<'v, I>
-where
-    I: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
+impl<'v> FusedIterator for Intersperse<'v> {}
 
-pub struct Interleave<IA, IB>(IA, IB, bool);
+pub struct Interleave<'v>(Box<ValueProducer<'v>>, Box<ValueProducer<'v>>, bool);
 
-impl<'v, IA, IB> Interleave<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
-    pub fn new(it_a: IA, it_b: IB) -> Self {
-        Self(it_a, it_b, false)
+impl<'v> Interleave<'v> {
+    pub fn new(vp_a: ValueProducer<'v>, vp_b: ValueProducer<'v>) -> Self {
+        Self(Box::new(vp_a), Box::new(vp_b), false)
     }
 }
 
-impl<'v, IA, IB> ValueProducer<'v> for Interleave<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
-
-impl<'v, IA, IB> Iterator for Interleave<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{
+impl<'v> Iterator for Interleave<'v> {
     type Item = Result<MetaVal<'v>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -632,8 +508,4 @@ where
     }
 }
 
-impl<'v, IA, IB> FusedIterator for Interleave<IA, IB>
-where
-    IA: Iterator<Item = Result<MetaVal<'v>, Error>>,
-    IB: Iterator<Item = Result<MetaVal<'v>, Error>>,
-{}
+impl<'v> FusedIterator for Interleave<'v> {}

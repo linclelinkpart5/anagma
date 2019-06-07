@@ -22,11 +22,11 @@ enum SumProd { Sum, Prod, }
 pub struct Impl;
 
 impl Impl {
-    pub fn collect<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Vec<MetaVal<'a>>, Error> {
+    pub fn collect<'a>(vp: ValueProducer<'a>) -> Result<Vec<MetaVal<'a>>, Error> {
         Ok(vp.collect::<Result<Vec<_>, _>>()?)
     }
 
-    pub fn count<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<usize, Error> {
+    pub fn count<'a>(vp: ValueProducer<'a>) -> Result<usize, Error> {
         let mut c: usize = 0;
         for res_mv in vp { res_mv?; c += 1; }
         Ok(c)
@@ -36,7 +36,7 @@ impl Impl {
         seq.len()
     }
 
-    pub fn first<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
+    pub fn first<'a>(vp: ValueProducer<'a>) -> Result<MetaVal<'a>, Error> {
         vp.into_iter().next().ok_or(Error::EmptyProducer)?
     }
 
@@ -44,7 +44,7 @@ impl Impl {
         seq.into_iter().next().ok_or(Error::EmptySequence)
     }
 
-    pub fn last<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<MetaVal<'a>, Error> {
+    pub fn last<'a>(vp: ValueProducer<'a>) -> Result<MetaVal<'a>, Error> {
         let mut last = None;
         for res_mv in vp { last = Some(res_mv?); }
         last.ok_or(Error::EmptyProducer)
@@ -54,7 +54,7 @@ impl Impl {
         seq.into_iter().last().ok_or(Error::EmptySequence)
     }
 
-    fn min_in_max_in<'a, VP: ValueProducer<'a>, EF: FnOnce() -> Error>(vp: VP, flag: MinMax, ef: EF) -> Result<NumberLike, Error> {
+    fn min_in_max_in<'a, EF: FnOnce() -> Error>(vp: ValueProducer<'a>, flag: MinMax, ef: EF) -> Result<NumberLike, Error> {
         let mut vp = vp.into_iter();
         match vp.next() {
             None => Err(ef()),
@@ -74,20 +74,20 @@ impl Impl {
         }
     }
 
-    pub fn min_in<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+    pub fn min_in<'a>(vp: ValueProducer<'a>) -> Result<NumberLike, Error> {
         Self::min_in_max_in(vp, MinMax::Min, || Error::EmptyProducer)
     }
 
     pub fn min_in_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_in_max_in(Fixed::new(seq), MinMax::Min, || Error::EmptySequence)
+        Self::min_in_max_in(ValueProducer::Fixed(Fixed::new(seq)), MinMax::Min, || Error::EmptySequence)
     }
 
-    pub fn max_in<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+    pub fn max_in<'a>(vp: ValueProducer<'a>) -> Result<NumberLike, Error> {
         Self::min_in_max_in(vp, MinMax::Max, || Error::EmptyProducer)
     }
 
     pub fn max_in_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::min_in_max_in(Fixed::new(seq), MinMax::Max, || Error::EmptySequence)
+        Self::min_in_max_in(ValueProducer::Fixed(Fixed::new(seq)), MinMax::Max, || Error::EmptySequence)
     }
 
     fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> std::cmp::Ordering {
@@ -114,7 +114,7 @@ impl Impl {
         seq
     }
 
-    pub fn rev<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Vec<MetaVal<'a>>, Error> {
+    pub fn rev<'a>(vp: ValueProducer<'a>) -> Result<Vec<MetaVal<'a>>, Error> {
         let seq = Self::collect(vp)?;
         Ok(Self::rev_sort(seq, RevSort::Rev))
     }
@@ -123,7 +123,7 @@ impl Impl {
         Self::rev_sort(seq, RevSort::Rev)
     }
 
-    pub fn sort<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<Vec<MetaVal<'a>>, Error> {
+    pub fn sort<'a>(vp: ValueProducer<'a>) -> Result<Vec<MetaVal<'a>>, Error> {
         let seq = Self::collect(vp)?;
         Ok(Self::rev_sort(seq, RevSort::Sort))
     }
@@ -132,7 +132,7 @@ impl Impl {
         Self::rev_sort(seq, RevSort::Sort)
     }
 
-    fn sum_prod<'a, VP: ValueProducer<'a>>(vp: VP, flag: SumProd) -> Result<NumberLike, Error> {
+    fn sum_prod<'a>(vp: ValueProducer<'a>, flag: SumProd) -> Result<NumberLike, Error> {
         let mut total = match flag {
             SumProd::Sum => NumberLike::Integer(0),
             SumProd::Prod => NumberLike::Integer(1),
@@ -150,23 +150,23 @@ impl Impl {
         Ok(total)
     }
 
-    pub fn sum<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+    pub fn sum<'a>(vp: ValueProducer<'a>) -> Result<NumberLike, Error> {
         Self::sum_prod(vp, SumProd::Sum)
     }
 
     pub fn sum_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::sum_prod(Fixed::new(seq), SumProd::Sum)
+        Self::sum_prod(ValueProducer::Fixed(Fixed::new(seq)), SumProd::Sum)
     }
 
-    pub fn prod<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<NumberLike, Error> {
+    pub fn prod<'a>(vp: ValueProducer<'a>) -> Result<NumberLike, Error> {
         Self::sum_prod(vp, SumProd::Prod)
     }
 
     pub fn prod_s(seq: Vec<MetaVal>) -> Result<NumberLike, Error> {
-        Self::sum_prod(Fixed::new(seq), SumProd::Prod)
+        Self::sum_prod(ValueProducer::Fixed(Fixed::new(seq)), SumProd::Prod)
     }
 
-    pub fn all_equal<'a, VP: ValueProducer<'a>>(vp: VP) -> Result<bool, Error> {
+    pub fn all_equal<'a>(vp: ValueProducer<'a>) -> Result<bool, Error> {
         let mut vp = vp.into_iter();
         match vp.next() {
             None => Ok(true),
@@ -195,34 +195,34 @@ impl Impl {
         }
     }
 
-    pub fn flatten<'a, VP: ValueProducer<'a>>(vp: VP) -> Flatten<'a, VP> {
+    pub fn flatten<'a>(vp: ValueProducer<'a>) -> Flatten<'a> {
         Flatten::new(vp)
     }
 
     pub fn flatten_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
-        match Self::flatten(Fixed::new(seq)).collect::<Result<Vec<_>, _>>() {
+        match Self::flatten(ValueProducer::Fixed(Fixed::new(seq))).collect::<Result<Vec<_>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => seq,
         }
     }
 
-    pub fn dedup<'a, VP: ValueProducer<'a>>(vp: VP) -> Dedup<'a, VP> {
+    pub fn dedup<'a>(vp: ValueProducer<'a>) -> Dedup<'a> {
         Dedup::new(vp)
     }
 
     pub fn dedup_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
-        match Self::dedup(Fixed::new(seq)).collect::<Result<Vec<_>, _>>() {
+        match Self::dedup(ValueProducer::Fixed(Fixed::new(seq))).collect::<Result<Vec<_>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => seq,
         }
     }
 
-    pub fn unique<'a, VP: ValueProducer<'a>>(vp: VP) -> Unique<'a, VP> {
+    pub fn unique<'a>(vp: ValueProducer<'a>) -> Unique<'a> {
         Unique::new(vp)
     }
 
     pub fn unique_s(seq: Vec<MetaVal>) -> Vec<MetaVal> {
-        match Self::unique(Fixed::new(seq)).collect::<Result<Vec<_>, _>>() {
+        match Self::unique(ValueProducer::Fixed(Fixed::new(seq))).collect::<Result<Vec<_>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => seq,
         }
@@ -252,7 +252,7 @@ mod tests {
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
     use crate::functions::ErrorKind;
-    use crate::functions::util::value_producer::Raw;
+    use crate::functions::util::value_producer::ValueProducer as VP;
     use crate::functions::util::NumberLike;
 
     #[test]
@@ -277,7 +277,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::collect(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::collect(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -304,7 +304,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::count(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::count(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -346,7 +346,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::first(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::first(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -400,7 +400,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::last(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::last(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -458,7 +458,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::min_in(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::min_in(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -524,7 +524,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::max_in(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::max_in(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -582,7 +582,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::rev(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::rev(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -632,7 +632,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::sort(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::sort(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -694,7 +694,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::sum(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::sum(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -772,7 +772,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::prod(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::prod(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -846,7 +846,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::all_equal(Raw::new(input)).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::all_equal(VP::raw(input)).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -909,7 +909,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::flatten(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::flatten(VP::raw(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -976,7 +976,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::dedup(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::dedup(VP::raw(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -1054,7 +1054,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = Impl::unique(Raw::new(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::unique(VP::raw(input)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }

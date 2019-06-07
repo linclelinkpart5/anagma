@@ -32,7 +32,7 @@ impl AllAny {
 pub struct Impl;
 
 impl Impl {
-    pub fn nth<'a, VP: ValueProducer<'a>>(vp: VP, n: usize) -> Result<MetaVal<'a>, Error> {
+    pub fn nth<'a>(vp: ValueProducer<'a>, n: usize) -> Result<MetaVal<'a>, Error> {
         let mut i = 0;
         for res_mv in vp {
             let mv = res_mv?;
@@ -48,7 +48,7 @@ impl Impl {
         seq.into_iter().nth(n).ok_or(Error::OutOfBounds)
     }
 
-    fn all_any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred, flag: AllAny) -> Result<bool, Error> {
+    fn all_any<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred, flag: AllAny) -> Result<bool, Error> {
         let target = flag.target();
         for res_mv in vp {
             let mv = res_mv?;
@@ -58,23 +58,23 @@ impl Impl {
         Ok(!target)
     }
 
-    pub fn all<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<bool, Error> {
+    pub fn all<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> Result<bool, Error> {
         Self::all_any(vp, u_pred, AllAny::All)
     }
 
     pub fn all_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<bool, Error> {
-        Self::all_any(Fixed::new(seq), u_pred, AllAny::All)
+        Self::all_any(ValueProducer::fixed(seq), u_pred, AllAny::All)
     }
 
-    pub fn any<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<bool, Error> {
+    pub fn any<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> Result<bool, Error> {
         Self::all_any(vp, u_pred, AllAny::Any)
     }
 
     pub fn any_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<bool, Error> {
-        Self::all_any(Fixed::new(seq), u_pred, AllAny::Any)
+        Self::all_any(ValueProducer::fixed(seq), u_pred, AllAny::Any)
     }
 
-    pub fn find<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<MetaVal<'a>, Error> {
+    pub fn find<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> Result<MetaVal<'a>, Error> {
         for res_mv in vp {
             let mv = res_mv?;
             if u_pred(&mv)? { return Ok(mv) }
@@ -84,10 +84,10 @@ impl Impl {
     }
 
     pub fn find_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<MetaVal, Error> {
-        Self::find(Fixed::new(seq), u_pred)
+        Self::find(ValueProducer::fixed(seq), u_pred)
     }
 
-    pub fn position<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Result<usize, Error> {
+    pub fn position<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> Result<usize, Error> {
         let mut i = 0;
         for res_mv in vp {
             let mv = res_mv?;
@@ -99,41 +99,41 @@ impl Impl {
     }
 
     pub fn position_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<usize, Error> {
-        Self::position(Fixed::new(seq), u_pred)
+        Self::position(ValueProducer::fixed(seq), u_pred)
     }
 
-    pub fn filter<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> Filter<VP> {
+    pub fn filter<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> Filter<'a> {
         Filter::new(vp, u_pred)
     }
 
     pub fn filter_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the predicate to fail.
-        Filter::new(Fixed::new(seq), u_pred).collect()
+        Filter::new(ValueProducer::fixed(seq), u_pred).collect()
     }
 
-    pub fn map<'a, VP: ValueProducer<'a>>(vp: VP, u_conv: UnaryConv) -> Map<VP> {
+    pub fn map<'a>(vp: ValueProducer<'a>, u_conv: UnaryConv) -> Map<'a> {
         Map::new(vp, u_conv)
     }
 
     pub fn map_s(seq: Vec<MetaVal>, u_conv: UnaryConv) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the converter to fail.
-        Map::new(Fixed::new(seq), u_conv).collect()
+        Map::new(ValueProducer::fixed(seq), u_conv).collect()
     }
 
-    pub fn step_by<'a, VP: ValueProducer<'a>>(vp: VP, step: usize) -> Result<StepBy<VP>, Error> {
+    pub fn step_by<'a>(vp: ValueProducer<'a>, step: usize) -> Result<StepBy<'a>, Error> {
         StepBy::new(vp, step)
     }
 
     pub fn step_by_s(seq: Vec<MetaVal>, step: usize) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the step by producer creation to fail.
         // NOTE: The match is not needed, but it seems desirable to make explicit that the collect cannot fail.
-        match StepBy::new(Fixed::new(seq), step)?.collect::<Result<Vec<MetaVal>, _>>() {
+        match StepBy::new(ValueProducer::fixed(seq), step)?.collect::<Result<Vec<MetaVal>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => Ok(seq),
         }
     }
 
-    pub fn chain<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Chain<VPA, VPB> {
+    pub fn chain<'a>(vp_a: ValueProducer<'a>, vp_b: ValueProducer<'a>) -> Chain<'a> {
         Chain::new(vp_a, vp_b)
     }
 
@@ -143,19 +143,19 @@ impl Impl {
         seq_a
     }
 
-    pub fn zip<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Zip<VPA, VPB> {
+    pub fn zip<'a>(vp_a: ValueProducer<'a>, vp_b: ValueProducer<'a>) -> Zip<'a> {
         Zip::new(vp_a, vp_b)
     }
 
     pub fn zip_s<'a>(seq_a: Vec<MetaVal<'a>>, seq_b: Vec<MetaVal<'a>>) -> Vec<MetaVal<'a>> {
         // Zipping cannot fail.
-        match Zip::new(Fixed::new(seq_a), Fixed::new(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
+        match Zip::new(ValueProducer::fixed(seq_a), ValueProducer::fixed(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => seq,
         }
     }
 
-    pub fn skip<'a, VP: ValueProducer<'a>>(vp: VP, n: usize) -> Skip<'a, VP> {
+    pub fn skip<'a>(vp: ValueProducer<'a>, n: usize) -> Skip<'a> {
         Skip::new(vp, n)
     }
 
@@ -163,7 +163,7 @@ impl Impl {
         seq.into_iter().skip(n).collect()
     }
 
-    pub fn take<'a, VP: ValueProducer<'a>>(vp: VP, n: usize) -> Take<'a, VP> {
+    pub fn take<'a>(vp: ValueProducer<'a>, n: usize) -> Take<'a> {
         Take::new(vp, n)
     }
 
@@ -171,43 +171,43 @@ impl Impl {
         seq.into_iter().take(n).collect()
     }
 
-    pub fn skip_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> SkipWhile<VP> {
+    pub fn skip_while<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> SkipWhile<'a> {
         SkipWhile::new(vp, u_pred)
     }
 
     pub fn skip_while_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the predicate to fail.
-        SkipWhile::new(Fixed::new(seq), u_pred).collect()
+        SkipWhile::new(ValueProducer::fixed(seq), u_pred).collect()
     }
 
-    pub fn take_while<'a, VP: ValueProducer<'a>>(vp: VP, u_pred: UnaryPred) -> TakeWhile<VP> {
+    pub fn take_while<'a>(vp: ValueProducer<'a>, u_pred: UnaryPred) -> TakeWhile<'a> {
         TakeWhile::new(vp, u_pred)
     }
 
     pub fn take_while_s(seq: Vec<MetaVal>, u_pred: UnaryPred) -> Result<Vec<MetaVal>, Error> {
         // It is possible for the predicate to fail.
-        TakeWhile::new(Fixed::new(seq), u_pred).collect()
+        TakeWhile::new(ValueProducer::fixed(seq), u_pred).collect()
     }
 
-    pub fn intersperse<'a, VP: ValueProducer<'a>>(vp: VP, mv: MetaVal<'a>) -> Intersperse<'a, VP> {
+    pub fn intersperse<'a>(vp: ValueProducer<'a>, mv: MetaVal<'a>) -> Intersperse<'a> {
         Intersperse::new(vp, mv)
     }
 
     pub fn intersperse_s<'a>(seq: Vec<MetaVal<'a>>, mv: MetaVal<'a>) -> Vec<MetaVal<'a>> {
         // Interspersing cannot fail.
-        match Intersperse::new(Fixed::new(seq), mv).collect::<Result<Vec<MetaVal>, _>>() {
+        match Intersperse::new(ValueProducer::fixed(seq), mv).collect::<Result<Vec<MetaVal>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => seq,
         }
     }
 
-    pub fn interleave<'a, VPA: ValueProducer<'a>, VPB: ValueProducer<'a>>(vp_a: VPA, vp_b: VPB) -> Interleave<VPA, VPB> {
+    pub fn interleave<'a>(vp_a: ValueProducer<'a>, vp_b: ValueProducer<'a>) -> Interleave<'a> {
         Interleave::new(vp_a, vp_b)
     }
 
     pub fn interleave_s<'a>(seq_a: Vec<MetaVal<'a>>, seq_b: Vec<MetaVal<'a>>) -> Vec<MetaVal<'a>> {
         // Interleaving cannot fail.
-        match Interleave::new(Fixed::new(seq_a), Fixed::new(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
+        match Interleave::new(ValueProducer::fixed(seq_a), ValueProducer::fixed(seq_b)).collect::<Result<Vec<MetaVal>, _>>() {
             Err(_) => unreachable!(),
             Ok(seq) => seq,
         }
@@ -223,8 +223,7 @@ mod tests {
     use crate::metadata::types::MetaVal;
     use crate::functions::Error;
     use crate::functions::ErrorKind;
-    use crate::functions::util::value_producer::Raw;
-    use crate::functions::util::NumberLike;
+    use crate::functions::util::value_producer::ValueProducer as VP;
 
     fn is_even_int(mv: &MetaVal) -> Result<bool, Error> {
         match mv {
@@ -312,7 +311,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::nth(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::nth(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -392,7 +391,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::all(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::all(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -492,7 +491,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::any(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::any(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -588,7 +587,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::find(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::find(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -680,7 +679,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::position(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into);
+            let produced = Impl::position(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into);
             assert_eq!(expected, produced);
         }
     }
@@ -772,7 +771,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::filter(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::filter(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -859,7 +858,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::map(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::map(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -952,7 +951,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::step_by(Raw::new(input_a), input_b).map_err(Into::<ErrorKind>::into).map(|it| it.map(|r| r.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>());
+            let produced = Impl::step_by(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into).map(|it| it.map(|r| r.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>());
             assert_eq!(expected, produced);
         }
     }
@@ -1036,7 +1035,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::chain(Raw::new(input_a), Raw::new(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::chain(VP::raw(input_a), VP::raw(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -1153,7 +1152,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::zip(Raw::new(input_a), Raw::new(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::zip(VP::raw(input_a), VP::raw(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -1281,7 +1280,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::skip(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::skip(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -1385,7 +1384,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::take(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::take(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -1469,7 +1468,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::skip_while(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::skip_while(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
@@ -1549,7 +1548,7 @@ mod tests {
 
         for (inputs, expected) in inputs_and_expected {
             let (input_a, input_b) = inputs;
-            let produced = Impl::take_while(Raw::new(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+            let produced = Impl::take_while(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
     }
