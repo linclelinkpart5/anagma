@@ -22,3 +22,18 @@ impl<'o> TryFrom<Operand<'o>> for ValueProducer<'o> {
         }
     }
 }
+
+impl<'o> TryFrom<Operand<'o>> for usize {
+    type Error = Error;
+
+    fn try_from(o: Operand<'o>) -> Result<Self, Self::Error> {
+        match o {
+            Operand::Usize(u) => Ok(u),
+            Operand::Value(MetaVal::Int(i)) => {
+                if i < 0 { Err(Error::NotUsize) }
+                else { Ok(i as usize) }
+            },
+            _ => Err(Error::NotUsize),
+        }
+    }
+}
