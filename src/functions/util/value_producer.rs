@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
+use std::convert::TryFrom;
 use std::iter::FusedIterator;
 
 use crate::metadata::stream::value::MetaValueStream;
@@ -26,6 +27,26 @@ pub enum ValueProducer<'v> {
     TakeWhile(TakeWhile<'v>),
     Intersperse(Intersperse<'v>),
     Interleave(Interleave<'v>),
+}
+
+impl<'v> From<Vec<MetaVal<'v>>> for ValueProducer<'v> {
+    fn from(v: Vec<MetaVal<'v>>) -> Self {
+        Self::Fixed(v.into())
+    }
+}
+
+impl<'v> From<Vec<Result<MetaVal<'v>, Error>>> for ValueProducer<'v> {
+    fn from(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+        Self::Raw(v.into())
+    }
+}
+
+impl<'v> TryFrom<ValueProducer<'v>> for Vec<MetaVal<'v>> {
+    type Error = Error;
+
+    fn try_from(vp: ValueProducer<'v>) -> Result<Self, Self::Error> {
+        vp.collect()
+    }
 }
 
 impl<'v> ValueProducer<'v> {
@@ -96,6 +117,12 @@ impl<'v> Iterator for Fixed<'v> {
     }
 }
 
+impl<'v> From<Vec<MetaVal<'v>>> for Fixed<'v> {
+    fn from(v: Vec<MetaVal<'v>>) -> Self {
+        Fixed::new(v)
+    }
+}
+
 pub struct Raw<'v>(std::vec::IntoIter<Result<MetaVal<'v>, Error>>);
 
 impl<'v> Raw<'v> {
@@ -109,6 +136,12 @@ impl<'v> Iterator for Raw<'v> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
+    }
+}
+
+impl<'v> From<Vec<Result<MetaVal<'v>, Error>>> for Raw<'v> {
+    fn from(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+        Raw::new(v)
     }
 }
 

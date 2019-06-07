@@ -9,6 +9,7 @@ use crate::functions::util::value_producer::ValueProducer;
 pub enum Operand<'o> {
     Producer(ValueProducer<'o>),
     Value(MetaVal<'o>),
+    Usize(usize),
 }
 
 impl<'o> TryFrom<Operand<'o>> for ValueProducer<'o> {
@@ -17,7 +18,7 @@ impl<'o> TryFrom<Operand<'o>> for ValueProducer<'o> {
     fn try_from(o: Operand<'o>) -> Result<Self, Self::Error> {
         match o {
             Operand::Producer(vp) => Ok(vp),
-            Operand::Value(..) => Err(Error::NotProducer),
+            _ => Err(Error::NotProducer),
         }
     }
 }
