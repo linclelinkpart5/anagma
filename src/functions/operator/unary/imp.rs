@@ -22,6 +22,25 @@ enum SumProd { Sum, Prod, }
 pub struct Impl;
 
 impl Impl {
+    // pub fn all_equal_c<'c>(c_mv: Cow<'c, MetaVal<'c>>) -> Result<bool, Error> {
+    //     match c_mv.as_ref() {
+    //         &MetaVal::Seq(ref seq) => {
+    //             let mut it = seq.into_iter();
+    //             match it.next() {
+    //                 None => Ok(true),
+    //                 Some(first_mv) => {
+    //                     for mv in it {
+    //                         if mv != first_mv { return Ok(false) }
+    //                     }
+
+    //                     Ok(true)
+    //                 },
+    //             }
+    //         },
+    //         _ => Err(Error::NotSequence)
+    //     }
+    // }
+
     pub fn collect<'a>(vp: ValueProducer<'a>) -> Result<Vec<MetaVal<'a>>, Error> {
         Ok(vp.collect::<Result<Vec<_>, _>>()?)
     }
