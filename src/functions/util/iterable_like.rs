@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::util::value_producer::ValueProducer;
+use crate::functions::util::value_producer::Flatten;
 use crate::functions::operand::Operand;
 
 pub enum IterableLike<'il> {
@@ -20,6 +21,13 @@ impl<'il> IterableLike<'il> {
 
     pub fn is_eager(&self) -> bool {
         !self.is_lazy()
+    }
+
+    pub fn flatten(self) -> Self {
+        match self {
+            Self::Sequence(s) => Self::Sequence(Flatten::new(s.into()).collect::<Result<Vec<_>, _>>().unwrap()),
+            Self::Producer(p) => Self::Producer(ValueProducer::Flatten(Flatten::new(p))),
+        }
     }
 }
 
