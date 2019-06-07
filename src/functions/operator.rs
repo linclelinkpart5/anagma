@@ -11,7 +11,6 @@ pub use self::binary::IterConsumer as BinaryIterConsumer;
 pub use self::binary::IterAdaptor as BinaryIterAdaptor;
 
 use std::convert::TryFrom;
-use std::convert::TryInto;
 
 use crate::functions::Error;
 use crate::metadata::types::MetaVal;
@@ -37,14 +36,3 @@ impl<'mv> TryFrom<&'mv MetaVal<'mv>> for &'mv Vec<MetaVal<'mv>> {
         }
     }
 }
-
-// impl<'a> TryFrom<MetaVal<'a>> for usize {
-//     type Error = Error;
-
-//     fn try_from(value: MetaVal<'a>) -> Result<Self, Self::Error> {
-//         match value {
-//             MetaVal::Int(i) => i.try_into().map_err(|_| Error::NotIndex),
-//             _ => Err(Error::NotIndex),
-//         }
-//     }
-// }

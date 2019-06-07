@@ -6,7 +6,6 @@ use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
 use std::collections::BTreeMap;
-use std::borrow::Cow;
 
 use tempfile::Builder;
 use tempfile::TempDir;
@@ -19,7 +18,6 @@ use crate::metadata::types::MetaVal;
 use crate::metadata::types::MetaKey;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaStructure;
-use crate::metadata::stream::value::FixedMetaValueStream;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -440,9 +438,9 @@ impl TestUtil {
         MetaVal::Seq(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
     }
 
-    pub fn sample_nested_sequence() -> MetaVal<'static> {
-        MetaVal::Seq(Self::core_nested_sequence())
-    }
+    // pub fn sample_nested_sequence() -> MetaVal<'static> {
+    //     MetaVal::Seq(Self::core_nested_sequence())
+    // }
 
     // pub fn sample_nested_mapping() -> MetaVal<'static> {
     //     MetaVal::Map(Self::core_nested_mapping())
@@ -495,12 +493,12 @@ impl TestUtil {
     //     map
     // }
 
-    pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedMetaValueStream<'a>
-    where
-        II: IntoIterator<Item = MetaVal<'a>>,
-    {
-        FixedMetaValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
-    }
+    // pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedMetaValueStream<'a>
+    // where
+    //     II: IntoIterator<Item = MetaVal<'a>>,
+    // {
+    //     FixedMetaValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
+    // }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");

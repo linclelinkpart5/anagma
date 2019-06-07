@@ -1,7 +1,6 @@
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::util::value_producer::ValueProducer;
-use crate::functions::util::value_producer::Fixed;
 use crate::functions::util::value_producer::Filter;
 use crate::functions::util::value_producer::Map;
 use crate::functions::util::value_producer::StepBy;
@@ -236,20 +235,6 @@ mod tests {
         match mv {
             MetaVal::Bul(..) => Ok(true),
             _ => Ok(false),
-        }
-    }
-
-    fn is_integer(mv: &MetaVal) -> Result<bool, Error> {
-        match mv {
-            MetaVal::Int(..) => Ok(true),
-            _ => Ok(false),
-        }
-    }
-
-    fn is_gt_6_int(mv: &MetaVal) -> Result<bool, Error> {
-        match mv {
-            MetaVal::Int(i) => Ok(i > &6),
-            _ => Err(Error::NotNumeric),
         }
     }
 

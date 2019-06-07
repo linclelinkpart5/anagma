@@ -129,11 +129,7 @@ impl MulAssign for NumberLike {
 mod tests {
     use super::NumberLike as NL;
 
-    use std::convert::TryInto;
-
     use rand::seq::SliceRandom;
-
-    use crate::test_util::TestUtil;
 
     #[test]
     fn test_val_cmp() {
@@ -176,12 +172,12 @@ mod tests {
         assert_eq!(expected, produced);
     }
 
-    #[test]
-    fn test_add_assign() {
-        let inputs_and_expetced = vec![
-            ((NL::Integer(1), NL::Integer(2)), NL::Integer(3)),
-            ((NL::Integer(-1), NL::Integer(2)), NL::Integer(1)),
-            ((NL::Integer(1), NL::Decimal(2.into())), NL::Decimal(3.into())),
-        ];
-    }
+    // #[test]
+    // fn test_add_assign() {
+    //     let inputs_and_expected = vec![
+    //         ((NL::Integer(1), NL::Integer(2)), NL::Integer(3)),
+    //         ((NL::Integer(-1), NL::Integer(2)), NL::Integer(1)),
+    //         ((NL::Integer(1), NL::Decimal(2.into())), NL::Decimal(3.into())),
+    //     ];
+    // }
 }

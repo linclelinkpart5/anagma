@@ -169,8 +169,6 @@ mod tests {
     use std::collections::VecDeque;
     use crate::test_util::TestUtil;
 
-    use rust_decimal::Decimal;
-
     use crate::metadata::types::MetaKey;
     use crate::metadata::types::MetaVal;
     use crate::config::selection::Selection;
