@@ -37,7 +37,7 @@ pub enum Op {
     Unique,
     Neg,
     Abs,
-    // Not,
+    Not,
 }
 
 impl Op {
@@ -127,6 +127,12 @@ impl Op {
             },
             &Self::Neg => Ok(Impl::neg(o.try_into()?).into()),
             &Self::Abs => Ok(Impl::abs(o.try_into()?).into()),
+            &Self::Not => {
+                match o {
+                    Operand::Value(MetaVal::Bul(b)) => Ok(Operand::Value(MetaVal::Bul(Impl::not(b)))),
+                    _ => Err(Error::NotBoolean),
+                }
+            },
         }
     }
 }

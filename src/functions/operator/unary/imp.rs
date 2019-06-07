@@ -241,6 +241,10 @@ impl Impl {
             NumberLike::Decimal(d) => NumberLike::Decimal(d.abs()),
         }
     }
+
+    pub fn not(b: bool) -> bool {
+        !b
+    }
 }
 
 #[cfg(test)]
