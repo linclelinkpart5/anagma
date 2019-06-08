@@ -9,6 +9,8 @@ use crate::functions::util::value_producer::Dedup;
 use crate::functions::util::value_producer::Unique;
 use crate::functions::util::value_producer::Filter;
 use crate::functions::util::value_producer::Map;
+use crate::functions::util::value_producer::StepBy;
+use crate::functions::util::value_producer::Chain;
 use crate::functions::operand::Operand;
 use crate::functions::util::NumberLike;
 use crate::functions::util::UnaryPred;
@@ -280,28 +282,43 @@ impl<'il> IterableLike<'il> {
         Err(Error::ItemNotFound)
     }
 
-    pub fn filter(self, u_pred: UnaryPred) -> Self {
-        match self {
-            Self::Sequence(s) => Self::Sequence(Filter::new(s.into(), u_pred).collect::<Result<Vec<_>, _>>().unwrap()),
+    pub fn filter(self, u_pred: UnaryPred) -> Result<Self, Error> {
+        Ok(match self {
+            Self::Sequence(s) => Self::Sequence(Filter::new(s.into(), u_pred).collect::<Result<Vec<_>, _>>()?),
             Self::Producer(p) => Self::Producer(ValueProducer::Filter(Filter::new(p, u_pred))),
-        }
+        })
     }
 
-    pub fn map(self, u_conv: UnaryConv) -> Self {
-        match self {
-            Self::Sequence(s) => Self::Sequence(Map::new(s.into(), u_conv).collect::<Result<Vec<_>, _>>().unwrap()),
+    pub fn map(self, u_conv: UnaryConv) -> Result<Self, Error> {
+        Ok(match self {
+            Self::Sequence(s) => Self::Sequence(Map::new(s.into(), u_conv).collect::<Result<Vec<_>, _>>()?),
             Self::Producer(p) => Self::Producer(ValueProducer::Map(Map::new(p, u_conv))),
-        }
+        })
     }
 
-    // pub fn step_by(self, step: usize) -> Self {
-    // }
+    pub fn step_by(self, step: usize) -> Result<Self, Error> {
+        Ok(match self {
+            Self::Sequence(s) => Self::Sequence(StepBy::new(s.into(), step)?.collect::<Result<Vec<_>, _>>()?),
+            Self::Producer(p) => Self::Producer(ValueProducer::StepBy(StepBy::new(p, step)?)),
+        })
+    }
 
-    // pub fn chain(self, other: IterableLike<'il>) -> Self {
-    // }
+    pub fn chain(self, other: IterableLike<'il>) -> Self {
+        let (new_p_a, new_p_b) = match (self, other) {
+            (Self::Sequence(s_a), Self::Sequence(s_b)) => {
+                let mut s_a = s_a;
+                s_a.extend(s_b);
+                return Self::Sequence(s_a)
+            },
+            (Self::Sequence(s_a), Self::Producer(p_b)) => (ValueProducer::from(s_a), p_b),
+            (Self::Producer(p_a), Self::Sequence(s_b)) => (p_a, ValueProducer::from(s_b)),
+            (Self::Producer(p_a), Self::Producer(p_b)) => (p_a, p_b),
+        };
+
+        Self::Producer(ValueProducer::Chain(Chain::new(new_p_a, new_p_b)))
+    }
 
     // pub fn zip(self, other: IterableLike<'il>) -> Self {
-    // }
 
     // pub fn skip(self, n: usize) -> Self {
     // }
@@ -350,6 +367,26 @@ impl<'il> TryFrom<MetaVal<'il>> for IterableLike<'il> {
         match value {
             MetaVal::Seq(s) => Ok(Self::Sequence(s)),
             _ => Err(Error::NotIterable),
+        }
+    }
+}
+
+impl<'il> From<IterableLike<'il>> for ValueProducer<'il> {
+    fn from(il: IterableLike<'il>) -> Self {
+        match il {
+            IterableLike::Sequence(s) => s.into(),
+            IterableLike::Producer(p) => p,
+        }
+    }
+}
+
+impl<'il> TryFrom<IterableLike<'il>> for Vec<MetaVal<'il>> {
+    type Error = Error;
+
+    fn try_from(il: IterableLike<'il>) -> Result<Self, Self::Error> {
+        match il {
+            IterableLike::Sequence(s) => Ok(s),
+            IterableLike::Producer(p) => p.collect(),
         }
     }
 }
