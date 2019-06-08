@@ -69,14 +69,19 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    fn min_in_max_in<'a, EF: FnOnce() -> Error>(vp: ValueProducer<'a>, flag: MinMax, ef: EF) -> Result<NumberLike, Error> {
-        let mut vp = vp.into_iter();
-        match vp.next() {
-            None => Err(ef()),
+    fn min_in_max_in(self, flag: MinMax) -> Result<NumberLike, Error> {
+        let (new_p, err) = match self {
+            Self::Sequence(s) => (ValueProducer::from(s), Error::EmptySequence),
+            Self::Producer(p) => (p, Error::EmptyProducer),
+        };
+
+        let mut it = new_p.into_iter();
+        match it.next() {
+            None => Err(err),
             Some(first_res_mv) => {
                 let mut target_nl: NumberLike = first_res_mv?.try_into()?;
 
-                for res_mv in vp {
+                for res_mv in it {
                     let nl: NumberLike = res_mv?.try_into()?;
                     target_nl = match flag {
                         MinMax::Min => target_nl.val_min(nl),
@@ -89,8 +94,14 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    // pub fn min_in(self) -> Result<NumberLike, Error> {
-    // pub fn max_in(self) -> Result<NumberLike, Error> {
+    pub fn min_in(self) -> Result<NumberLike, Error> {
+        self.min_in_max_in(MinMax::Min)
+    }
+
+    pub fn max_in(self) -> Result<NumberLike, Error> {
+        self.min_in_max_in(MinMax::Max)
+    }
+
     // pub fn rev(self) -> Vec<MetaVal> {
     // pub fn sort(self) -> Vec<MetaVal> {
     // pub fn sum(self) -> Result<NumberLike, Error> {
