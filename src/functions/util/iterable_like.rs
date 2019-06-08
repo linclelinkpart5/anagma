@@ -23,6 +23,19 @@ enum RevSort { Rev, Sort, }
 #[derive(Clone, Copy)]
 enum SumProd { Sum, Prod, }
 
+#[derive(Clone, Copy)]
+enum AllAny { All, Any, }
+
+impl AllAny {
+    fn target(self) -> bool {
+        match self {
+            Self::All => false,
+            Self::Any => true,
+        }
+    }
+}
+
+/// Represents one of several different kinds of iterables, producing meta values.
 pub enum IterableLike<'il> {
     Sequence(Vec<MetaVal<'il>>),
     Producer(ValueProducer<'il>),
@@ -196,6 +209,117 @@ impl<'il> IterableLike<'il> {
             Self::Producer(p) => Self::Producer(ValueProducer::Unique(Unique::new(p))),
         }
     }
+
+    pub fn nth(self, n: usize) -> Result<MetaVal<'il>, Error> {
+        match self {
+            Self::Sequence(s) => s.into_iter().nth(n).ok_or(Error::OutOfBounds),
+            Self::Producer(p) => {
+                let mut i = 0;
+                for res_mv in p {
+                    let mv = res_mv?;
+
+                    if i == n { return Ok(mv) }
+                    else { i += 1; }
+                }
+
+                Err(Error::OutOfBounds)
+            },
+        }
+    }
+
+    fn all_any(self, u_pred: UnaryPred, flag: AllAny) -> Result<bool, Error> {
+        let new_p = match self {
+            Self::Sequence(s) => ValueProducer::from(s),
+            Self::Producer(p) => p,
+        };
+
+        let target = flag.target();
+        for res_mv in new_p {
+            let mv = res_mv?;
+            if u_pred(&mv)? == target { return Ok(target) }
+        }
+
+        Ok(!target)
+    }
+
+    pub fn all(self, u_pred: UnaryPred) -> Result<bool, Error> {
+        self.all_any(u_pred, AllAny::All)
+    }
+
+    pub fn any(self, u_pred: UnaryPred) -> Result<bool, Error> {
+        self.all_any(u_pred, AllAny::Any)
+    }
+
+    pub fn find(self, u_pred: UnaryPred) -> Result<MetaVal<'il>, Error> {
+        let new_p = match self {
+            Self::Sequence(s) => ValueProducer::from(s),
+            Self::Producer(p) => p,
+        };
+
+        for res_mv in new_p {
+            let mv = res_mv?;
+            if u_pred(&mv)? { return Ok(mv) }
+        }
+
+        Err(Error::ItemNotFound)
+    }
+
+    pub fn position(self, u_pred: UnaryPred) -> Result<usize, Error> {
+        let new_p = match self {
+            Self::Sequence(s) => ValueProducer::from(s),
+            Self::Producer(p) => p,
+        };
+
+        let mut i = 0;
+        for res_mv in new_p {
+            let mv = res_mv?;
+            if u_pred(&mv)? { return Ok(i) }
+            i += 1;
+        }
+
+        Err(Error::ItemNotFound)
+    }
+
+    pub fn filter(self, u_pred: UnaryPred) -> Self {
+        match self {
+            Self::Sequence(s) => Self::Sequence(Filter::new(s.into(), u_pred).collect::<Result<Vec<_>, _>>().unwrap()),
+            Self::Producer(p) => Self::Producer(ValueProducer::Filter(Filter::new(p, u_pred))),
+        }
+    }
+
+    pub fn map(self, u_conv: UnaryConv) -> Self {
+        match self {
+            Self::Sequence(s) => Self::Sequence(Map::new(s.into(), u_conv).collect::<Result<Vec<_>, _>>().unwrap()),
+            Self::Producer(p) => Self::Producer(ValueProducer::Map(Map::new(p, u_conv))),
+        }
+    }
+
+    // pub fn step_by(self, step: usize) -> Self {
+    // }
+
+    // pub fn chain(self, other: IterableLike<'il>) -> Self {
+    // }
+
+    // pub fn zip(self, other: IterableLike<'il>) -> Self {
+    // }
+
+    // pub fn skip(self, n: usize) -> Self {
+    // }
+
+    // pub fn take(self, n: usize) -> Self {
+    // }
+
+    // pub fn skip_while(self, u_pred: UnaryPred) -> Self {
+    // }
+
+    // pub fn take_while(self, u_pred: UnaryPred) -> Self {
+    // }
+
+    // pub fn intersperse(self, mv: MetaVal<'il>) -> Self {
+    // }
+
+    // pub fn interleave(self, other: IterableLike<'il>) -> Self {
+    // }
 }
 
 impl<'il> From<IterableLike<'il>> for Operand<'il> {
