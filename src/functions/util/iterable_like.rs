@@ -40,6 +40,13 @@ impl<'il> IterableLike<'il> {
         !self.is_lazy()
     }
 
+    pub fn collect(self) -> Result<Vec<MetaVal<'il>>, Error> {
+        match self {
+            Self::Sequence(s) => Ok(s),
+            Self::Producer(p) => p.collect::<Result<Vec<_>, _>>(),
+        }
+    }
+
     pub fn count(self) -> Result<usize, Error> {
         match self {
             Self::Sequence(s) => Ok(s.len()),
@@ -102,10 +109,72 @@ impl<'il> IterableLike<'il> {
         self.min_in_max_in(MinMax::Max)
     }
 
-    // pub fn rev(self) -> Vec<MetaVal> {
-    // pub fn sort(self) -> Vec<MetaVal> {
-    // pub fn sum(self) -> Result<NumberLike, Error> {
-    // pub fn prod(self) -> Result<NumberLike, Error> {
+    fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> std::cmp::Ordering {
+        // Smooth over comparsions between integers and decimals.
+        // TODO: Create a stable ordering for equal integers and decimals. (e.g. I(5) vs D(5.0))
+        match (a, b) {
+            (&MetaVal::Int(ref i), &MetaVal::Dec(ref d)) => {
+                let i_d = (*i).into();
+                // NOTE: Do this to avoid having to import other modules just for type inference.
+                d.cmp(&i_d).reverse()
+            },
+            (&MetaVal::Dec(ref d), &MetaVal::Int(ref i)) => {
+                let i_d = (*i).into();
+                d.cmp(&i_d)
+            },
+            (na, nb) => na.cmp(&nb),
+        }
+    }
+
+    fn rev_sort(self, flag: RevSort) -> Result<Vec<MetaVal<'il>>, Error> {
+        let mut new_s = self.collect()?;
+
+        match flag {
+            RevSort::Rev => new_s.reverse(),
+            RevSort::Sort => new_s.sort_by(Self::smart_sort_by),
+        };
+
+        Ok(new_s)
+    }
+
+    pub fn rev(self) -> Result<Vec<MetaVal<'il>>, Error> {
+        self.rev_sort(RevSort::Rev)
+    }
+
+    pub fn sort(self) -> Result<Vec<MetaVal<'il>>, Error> {
+        self.rev_sort(RevSort::Sort)
+    }
+
+    fn sum_prod(self, flag: SumProd) -> Result<NumberLike, Error> {
+        let mut total = match flag {
+            SumProd::Sum => NumberLike::Integer(0),
+            SumProd::Prod => NumberLike::Integer(1),
+        };
+
+        let new_p = match self {
+            Self::Sequence(s) => ValueProducer::from(s),
+            Self::Producer(p) => p,
+        };
+
+        for res_mv in new_p {
+            let nl: NumberLike = res_mv?.try_into()?;
+
+            match flag {
+                SumProd::Sum => { total += nl; },
+                SumProd::Prod => { total *= nl; },
+            };
+        }
+
+        Ok(total)
+    }
+
+    pub fn sum(self) -> Result<NumberLike, Error> {
+        self.sum_prod(SumProd::Sum)
+    }
+
+    pub fn prod(self) -> Result<NumberLike, Error> {
+        self.sum_prod(SumProd::Prod)
+    }
 
     pub fn flatten(self) -> Self {
         match self {
