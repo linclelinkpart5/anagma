@@ -83,6 +83,12 @@ impl<'k> From<Decimal> for MetaVal<'k> {
     }
 }
 
+impl<'k> From<Vec<MetaVal<'k>>> for MetaVal<'k> {
+    fn from(s: Vec<MetaVal<'k>>) -> Self {
+        Self::Seq(s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::MetaVal;

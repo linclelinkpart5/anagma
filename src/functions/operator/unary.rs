@@ -10,6 +10,7 @@ pub use self::iter_consumer::IterConsumer;
 pub use self::iter_adaptor::IterAdaptor;
 
 use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use self::imp::Impl;
 
@@ -43,70 +44,28 @@ pub enum Op {
 impl Op {
     pub fn process<'a>(&self, o: Operand<'a>) -> Result<Operand<'a>, Error> {
         match self {
-            &Self::Collect => Impl::collect(o.try_into()?)
-                .map(MetaVal::Seq)
-                .map(Operand::Value)
-            ,
-            &Self::Count => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Ok(Impl::count_s(s)),
-                    IterableLike::Producer(p) => Impl::count(p),
-                }.map(Operand::Usize)
-            },
-            &Self::First => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Impl::first_s(s),
-                    IterableLike::Producer(p) => Impl::first(p),
-                }.map(Operand::Value)
-            },
-            &Self::Last => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Impl::last_s(s),
-                    IterableLike::Producer(p) => Impl::last(p),
-                }.map(Operand::Value)
-            },
-            &Self::MinIn => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Impl::min_in_s(s),
-                    IterableLike::Producer(p) => Impl::min_in(p),
-                }.map(MetaVal::from).map(Operand::Value)
-            },
-            &Self::MaxIn => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Impl::max_in_s(s),
-                    IterableLike::Producer(p) => Impl::max_in(p),
-                }.map(MetaVal::from).map(Operand::Value)
-            },
-            &Self::Rev => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Ok(Impl::rev_s(s)),
-                    IterableLike::Producer(p) => Impl::rev(p),
-                }.map(MetaVal::Seq).map(Operand::Value)
-            },
-            &Self::Sort => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Ok(Impl::sort_s(s)),
-                    IterableLike::Producer(p) => Impl::sort(p),
-                }.map(MetaVal::Seq).map(Operand::Value)
-            },
-            &Self::Sum => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Impl::sum_s(s),
-                    IterableLike::Producer(p) => Impl::sum(p),
-                }.map(MetaVal::from).map(Operand::Value)
-            },
-            &Self::Prod => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Impl::prod_s(s),
-                    IterableLike::Producer(p) => Impl::prod(p),
-                }.map(MetaVal::from).map(Operand::Value)
-            },
-            &Self::AllEqual => {
-                match o.try_into()? {
-                    IterableLike::Sequence(ref s) => Ok(Impl::all_equal_rs(s)),
-                    IterableLike::Producer(p) => Impl::all_equal(p),
-                }.map(MetaVal::Bul).map(Operand::Value)
-            },
+            &Self::Collect =>
+                IterableLike::try_from(o)?.collect().map(Operand::from),
+            &Self::Count =>
+                IterableLike::try_from(o)?.count().map(Operand::from),
+            &Self::First =>
+                IterableLike::try_from(o)?.first().map(Operand::from),
+            &Self::Last =>
+                IterableLike::try_from(o)?.last().map(Operand::from),
+            &Self::MinIn =>
+                IterableLike::try_from(o)?.min_in().map(Operand::from),
+            &Self::MaxIn =>
+                IterableLike::try_from(o)?.max_in().map(Operand::from),
+            &Self::Rev =>
+                IterableLike::try_from(o)?.rev().map(Operand::from),
+            &Self::Sort =>
+                IterableLike::try_from(o)?.sort().map(Operand::from),
+            &Self::Sum =>
+                IterableLike::try_from(o)?.sum().map(Operand::from),
+            &Self::Prod =>
+                IterableLike::try_from(o)?.prod().map(Operand::from),
+            &Self::AllEqual =>
+                IterableLike::try_from(o)?.all_equal().map(Operand::from),
             &Self::Flatten => {
                 match o.try_into()? {
                     IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::flatten_s(s)))),

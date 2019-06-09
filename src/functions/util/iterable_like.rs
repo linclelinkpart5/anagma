@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
@@ -194,6 +195,48 @@ impl<'il> IterableLike<'il> {
 
     pub fn prod(self) -> Result<NumberLike, Error> {
         self.sum_prod(SumProd::Prod)
+    }
+
+    fn all_equal_agnostic<'a, I>(it: I) -> Result<bool, Error>
+    where
+        I: Iterator<Item = Result<Cow<'a, MetaVal<'a>>, Error>>,
+    {
+        let mut it = it.into_iter();
+        Ok(match it.next() {
+            None => true,
+            Some(res_first_mv) => {
+                let first_mv = res_first_mv?;
+                for res_mv in it {
+                    let mv = res_mv?;
+                    if mv != first_mv { return Ok(false) }
+                }
+
+                true
+            },
+        })
+    }
+
+    fn all_equal_s<'a>(r_s: &Vec<MetaVal<'a>>) -> Result<bool, Error> {
+        Self::all_equal_agnostic(r_s.into_iter().map(Cow::Borrowed).map(Result::Ok))
+    }
+
+    fn all_equal_pred<'a>(ref_mv: &MetaVal<'a>) -> Result<bool, Error> {
+        // Conforms to the predicate interface.
+        match ref_mv {
+            &MetaVal::Seq(ref s) => Self::all_equal_s(&s),
+            _ => Err(Error::NotSequence),
+        }
+    }
+
+    fn all_equal_p<'a>(p: ValueProducer<'a>) -> Result<bool, Error> {
+        Self::all_equal_agnostic(p.map(|res| res.map(Cow::Owned)))
+    }
+
+    pub fn all_equal(self) -> Result<bool, Error> {
+        match self {
+            Self::Sequence(ref s) => Self::all_equal_s(&s),
+            Self::Producer(p) => Self::all_equal_p(p),
+        }
     }
 
     pub fn flatten(self) -> Self {

@@ -74,11 +74,12 @@ impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
     }
 }
 
-impl<'k> From<NumberLike> for Operand<'k> {
-    fn from(nl: NumberLike) -> Operand<'k> {
-        Operand::Value(nl.into())
-    }
-}
+// NOTE: Superseded by blanket impl.
+// impl<'k> From<NumberLike> for Operand<'k> {
+//     fn from(nl: NumberLike) -> Operand<'k> {
+//         Operand::Value(nl.into())
+//     }
+// }
 
 impl<'k> TryFrom<Operand<'k>> for NumberLike {
     type Error = Error;

@@ -37,3 +37,18 @@ impl<'o> TryFrom<Operand<'o>> for usize {
         }
     }
 }
+
+impl<'o> From<usize> for Operand<'o> {
+    fn from(u: usize) -> Self {
+        Operand::Usize(u)
+    }
+}
+
+impl<'o, I> From<I> for Operand<'o>
+where
+    I: Into<MetaVal<'o>>,
+{
+    fn from(i: I) -> Self {
+        Operand::Value(i.into())
+    }
+}
