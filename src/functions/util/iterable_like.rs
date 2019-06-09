@@ -11,6 +11,11 @@ use crate::functions::util::value_producer::Filter;
 use crate::functions::util::value_producer::Map;
 use crate::functions::util::value_producer::StepBy;
 use crate::functions::util::value_producer::Chain;
+use crate::functions::util::value_producer::Zip;
+use crate::functions::util::value_producer::Skip;
+use crate::functions::util::value_producer::Take;
+use crate::functions::util::value_producer::SkipWhile;
+use crate::functions::util::value_producer::TakeWhile;
 use crate::functions::operand::Operand;
 use crate::functions::util::NumberLike;
 use crate::functions::util::UnaryPred;
@@ -318,19 +323,68 @@ impl<'il> IterableLike<'il> {
         Self::Producer(ValueProducer::Chain(Chain::new(new_p_a, new_p_b)))
     }
 
-    // pub fn zip(self, other: IterableLike<'il>) -> Self {
+    pub fn zip(self, other: IterableLike<'il>) -> Result<Self, Error> {
+        let collect_after = self.is_eager() && other.is_eager();
+        let (new_p_a, new_p_b) = match (self, other) {
+            (Self::Sequence(s_a), Self::Sequence(s_b)) => (ValueProducer::from(s_a), ValueProducer::from(s_b)),
+            (Self::Sequence(s_a), Self::Producer(p_b)) => (ValueProducer::from(s_a), p_b),
+            (Self::Producer(p_a), Self::Sequence(s_b)) => (p_a, ValueProducer::from(s_b)),
+            (Self::Producer(p_a), Self::Producer(p_b)) => (p_a, p_b),
+        };
 
-    // pub fn skip(self, n: usize) -> Self {
-    // }
+        let ret_p = ValueProducer::Zip(Zip::new(new_p_a, new_p_b));
 
-    // pub fn take(self, n: usize) -> Self {
-    // }
+        Ok(match collect_after {
+            true => Self::Sequence(ret_p.try_into()?),
+            false => Self::Producer(ret_p),
+        })
+    }
 
-    // pub fn skip_while(self, u_pred: UnaryPred) -> Self {
-    // }
+    pub fn skip(self, n: usize) -> Self {
+        match self {
+            Self::Sequence(s) => {
+                let mut s = s;
+                if n >= s.len() { Self::Sequence(vec![]) }
+                else { Self::Sequence(s.split_off(n)) }
+            },
+            Self::Producer(s) => Self::Producer(ValueProducer::Skip(Skip::new(s, n))),
+        }
+    }
 
-    // pub fn take_while(self, u_pred: UnaryPred) -> Self {
-    // }
+    pub fn take(self, n: usize) -> Self {
+        match self {
+            Self::Sequence(s) => {
+                let mut s = s;
+                s.truncate(n);
+                Self::Sequence(s)
+            },
+            Self::Producer(s) => Self::Producer(ValueProducer::Take(Take::new(s, n))),
+        }
+    }
+
+    pub fn skip_while(self, u_pred: UnaryPred) -> Result<Self, Error> {
+        let collect_after = self.is_eager();
+        let p = ValueProducer::from(self);
+
+        let ret_p = ValueProducer::SkipWhile(SkipWhile::new(p, u_pred));
+
+        Ok(match collect_after {
+            true => Self::Sequence(ret_p.try_into()?),
+            false => Self::Producer(ret_p),
+        })
+    }
+
+    pub fn take_while(self, u_pred: UnaryPred) -> Result<Self, Error> {
+        let collect_after = self.is_eager();
+        let p = ValueProducer::from(self);
+
+        let ret_p = ValueProducer::TakeWhile(TakeWhile::new(p, u_pred));
+
+        Ok(match collect_after {
+            true => Self::Sequence(ret_p.try_into()?),
+            false => Self::Producer(ret_p),
+        })
+    }
 
     // pub fn intersperse(self, mv: MetaVal<'il>) -> Self {
     // }
