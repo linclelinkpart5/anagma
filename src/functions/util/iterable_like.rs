@@ -239,25 +239,25 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    pub fn flatten(self) -> Self {
-        match self {
-            Self::Sequence(s) => Self::Sequence(Flatten::new(s.into()).collect::<Result<Vec<_>, _>>().unwrap()),
+    pub fn flatten(self) -> Result<Self, Error> {
+        Ok(match self {
+            Self::Sequence(s) => Self::Sequence(Flatten::new(s.into()).collect::<Result<Vec<_>, _>>()?),
             Self::Producer(p) => Self::Producer(ValueProducer::Flatten(Flatten::new(p))),
-        }
+        })
     }
 
-    pub fn dedup(self) -> Self {
-        match self {
-            Self::Sequence(s) => Self::Sequence(Dedup::new(s.into()).collect::<Result<Vec<_>, _>>().unwrap()),
+    pub fn dedup(self) -> Result<Self, Error> {
+        Ok(match self {
+            Self::Sequence(s) => Self::Sequence(Dedup::new(s.into()).collect::<Result<Vec<_>, _>>()?),
             Self::Producer(p) => Self::Producer(ValueProducer::Dedup(Dedup::new(p))),
-        }
+        })
     }
 
-    pub fn unique(self) -> Self {
-        match self {
-            Self::Sequence(s) => Self::Sequence(Unique::new(s.into()).collect::<Result<Vec<_>, _>>().unwrap()),
+    pub fn unique(self) -> Result<Self, Error> {
+        Ok(match self {
+            Self::Sequence(s) => Self::Sequence(Unique::new(s.into()).collect::<Result<Vec<_>, _>>()?),
             Self::Producer(p) => Self::Producer(ValueProducer::Unique(Unique::new(p))),
-        }
+        })
     }
 
     pub fn nth(self, n: usize) -> Result<MetaVal<'il>, Error> {

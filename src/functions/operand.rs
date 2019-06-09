@@ -38,6 +38,17 @@ impl<'o> TryFrom<Operand<'o>> for usize {
     }
 }
 
+impl<'o> TryFrom<Operand<'o>> for bool {
+    type Error = Error;
+
+    fn try_from(o: Operand<'o>) -> Result<Self, Self::Error> {
+        match o {
+            Operand::Value(MetaVal::Bul(b)) => Ok(b),
+            _ => Err(Error::NotBoolean),
+        }
+    }
+}
+
 impl<'o> From<usize> for Operand<'o> {
     fn from(u: usize) -> Self {
         Operand::Usize(u)

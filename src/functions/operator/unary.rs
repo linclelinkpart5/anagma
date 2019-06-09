@@ -12,13 +12,10 @@ pub use self::iter_adaptor::IterAdaptor;
 use std::convert::TryInto;
 use std::convert::TryFrom;
 
-use self::imp::Impl;
-
-use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::operand::Operand;
 use crate::functions::util::iterable_like::IterableLike;
-use crate::functions::util::value_producer::ValueProducer;
+use crate::functions::util::number_like::NumberLike;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
@@ -66,32 +63,33 @@ impl Op {
                 IterableLike::try_from(o)?.prod().map(Operand::from),
             &Self::AllEqual =>
                 IterableLike::try_from(o)?.all_equal().map(Operand::from),
-            &Self::Flatten => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::flatten_s(s)))),
-                    IterableLike::Producer(p) => Ok(Operand::Producer(ValueProducer::Flatten(Impl::flatten(p)))),
-                }
-            },
-            &Self::Dedup => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::dedup_s(s)))),
-                    IterableLike::Producer(p) => Ok(Operand::Producer(ValueProducer::Dedup(Impl::dedup(p)))),
-                }
-            },
-            &Self::Unique => {
-                match o.try_into()? {
-                    IterableLike::Sequence(s) => Ok(Operand::Value(MetaVal::Seq(Impl::unique_s(s)))),
-                    IterableLike::Producer(p) => Ok(Operand::Producer(ValueProducer::Unique(Impl::unique(p)))),
-                }
-            },
-            &Self::Neg => Ok(Impl::neg(o.try_into()?).into()),
-            &Self::Abs => Ok(Impl::abs(o.try_into()?).into()),
-            &Self::Not => {
-                match o {
-                    Operand::Value(MetaVal::Bul(b)) => Ok(Operand::Value(MetaVal::Bul(Impl::not(b)))),
-                    _ => Err(Error::NotBoolean),
-                }
-            },
+            &Self::Flatten =>
+                IterableLike::try_from(o)?.flatten().map(Operand::from),
+            &Self::Dedup =>
+                IterableLike::try_from(o)?.dedup().map(Operand::from),
+            &Self::Unique =>
+                IterableLike::try_from(o)?.unique().map(Operand::from),
+            &Self::Neg => Ok(Self::neg(o.try_into()?).into()),
+            &Self::Abs => Ok(Self::abs(o.try_into()?).into()),
+            &Self::Not => Ok(Self::not(o.try_into()?).into()),
         }
+    }
+
+    fn neg(number: NumberLike) -> NumberLike {
+        match number {
+            NumberLike::Integer(i) => NumberLike::Integer(-i),
+            NumberLike::Decimal(d) => NumberLike::Decimal(if d == dec!(0) { d } else { -d }),
+        }
+    }
+
+    fn abs(number: NumberLike) -> NumberLike {
+        match number {
+            NumberLike::Integer(i) => NumberLike::Integer(i.abs()),
+            NumberLike::Decimal(d) => NumberLike::Decimal(d.abs()),
+        }
+    }
+
+    fn not(b: bool) -> bool {
+        !b
     }
 }
