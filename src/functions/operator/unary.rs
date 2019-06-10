@@ -2,7 +2,6 @@ pub mod converter;
 pub mod predicate;
 pub mod iter_consumer;
 pub mod iter_adaptor;
-pub mod imp;
 
 pub use self::converter::Converter;
 pub use self::predicate::Predicate;
