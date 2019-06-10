@@ -570,7 +570,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.collect().map_err(Into::<ErrorKind>::into);
+            let produced = input.collect().map_err(ErrorKind::from);
             assert_eq!(expected, produced);
         }
     }
@@ -605,7 +605,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.count().map_err(Into::<ErrorKind>::into);
+            let produced = input.count().map_err(ErrorKind::from);
             assert_eq!(expected, produced);
         }
     }
@@ -640,7 +640,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.first().map_err(Into::<ErrorKind>::into);
+            let produced = input.first().map_err(ErrorKind::from);
             assert_eq!(expected, produced);
         }
     }
@@ -675,7 +675,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.last().map_err(Into::<ErrorKind>::into);
+            let produced = input.last().map_err(ErrorKind::from);
             assert_eq!(expected, produced);
         }
     }
@@ -730,7 +730,7 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.min_in().map_err(Into::<ErrorKind>::into);
+            let produced = input.min_in().map_err(ErrorKind::from);
             assert_eq!(expected, produced);
         }
     }
@@ -785,392 +785,334 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = input.max_in().map_err(Into::<ErrorKind>::into);
+            let produced = input.max_in().map_err(ErrorKind::from);
             assert_eq!(expected, produced);
         }
     }
 
-    // #[test]
-    // fn test_rev() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //             Ok({ let mut s = TU::core_nested_sequence(); s.reverse(); s }),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1))],
-    //             Ok(vec![TU::i(1)]),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             Err(ErrorKind::Sentinel),
-    //         ),
-    //     ];
+    #[test]
+    fn test_rev() {
+        let inputs_and_expected: Vec<(IL, Result<Vec<MetaVal>, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(vec![]),
+            ),
+            (
+                TU::core_nested_sequence().into(),
+                Ok({ let mut s = TU::core_nested_sequence(); s.reverse(); s }),
+            ),
+            (
+                vec![TU::i(1)].into(),
+                Ok(vec![TU::i(1)]),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(vec![]),
+            ),
+            (
+                VP::fixed(TU::core_nested_sequence()).into(),
+                Ok({ let mut s = TU::core_nested_sequence(); s.reverse(); s }),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1))]).into(),
+                Ok(vec![TU::i(1)]),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.rev().map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.rev().map_err(ErrorKind::from);
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_rev_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_nested_sequence(),
-    //             { let mut s = TU::core_nested_sequence(); s.reverse(); s },
-    //         ),
-    //         (
-    //             vec![TU::i(1)],
-    //             vec![TU::i(1)],
-    //         ),
-    //     ];
+    #[test]
+    fn test_sort() {
+        let inputs_and_expected: Vec<(IL, Result<Vec<MetaVal>, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(vec![]),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true).into(),
+                Ok(vec![TU::i(-2), TU::d(-15, 1), TU::i(-1), TU::d(-5, 1), TU::i(0), TU::d(5, 1), TU::i(1), TU::d(15, 1), TU::i(2)]),
+            ),
+            (
+                vec![TU::i(1)].into(),
+                Ok(vec![TU::i(1)]),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(vec![]),
+            ),
+            (
+                VP::fixed(TU::core_number_sequence(2, false, true, true)).into(),
+                Ok(vec![TU::i(-2), TU::d(-15, 1), TU::i(-1), TU::d(-5, 1), TU::i(0), TU::d(5, 1), TU::i(1), TU::d(15, 1), TU::i(2)]),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1))]).into(),
+                Ok(vec![TU::i(1)]),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.rev_s(input);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.sort().map_err(ErrorKind::from);
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_sort() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
-    //             Ok(vec![TU::i(-2), TU::d(-15, 1), TU::i(-1), TU::d(-5, 1), TU::i(0), TU::d(5, 1), TU::i(1), TU::d(15, 1), TU::i(2)]),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1))],
-    //             Ok(vec![TU::i(1)]),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             Err(ErrorKind::Sentinel),
-    //         ),
-    //     ];
+    #[test]
+    fn test_sum() {
+        let inputs_and_expected: Vec<(IL, Result<NumberLike, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(NumberLike::Integer(0)),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)].into(),
+                Ok(NumberLike::Integer(13)),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)].into(),
+                Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
+            ),
+            (
+                vec![TU::i(1)].into(),
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                vec![TU::i(1), MetaVal::Bul(true)].into(),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(NumberLike::Integer(0)),
+            ),
+            (
+                VP::fixed(TU::core_number_sequence(2, false, true, true)).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))]).into(),
+                Ok(NumberLike::Integer(13)),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))]).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1))]).into(),
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))]).into(),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.sort().map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.sum().map_err(ErrorKind::from);
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_sort_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, true),
-    //             vec![TU::i(-2), TU::d(-15, 1), TU::i(-1), TU::d(-5, 1), TU::i(0), TU::d(5, 1), TU::i(1), TU::d(15, 1), TU::i(2)],
-    //         ),
-    //         (
-    //             vec![TU::i(1)],
-    //             vec![TU::i(1)],
-    //         ),
-    //     ];
+    #[test]
+    fn test_prod() {
+        let inputs_and_expected: Vec<(IL, Result<NumberLike, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, true).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                TU::core_number_sequence(2, false, true, false).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)].into(),
+                Ok(NumberLike::Integer(-210)),
+            ),
+            (
+                vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)].into(),
+                Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
+            ),
+            (
+                vec![TU::i(1)].into(),
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                vec![TU::i(1), MetaVal::Bul(true)].into(),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                VP::fixed(TU::core_number_sequence(2, false, true, true)).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+            ),
+            (
+                VP::fixed(TU::core_number_sequence(2, false, true, false)).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))]).into(),
+                Ok(NumberLike::Integer(-210)),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))]).into(),
+                Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1))]).into(),
+                Ok(NumberLike::Integer(1)),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))]).into(),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.sort_s(input);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.prod().map_err(ErrorKind::from);
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_sum() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(NumberLike::Integer(0)),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
-    //             Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))],
-    //             Ok(NumberLike::Integer(13)),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))],
-    //             Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1))],
-    //             Ok(NumberLike::Integer(1)),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))],
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             Err(ErrorKind::Sentinel),
-    //         ),
-    //     ];
+    #[test]
+    fn test_all_equal() {
+        let inputs_and_expected: Vec<(IL, Result<bool, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(true),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1)].into(),
+                Ok(true),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(2)].into(),
+                Ok(false),
+            ),
+            (
+                vec![TU::i(1)].into(),
+                Ok(true),
+            ),
+            (
+                vec![TU::i(1), MetaVal::Bul(true)].into(),
+                Ok(false),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(true),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))]).into(),
+                Ok(true),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2))]).into(),
+                Ok(false),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1))]).into(),
+                Ok(true),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))]).into(),
+                Ok(false),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Err(ErrorKind::Sentinel),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.sum().map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.all_equal().map_err(ErrorKind::from);
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_sum_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(NumberLike::Integer(0)),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, true),
-    //             Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
-    //         ),
-    //         (
-    //             vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)],
-    //             Ok(NumberLike::Integer(13)),
-    //         ),
-    //         (
-    //             vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)],
-    //             Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
-    //         ),
-    //         (
-    //             vec![TU::i(1)],
-    //             Ok(NumberLike::Integer(1)),
-    //         ),
-    //         (
-    //             vec![TU::i(1), MetaVal::Bul(true)],
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //     ];
+    #[test]
+    fn test_flatten() {
+        let inputs_and_expected: Vec<(IL, Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(vec![]),
+            ),
+            (
+                TU::core_flat_sequence().into(),
+                Ok(TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                TU::core_nested_sequence().into(),
+                Ok({
+                    let mut s = TU::core_flat_sequence();
+                    s.extend(TU::core_flat_sequence());
+                    s.push(TU::sample_flat_mapping());
+                    s
+                }.into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(vec![]),
+            ),
+            (
+                VP::fixed(TU::core_flat_sequence()).into(),
+                Ok(TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::fixed(TU::core_nested_sequence()).into(),
+                Ok({
+                    let mut s = TU::core_flat_sequence();
+                    s.extend(TU::core_flat_sequence());
+                    s.push(TU::sample_flat_mapping());
+                    s
+                }.into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Ok(vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)]),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.sum_s(input).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_prod() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(NumberLike::Integer(1)),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, true).into_iter().map(Result::Ok).collect(),
-    //             Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, false).into_iter().map(Result::Ok).collect(),
-    //             Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))],
-    //             Ok(NumberLike::Integer(-210)),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))],
-    //             Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1))],
-    //             Ok(NumberLike::Integer(1)),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))],
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             Err(ErrorKind::Sentinel),
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.prod().map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_prod_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(NumberLike::Integer(1)),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, true),
-    //             Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
-    //         ),
-    //         (
-    //             TU::core_number_sequence(2, false, true, false),
-    //             Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
-    //         ),
-    //         (
-    //             vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)],
-    //             Ok(NumberLike::Integer(-210)),
-    //         ),
-    //         (
-    //             vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)],
-    //             Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
-    //         ),
-    //         (
-    //             vec![TU::i(1)],
-    //             Ok(NumberLike::Integer(1)),
-    //         ),
-    //         (
-    //             vec![TU::i(1), MetaVal::Bul(true)],
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.prod_s(input).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_all_equal() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             Ok(true),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))],
-    //             Ok(true),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2))],
-    //             Ok(false),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1))],
-    //             Ok(true),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(MetaVal::Bul(true))],
-    //             Ok(false),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             Err(ErrorKind::Sentinel),
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.all_equal().map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_all_equal_rs() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             true,
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(1), TU::i(1)],
-    //             true,
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(1), TU::i(2)],
-    //             false,
-    //         ),
-    //         (
-    //             vec![TU::i(1)],
-    //             true,
-    //         ),
-    //         (
-    //             vec![TU::i(1), MetaVal::Bul(true)],
-    //             false,
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.all_equal_rs(&input);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_flatten() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
-    //             TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //             {
-    //                 let mut s = TU::core_flat_sequence();
-    //                 s.extend(TU::core_flat_sequence());
-    //                 s.push(TU::sample_flat_mapping());
-    //                 s
-    //             }.into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)],
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.flatten().map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_flatten_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_flat_sequence(),
-    //             TU::core_flat_sequence(),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence(),
-    //             {
-    //                 let mut s = TU::core_flat_sequence();
-    //                 s.extend(TU::core_flat_sequence());
-    //                 s.push(TU::sample_flat_mapping());
-    //                 s
-    //             },
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.flatten_s(input);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.flatten()
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
     // #[test]
     // fn test_dedup() {
@@ -1206,7 +1148,7 @@ mod tests {
     //     ];
 
     //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.dedup().map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+    //         let produced = input.dedup().map(|e| e.map_err(ErrorKind::from)).collect::<Vec<_>>();
     //         assert_eq!(expected, produced);
     //     }
     // }
@@ -1284,7 +1226,7 @@ mod tests {
     //     ];
 
     //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.unique().map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
+    //         let produced = input.unique().map(|e| e.map_err(ErrorKind::from)).collect::<Vec<_>>();
     //         assert_eq!(expected, produced);
     //     }
     // }
