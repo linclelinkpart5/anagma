@@ -1114,159 +1114,153 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_dedup() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
-    //             TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(1))],
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(1))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))],
-    //             vec![Ok(TU::i(1))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)],
-    //         ),
-    //     ];
+    #[test]
+    fn test_dedup() {
+        let inputs_and_expected: Vec<(IL, Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(vec![]),
+            ),
+            (
+                TU::core_flat_sequence().into(),
+                Ok(TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                TU::core_nested_sequence().into(),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)].into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(1))]),
+            ),
+            (
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)].into(),
+                Ok(vec![Ok(TU::i(1))]),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(vec![]),
+            ),
+            (
+                VP::fixed(TU::core_flat_sequence()).into(),
+                Ok(TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::fixed(TU::core_nested_sequence()).into(),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)]).into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(1))]),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)]).into(),
+                Ok(vec![Ok(TU::i(1))]),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Ok(vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)]),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.dedup().map(|e| e.map_err(ErrorKind::from)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.dedup()
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_dedup_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_flat_sequence(),
-    //             TU::core_flat_sequence(),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence(),
-    //             TU::core_nested_sequence(),
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)],
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(1)],
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)],
-    //             vec![TU::i(1)],
-    //         ),
-    //     ];
+    #[test]
+    fn test_unique() {
+        let inputs_and_expected: Vec<(IL, Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                vec![].into(),
+                Ok(vec![]),
+            ),
+            (
+                TU::core_flat_sequence().into(),
+                Ok(TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                TU::core_nested_sequence().into(),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)].into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(3), TU::i(2), TU::i(1)].into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)].into(),
+                Ok(vec![Ok(TU::i(1))]),
+            ),
+            (
+                VP::fixed(vec![]).into(),
+                Ok(vec![]),
+            ),
+            (
+                VP::fixed(TU::core_flat_sequence()).into(),
+                Ok(TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::fixed(TU::core_nested_sequence()).into(),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)]).into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(3), TU::i(2), TU::i(1)]).into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                VP::fixed(vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)]).into(),
+                Ok(vec![Ok(TU::i(1))]),
+            ),
+            (
+                VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel)]).into(),
+                Ok(vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)]),
+            ),
+        ];
 
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.dedup_s(input);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_unique() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
-    //             TU::core_flat_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(1))],
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(3)), Ok(TU::i(2)), Ok(TU::i(1))],
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::i(1))],
-    //             vec![Ok(TU::i(1))],
-    //         ),
-    //         (
-    //             vec![Ok(TU::i(1)), Err(Error::Sentinel)],
-    //             vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel)],
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.unique().map(|e| e.map_err(ErrorKind::from)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_unique_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             vec![],
-    //             vec![],
-    //         ),
-    //         (
-    //             TU::core_flat_sequence(),
-    //             TU::core_flat_sequence(),
-    //         ),
-    //         (
-    //             TU::core_nested_sequence(),
-    //             TU::core_nested_sequence(),
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(1), TU::i(1), TU::i(2), TU::i(2), TU::i(3), TU::i(3), TU::i(3), TU::i(1)],
-    //             vec![TU::i(1), TU::i(2), TU::i(3)],
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(3), TU::i(2), TU::i(1)],
-    //             vec![TU::i(1), TU::i(2), TU::i(3)],
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //         ),
-    //         (
-    //             vec![TU::i(1), TU::i(1), TU::i(1), TU::i(1), TU::i(1)],
-    //             vec![TU::i(1)],
-    //         ),
-    //     ];
-
-    //     for (input, expected) in inputs_and_expected {
-    //         let produced = input.unique_s(input);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (input, expected) in inputs_and_expected {
+            let produced = input.unique()
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 }
