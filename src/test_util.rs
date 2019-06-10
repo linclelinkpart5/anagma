@@ -624,6 +624,10 @@ impl TestUtil {
     pub fn s<S: Into<String>>(s: S) -> MetaVal<'static> {
         MetaVal::Str(s.into())
     }
+
+    pub fn b(b: bool) -> MetaVal<'static> {
+        MetaVal::Bul(b)
+    }
 }
 
 #[cfg(test)]
