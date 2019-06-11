@@ -1725,101 +1725,97 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_filter() {
-    //     let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
-    //         (
-    //             (vec![], is_boolean),
-    //             vec![],
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), is_boolean),
-    //             vec![Ok(TU::sample_boolean())],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)], is_boolean),
-    //             vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel)],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))], is_boolean),
-    //             vec![Err(ErrorKind::Sentinel), Ok(TU::b(false))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
-    //             vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(5)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
-    //             vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(6)), Ok(TU::i(8))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7)), Ok(TU::i(9))], is_even_int),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::b(false)), Ok(TU::i(6)), Ok(TU::i(8))], is_even_int),
-    //             vec![Ok(TU::i(0)), Ok(TU::i(2)), Err(ErrorKind::NotNumeric), Ok(TU::i(6)), Ok(TU::i(8))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(3)), Ok(TU::b(false)), Ok(TU::i(7)), Ok(TU::i(9))], is_even_int),
-    //             vec![Err(ErrorKind::NotNumeric)],
-    //         ),
-    //     ];
+    #[test]
+    fn test_filter() {
+        let inputs_and_expected: Vec<((IL, fn(&MetaVal) -> Result<bool, Error>), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), is_boolean),
+                Ok(vec![]),
+            ),
+            (
+                (TU::core_nested_sequence().into(), is_boolean),
+                Ok(vec![Ok(TU::sample_boolean())]),
+            ),
+            (
+                (vec![TU::b(false), MetaVal::Int(1)].into(), is_boolean),
+                Ok(vec![Ok(TU::b(false))]),
+            ),
+            (
+                (vec![TU::b(false), MetaVal::Int(1)].into(), is_boolean),
+                Ok(vec![Ok(TU::b(false))]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), is_even_int),
+                Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), is_even_int),
+                Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(6)), Ok(TU::i(8))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), is_even_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), is_even_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), is_even_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (VP::fixed(vec![]).into(), is_boolean),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(TU::core_nested_sequence()).into(), is_boolean),
+                Ok(vec![Ok(TU::sample_boolean())]),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)]).into(), is_boolean),
+                Ok(vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))]).into(), is_boolean),
+                Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::b(false))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), is_even_int),
+                Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), is_even_int),
+                Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(6)), Ok(TU::i(8))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), is_even_int),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), is_even_int),
+                Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Err(ErrorKind::NotNumeric), Ok(TU::i(6)), Ok(TU::i(8))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), is_even_int),
+                Ok(vec![Err(ErrorKind::NotNumeric)]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::filter(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_filter_s() {
-    //     let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
-    //         (
-    //             (vec![], is_boolean),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence(), is_boolean),
-    //             Ok(vec![TU::sample_boolean()]),
-    //         ),
-    //         (
-    //             (vec![TU::b(false), MetaVal::Int(1)], is_boolean),
-    //             Ok(vec![TU::b(false)]),
-    //         ),
-    //         (
-    //             (vec![TU::b(false), MetaVal::Int(1)], is_boolean),
-    //             Ok(vec![TU::b(false)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)], is_even_int),
-    //             Ok(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)], is_even_int),
-    //             Ok(vec![TU::i(0), TU::i(2), TU::i(6), TU::i(8)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)], is_even_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)], is_even_int),
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)], is_even_int),
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::filter_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.filter(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
     // #[test]
     // fn test_map() {
