@@ -539,6 +539,10 @@ mod tests {
     use crate::functions::ErrorKind;
     use crate::functions::util::value_producer::ValueProducer as VP;
     use crate::functions::util::NumberLike;
+    use crate::functions::util::UnaryPred as UPred;
+    use crate::functions::util::UnaryConv as UConv;
+
+    type ProducerTestResult = Result<Vec<Result<MetaVal<'static>, ErrorKind>>, ErrorKind>;
 
     #[test]
     fn test_collect() {
@@ -1059,7 +1063,7 @@ mod tests {
 
     #[test]
     fn test_flatten() {
-        let inputs_and_expected: Vec<(IL, Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, ProducerTestResult)> = vec![
             (
                 vec![].into(),
                 Ok(vec![]),
@@ -1116,7 +1120,7 @@ mod tests {
 
     #[test]
     fn test_dedup() {
-        let inputs_and_expected: Vec<(IL, Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, ProducerTestResult)> = vec![
             (
                 vec![].into(),
                 Ok(vec![]),
@@ -1187,7 +1191,7 @@ mod tests {
 
     #[test]
     fn test_unique() {
-        let inputs_and_expected: Vec<(IL, Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, ProducerTestResult)> = vec![
             (
                 vec![].into(),
                 Ok(vec![]),
@@ -1359,7 +1363,7 @@ mod tests {
 
     #[test]
     fn test_all() {
-        let inputs_and_expected: Vec<((IL, fn(&MetaVal) -> Result<bool, Error>), Result<bool, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, UPred), Result<bool, ErrorKind>)> = vec![
             (
                 (vec![].into(), is_boolean),
                 Ok(true),
@@ -1455,7 +1459,7 @@ mod tests {
 
     #[test]
     fn test_any() {
-        let inputs_and_expected: Vec<((IL, fn(&MetaVal) -> Result<bool, Error>), Result<bool, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, UPred), Result<bool, ErrorKind>)> = vec![
             (
                 (vec![].into(), is_boolean),
                 Ok(false),
@@ -1551,7 +1555,7 @@ mod tests {
 
     #[test]
     fn test_find() {
-        let inputs_and_expected: Vec<((IL, fn(&MetaVal) -> Result<bool, Error>), Result<MetaVal, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, UPred), Result<MetaVal, ErrorKind>)> = vec![
             (
                 (vec![].into(), is_boolean),
                 Err(ErrorKind::ItemNotFound),
@@ -1639,7 +1643,7 @@ mod tests {
 
     #[test]
     fn test_position() {
-        let inputs_and_expected: Vec<((IL, fn(&MetaVal) -> Result<bool, Error>), Result<usize, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, UPred), Result<usize, ErrorKind>)> = vec![
             (
                 (vec![].into(), is_boolean),
                 Err(ErrorKind::ItemNotFound),
@@ -1727,7 +1731,7 @@ mod tests {
 
     #[test]
     fn test_filter() {
-        let inputs_and_expected: Vec<((IL, fn(&MetaVal) -> Result<bool, Error>), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, UPred), ProducerTestResult)> = vec![
             (
                 (vec![].into(), is_boolean),
                 Ok(vec![]),
@@ -1819,7 +1823,7 @@ mod tests {
 
     #[test]
     fn test_map() {
-        let inputs_and_expected: Vec<((IL, fn(MetaVal) -> Result<MetaVal, Error>), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, UConv), ProducerTestResult)> = vec![
             (
                 (vec![].into(), conv_repr),
                 Ok(vec![]),
@@ -1889,7 +1893,7 @@ mod tests {
 
     #[test]
     fn test_step_by() {
-        let inputs_and_expected: Vec<((IL, usize), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, usize), ProducerTestResult)> = vec![
             (
                 (vec![].into(), 1),
                 Ok(vec![]),
@@ -1995,7 +1999,7 @@ mod tests {
 
     #[test]
     fn test_chain() {
-        let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, IL), ProducerTestResult)> = vec![
             (
                 (vec![].into(), vec![].into()),
                 Ok(vec![]),
@@ -2055,7 +2059,7 @@ mod tests {
 
     #[test]
     fn test_zip() {
-        let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, IL), ProducerTestResult)> = vec![
             (
                 (vec![].into(), vec![].into()),
                 Ok(vec![]),
@@ -2210,7 +2214,7 @@ mod tests {
 
     #[test]
     fn test_skip() {
-        let inputs_and_expected: Vec<((IL, usize), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, usize), ProducerTestResult)> = vec![
             (
                 (vec![].into(), 0),
                 Ok(vec![]),
@@ -2310,7 +2314,7 @@ mod tests {
 
     #[test]
     fn test_take() {
-        let inputs_and_expected: Vec<((IL, usize), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<((IL, usize), ProducerTestResult)> = vec![
             (
                 (vec![].into(), 0),
                 Ok(vec![]),
@@ -2408,139 +2412,155 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_skip_while() {
-    //     let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
-    //         (
-    //             (vec![], is_lt_4_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3)], is_lt_4_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![TU::i(4), TU::i(5), TU::i(6)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![TU::i(4), TU::i(5), TU::i(6)]),
-    //         ),
-    //         (
-    //             (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], is_lt_4_int),
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")], is_lt_4_int),
-    //             Ok(vec![TU::i(4), TU::i(5), TU::s("a")]),
-    //         ),
-    //         (
-    //             (vec![], is_lt_4_int),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))], is_lt_4_int),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))], is_lt_4_int),
-    //             vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))], is_lt_4_int),
-    //             vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], is_lt_4_int),
-    //             vec![Err(ErrorKind::Sentinel), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)], is_lt_4_int),
-    //             vec![Ok(TU::i(4)), Ok(TU::i(5)), Err(ErrorKind::Sentinel)],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::s("a")), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], is_lt_4_int),
-    //             vec![Err(ErrorKind::NotNumeric), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))], is_lt_4_int),
-    //             vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))],
-    //         ),
-    //     ];
+    #[test]
+    fn test_skip_while() {
+        let inputs_and_expected: Vec<((IL, UPred), ProducerTestResult)> = vec![
+            (
+                (vec![].into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3)].into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(4), TU::i(5), TU::i(6)].into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)].into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
+            ),
+            (
+                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), is_lt_4_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")].into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(4), TU::i(5), TU::i(6)]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), is_lt_4_int),
+                Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                (VP::fixed(vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), is_lt_4_int),
+                Ok(vec![Err(ErrorKind::NotNumeric), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::skip_while(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.skip_while(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_take_while() {
-    //     let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
-    //         (
-    //             (vec![], is_lt_4_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3)], is_lt_4_int),
-    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
-    //         ),
-    //         (
-    //             (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], is_lt_4_int),
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")], is_lt_4_int),
-    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
-    //         ),
-    //         (
-    //             (vec![], is_lt_4_int),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))], is_lt_4_int),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))], is_lt_4_int),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))], is_lt_4_int),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], is_lt_4_int),
-    //             vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)], is_lt_4_int),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::s("a")), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], is_lt_4_int),
-    //             vec![Err(ErrorKind::NotNumeric), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))], is_lt_4_int),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //         ),
-    //     ];
+    #[test]
+    fn test_take_while() {
+        let inputs_and_expected: Vec<((IL, UPred), ProducerTestResult)> = vec![
+            (
+                (vec![].into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3)].into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (vec![TU::i(4), TU::i(5), TU::i(6)].into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)].into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), is_lt_4_int),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")].into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(4), TU::i(5), TU::i(6)]).into(), is_lt_4_int),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::fixed(vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), is_lt_4_int),
+                Ok(vec![Err(ErrorKind::NotNumeric), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")]).into(), is_lt_4_int),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::take_while(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.take_while(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 }
