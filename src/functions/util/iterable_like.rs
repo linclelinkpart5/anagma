@@ -383,26 +383,26 @@ impl<'il> IterableLike<'il> {
         })
     }
 
-    pub fn skip(self, n: usize) -> Self {
-        match self {
+    pub fn skip(self, n: usize) -> Result<Self, Error> {
+        Ok(match self {
             Self::Sequence(s) => {
                 let mut s = s;
                 if n >= s.len() { Self::Sequence(vec![]) }
                 else { Self::Sequence(s.split_off(n)) }
             },
             Self::Producer(s) => Self::Producer(ValueProducer::Skip(Skip::new(s, n))),
-        }
+        })
     }
 
-    pub fn take(self, n: usize) -> Self {
-        match self {
+    pub fn take(self, n: usize) -> Result<Self, Error> {
+        Ok(match self {
             Self::Sequence(s) => {
                 let mut s = s;
                 s.truncate(n);
                 Self::Sequence(s)
             },
             Self::Producer(s) => Self::Producer(ValueProducer::Take(Take::new(s, n))),
-        }
+        })
     }
 
     pub fn skip_while(self, u_pred: UnaryPred) -> Result<Self, Error> {
@@ -2208,217 +2208,233 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_skip() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![], 1),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 0),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 1),
-    //             vec![Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 2),
-    //             vec![Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 4),
-    //             vec![Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 8),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 0),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 1),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 2),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 3),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 4),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 6),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel)],
-    //         ),
-    //     ];
+    #[test]
+    fn test_skip() {
+        let inputs_and_expected: Vec<((IL, usize), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (vec![].into(), 1),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 0),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 1),
+                Ok(vec![Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 2),
+                Ok(vec![Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 4),
+                Ok(vec![Ok(TU::i(5))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 8),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 1),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 0),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 1),
+                Ok(vec![Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 2),
+                Ok(vec![Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 4),
+                Ok(vec![Ok(TU::i(5))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 8),
+                Ok(vec![]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 0),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 1),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 2),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 3),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 4),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 6),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel)]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::skip(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.skip(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_skip_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![], 1),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 0),
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 1),
-    //             vec![TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 2),
-    //             vec![TU::i(3), TU::i(4), TU::i(5)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 4),
-    //             vec![TU::i(5)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 8),
-    //             vec![],
-    //         ),
-    //     ];
+    #[test]
+    fn test_take() {
+        let inputs_and_expected: Vec<((IL, usize), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (vec![].into(), 1),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 1),
+                Ok(vec![Ok(TU::i(1))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 2),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 4),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))]),
+            ),
+            (
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), 8),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 1),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 1),
+                Ok(vec![Ok(TU::i(1))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 2),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 4),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), 8),
+                Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 0),
+                Ok(vec![]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 1),
+                Ok(vec![Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 2),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 3),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 4),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4))]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), 6),
+                Ok(vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::skip_s(input_a, input_b);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_take() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![], 1),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 1),
-    //             vec![Ok(TU::i(1))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 2),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 4),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 8),
-    //             vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 1),
-    //             vec![Err(ErrorKind::Sentinel)],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 2),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel)],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 3),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 4),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4))],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Err(Error::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))], 6),
-    //             vec![Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))],
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::take(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_take_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![], 1),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 0),
-    //             vec![],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 1),
-    //             vec![TU::i(1)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 2),
-    //             vec![TU::i(1), TU::i(2)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 4),
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)],
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], 8),
-    //             vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)],
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::take_s(input_a, input_b);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.take(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
     // #[test]
     // fn test_skip_while() {
-    //     let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+    //     let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+    //         (
+    //             (vec![], is_lt_4_int),
+    //             Ok(vec![]),
+    //         ),
+    //         (
+    //             (vec![TU::i(1), TU::i(2), TU::i(3)], is_lt_4_int),
+    //             Ok(vec![]),
+    //         ),
+    //         (
+    //             (vec![TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
+    //             Ok(vec![TU::i(4), TU::i(5), TU::i(6)]),
+    //         ),
+    //         (
+    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
+    //             Ok(vec![TU::i(4), TU::i(5), TU::i(6)]),
+    //         ),
+    //         (
+    //             (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], is_lt_4_int),
+    //             Err(ErrorKind::NotNumeric),
+    //         ),
+    //         (
+    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")], is_lt_4_int),
+    //             Ok(vec![TU::i(4), TU::i(5), TU::s("a")]),
+    //         ),
     //         (
     //             (vec![], is_lt_4_int),
     //             vec![],
@@ -2461,23 +2477,23 @@ mod tests {
     // }
 
     // #[test]
-    // fn test_skip_while_s() {
-    //     let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
+    // fn test_take_while() {
+    //     let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
     //         (
     //             (vec![], is_lt_4_int),
     //             Ok(vec![]),
     //         ),
     //         (
     //             (vec![TU::i(1), TU::i(2), TU::i(3)], is_lt_4_int),
-    //             Ok(vec![]),
+    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
     //         ),
     //         (
     //             (vec![TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![TU::i(4), TU::i(5), TU::i(6)]),
+    //             Ok(vec![]),
     //         ),
     //         (
     //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![TU::i(4), TU::i(5), TU::i(6)]),
+    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
     //         ),
     //         (
     //             (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], is_lt_4_int),
@@ -2485,20 +2501,8 @@ mod tests {
     //         ),
     //         (
     //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")], is_lt_4_int),
-    //             Ok(vec![TU::i(4), TU::i(5), TU::s("a")]),
+    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
     //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::skip_while_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_take_while() {
-    //     let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
     //         (
     //             (vec![], is_lt_4_int),
     //             vec![],
@@ -2536,42 +2540,6 @@ mod tests {
     //     for (inputs, expected) in inputs_and_expected {
     //         let (input_a, input_b) = inputs;
     //         let produced = Impl::take_while(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_take_while_s() {
-    //     let inputs_and_expected: Vec<((_, fn(&MetaVal) -> Result<bool, Error>), _)> = vec![
-    //         (
-    //             (vec![], is_lt_4_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3)], is_lt_4_int),
-    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)], is_lt_4_int),
-    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
-    //         ),
-    //         (
-    //             (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)], is_lt_4_int),
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //         (
-    //             (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")], is_lt_4_int),
-    //             Ok(vec![TU::i(1), TU::i(2), TU::i(3)]),
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::take_while_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
     //         assert_eq!(expected, produced);
     //     }
     // }
