@@ -351,19 +351,19 @@ impl<'il> IterableLike<'il> {
         })
     }
 
-    pub fn chain(self, other: IterableLike<'il>) -> Self {
+    pub fn chain(self, other: IterableLike<'il>) -> Result<Self, Error> {
         let (new_p_a, new_p_b) = match (self, other) {
             (Self::Sequence(s_a), Self::Sequence(s_b)) => {
                 let mut s_a = s_a;
                 s_a.extend(s_b);
-                return Self::Sequence(s_a)
+                return Ok(Self::Sequence(s_a))
             },
             (Self::Sequence(s_a), Self::Producer(p_b)) => (ValueProducer::from(s_a), p_b),
             (Self::Producer(p_a), Self::Sequence(s_b)) => (p_a, ValueProducer::from(s_b)),
             (Self::Producer(p_a), Self::Producer(p_b)) => (p_a, p_b),
         };
 
-        Self::Producer(ValueProducer::Chain(Chain::new(new_p_a, new_p_b)))
+        Ok(Self::Producer(ValueProducer::Chain(Chain::new(new_p_a, new_p_b))))
     }
 
     pub fn zip(self, other: IterableLike<'il>) -> Result<Self, Error> {
@@ -1993,218 +1993,220 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_chain() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], vec![]),
-    //             vec![],
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), TU::core_flat_sequence().into_iter().map(Result::Ok).collect()),
-    //             TU::core_nested_sequence().into_iter().chain(TU::core_flat_sequence()).map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             (vec![Ok(TU::b(false)), Err(Error::Sentinel)], vec![Err(Error::Sentinel), Ok(TU::b(true))]),
-    //             vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::b(true))],
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), vec![]),
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //         (
-    //             (vec![], TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
-    //             TU::core_nested_sequence().into_iter().map(Result::Ok).collect(),
-    //         ),
-    //     ];
+    #[test]
+    fn test_chain() {
+        let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), vec![].into()),
+                Ok(vec![]),
+            ),
+            (
+                (TU::core_nested_sequence().into(), TU::core_flat_sequence().into()),
+                Ok(TU::core_nested_sequence().into_iter().chain(TU::core_flat_sequence()).map(Result::Ok).collect()),
+            ),
+            (
+                (vec![TU::b(false), TU::i(1)].into(), vec![TU::i(1), TU::b(true)].into()),
+                Ok(vec![Ok(TU::b(false)), Ok(TU::i(1)), Ok(TU::i(1)), Ok(TU::b(true))]),
+            ),
+            (
+                (TU::core_nested_sequence().into(), vec![].into()),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                (vec![].into(), TU::core_nested_sequence().into()),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                (VP::fixed(vec![]).into(), VP::fixed(vec![]).into()),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(TU::core_nested_sequence()).into(), VP::fixed(TU::core_flat_sequence()).into()),
+                Ok(TU::core_nested_sequence().into_iter().chain(TU::core_flat_sequence()).map(Result::Ok).collect()),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::b(false)), Err(Error::Sentinel)]).into(), VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true))]).into()),
+                Ok(vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel), Err(ErrorKind::Sentinel), Ok(TU::b(true))]),
+            ),
+            (
+                (VP::fixed(TU::core_nested_sequence()).into(), VP::fixed(vec![]).into()),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                (VP::fixed(vec![]).into(), VP::fixed(TU::core_nested_sequence()).into()),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::chain(VP::raw(input_a), VP::raw(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.chain(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_chain_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], vec![]),
-    //             vec![],
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence(), TU::core_flat_sequence()),
-    //             TU::core_nested_sequence().into_iter().chain(TU::core_flat_sequence()).collect(),
-    //         ),
-    //         (
-    //             (vec![TU::b(false), TU::i(1)], vec![TU::i(1), TU::b(true)]),
-    //             vec![TU::b(false), TU::i(1), TU::i(1), TU::b(true)],
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence(), vec![]),
-    //             TU::core_nested_sequence(),
-    //         ),
-    //         (
-    //             (vec![], TU::core_nested_sequence()),
-    //             TU::core_nested_sequence(),
-    //         ),
-    //     ];
+    #[test]
+    fn test_zip() {
+        let inputs_and_expected: Vec<((IL, IL), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), vec![].into()),
+                Ok(vec![]),
+            ),
+            (
+                (
+                    vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)].into(),
+                    vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)].into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
+                    Ok(MetaVal::Seq(vec![TU::i(4), TU::i(1)])),
+                ]),
+            ),
+            (
+                (
+                    vec![TU::i(1), TU::i(2), TU::i(3)].into(),
+                    vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)].into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
+                ]),
+            ),
+            (
+                (
+                    vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)].into(),
+                    vec![TU::i(4), TU::i(3), TU::i(2)].into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
+                ]),
+            ),
+            (
+                (
+                    vec![].into(),
+                    vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)].into(),
+                ),
+                Ok(vec![]),
+            ),
+            (
+                (
+                    vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)].into(),
+                    vec![].into(),
+                ),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), VP::fixed(vec![]).into()),
+                Ok(vec![]),
+            ),
+            (
+                (
+                    VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)]).into(),
+                    VP::fixed(vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)]).into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
+                    Ok(MetaVal::Seq(vec![TU::i(4), TU::i(1)])),
+                ]),
+            ),
+            (
+                (
+                    VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(),
+                    VP::fixed(vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)]).into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
+                ]),
+            ),
+            (
+                (
+                    VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)]).into(),
+                    VP::fixed(vec![TU::i(4), TU::i(3), TU::i(2)]).into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
+                ]),
+            ),
+            (
+                (
+                    VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(3))]).into(),
+                    VP::raw(vec![Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))]).into(),
+                ),
+                Ok(vec![
+                    Err(ErrorKind::Sentinel),
+                    Err(ErrorKind::Sentinel),
+                    Ok(MetaVal::Seq(vec![TU::i(3), TU::i(3)])),
+                ]),
+            ),
+            (
+                (
+                    VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(Error::Sentinel)]).into(),
+                    VP::fixed(vec![TU::i(3), TU::i(2)]).into(),
+                ),
+                Ok(vec![
+                    Ok(MetaVal::Seq(vec![TU::i(1), TU::i(3)])),
+                    Ok(MetaVal::Seq(vec![TU::i(2), TU::i(2)])),
+                ]),
+            ),
+            (
+                (
+                    VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(),
+                    VP::raw(vec![Err(Error::Sentinel), Err(Error::Sentinel)]).into(),
+                ),
+                Ok(vec![
+                    Err(ErrorKind::Sentinel),
+                    Err(ErrorKind::Sentinel),
+                ]),
+            ),
+            (
+                (
+                    VP::fixed(vec![]).into(),
+                    VP::fixed(vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)]).into(),
+                ),
+                Ok(vec![]),
+            ),
+            (
+                (
+                    VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)]).into(),
+                    VP::fixed(vec![]).into(),
+                ),
+                Ok(vec![]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::chain_s(input_a, input_b);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_zip() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], vec![]),
-    //             vec![],
-    //         ),
-    //         (
-    //             (
-    //                 vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))],
-    //                 vec![Ok(TU::i(4)), Ok(TU::i(3)), Ok(TU::i(2)), Ok(TU::i(1))],
-    //             ),
-    //             vec![
-    //                 Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(4), TU::i(1)])),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //                 vec![Ok(TU::i(4)), Ok(TU::i(3)), Ok(TU::i(2)), Ok(TU::i(1))],
-    //             ),
-    //             vec![
-    //                 Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))],
-    //                 vec![Ok(TU::i(4)), Ok(TU::i(3)), Ok(TU::i(2))],
-    //             ),
-    //             vec![
-    //                 Ok(MetaVal::Seq(vec![TU::i(1), TU::i(4)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(2), TU::i(3)])),
-    //                 Ok(MetaVal::Seq(vec![TU::i(3), TU::i(2)])),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(3))],
-    //                 vec![Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))],
-    //             ),
-    //             vec![
-    //                 Err(ErrorKind::Sentinel),
-    //                 Err(ErrorKind::Sentinel),
-    //                 Ok(MetaVal::Seq(vec![TU::i(3), TU::i(3)])),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))],
-    //                 vec![Err(Error::Sentinel), Err(Error::Sentinel)],
-    //             ),
-    //             vec![
-    //                 Err(ErrorKind::Sentinel),
-    //                 Err(ErrorKind::Sentinel),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![],
-    //                 vec![Ok(TU::i(4)), Ok(TU::i(3)), Ok(TU::i(2)), Ok(TU::i(1))],
-    //             ),
-    //             vec![],
-    //         ),
-    //         (
-    //             (
-    //                 vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4))],
-    //                 vec![],
-    //             ),
-    //             vec![],
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::zip(VP::raw(input_a), VP::raw(input_b)).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_zip_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], vec![]),
-    //             vec![],
-    //         ),
-    //         (
-    //             (
-    //                 vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)],
-    //                 vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)],
-    //             ),
-    //             vec![
-    //                 MetaVal::Seq(vec![TU::i(1), TU::i(4)]),
-    //                 MetaVal::Seq(vec![TU::i(2), TU::i(3)]),
-    //                 MetaVal::Seq(vec![TU::i(3), TU::i(2)]),
-    //                 MetaVal::Seq(vec![TU::i(4), TU::i(1)]),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![TU::i(1), TU::i(2), TU::i(3)],
-    //                 vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)],
-    //             ),
-    //             vec![
-    //                 MetaVal::Seq(vec![TU::i(1), TU::i(4)]),
-    //                 MetaVal::Seq(vec![TU::i(2), TU::i(3)]),
-    //                 MetaVal::Seq(vec![TU::i(3), TU::i(2)]),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)],
-    //                 vec![TU::i(4), TU::i(3), TU::i(2)],
-    //             ),
-    //             vec![
-    //                 MetaVal::Seq(vec![TU::i(1), TU::i(4)]),
-    //                 MetaVal::Seq(vec![TU::i(2), TU::i(3)]),
-    //                 MetaVal::Seq(vec![TU::i(3), TU::i(2)]),
-    //             ],
-    //         ),
-    //         (
-    //             (
-    //                 vec![],
-    //                 vec![TU::i(4), TU::i(3), TU::i(2), TU::i(1)],
-    //             ),
-    //             vec![],
-    //         ),
-    //         (
-    //             (
-    //                 vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4)],
-    //                 vec![],
-    //             ),
-    //             vec![],
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::zip_s(input_a, input_b);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.zip(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
     // #[test]
     // fn test_skip() {
