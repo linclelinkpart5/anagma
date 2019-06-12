@@ -1817,189 +1817,181 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn test_map() {
-    //     let inputs_and_expected: Vec<((_, fn(MetaVal) -> Result<MetaVal, Error>), _)> = vec![
-    //         (
-    //             (vec![], conv_repr),
-    //             vec![],
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), conv_repr),
-    //             vec![
-    //                 Ok(TU::s("string")), Ok(TU::s("integer")), Ok(TU::s("decimal")), Ok(TU::s("boolean")),
-    //                 Ok(TU::s("null")), Ok(TU::s("sequence")), Ok(TU::s("mapping")),
-    //             ],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)], conv_repr),
-    //             vec![Ok(TU::s("boolean")), Ok(TU::s("integer")), Err(ErrorKind::Sentinel)],
-    //         ),
-    //         (
-    //             (vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))], conv_repr),
-    //             vec![Err(ErrorKind::Sentinel), Ok(TU::s("boolean")), Ok(TU::s("integer"))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))], conv_add_3),
-    //             vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Ok(TU::i(4+3)), Ok(TU::i(6+3)), Ok(TU::i(8+3))],
-    //         ),
-    //         (
-    //             (vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::b(false)), Ok(TU::i(6)), Ok(TU::i(8))], conv_add_3),
-    //             vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Err(ErrorKind::NotNumeric), Ok(TU::i(6+3)), Ok(TU::i(8+3))],
-    //         ),
-    //     ];
+    #[test]
+    fn test_map() {
+        let inputs_and_expected: Vec<((IL, fn(MetaVal) -> Result<MetaVal, Error>), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), conv_repr),
+                Ok(vec![]),
+            ),
+            (
+                (TU::core_nested_sequence().into(), conv_repr),
+                Ok(vec![
+                    Ok(TU::s("string")), Ok(TU::s("integer")), Ok(TU::s("decimal")), Ok(TU::s("boolean")),
+                    Ok(TU::s("null")), Ok(TU::s("sequence")), Ok(TU::s("mapping")),
+                ]),
+            ),
+            (
+                (vec![TU::b(false), MetaVal::Int(1)].into(), conv_repr),
+                Ok(vec![Ok(TU::s("boolean")), Ok(TU::s("integer"))]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), conv_add_3),
+                Ok(vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Ok(TU::i(4+3)), Ok(TU::i(6+3)), Ok(TU::i(8+3))]),
+            ),
+            (
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), conv_add_3),
+                Err(ErrorKind::NotNumeric),
+            ),
+            (
+                (VP::fixed(vec![]).into(), conv_repr),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(TU::core_nested_sequence()).into(), conv_repr),
+                Ok(vec![
+                    Ok(TU::s("string")), Ok(TU::s("integer")), Ok(TU::s("decimal")), Ok(TU::s("boolean")),
+                    Ok(TU::s("null")), Ok(TU::s("sequence")), Ok(TU::s("mapping")),
+                ]),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)]).into(), conv_repr),
+                Ok(vec![Ok(TU::s("boolean")), Ok(TU::s("integer")), Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))]).into(), conv_repr),
+                Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::s("boolean")), Ok(TU::s("integer"))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), conv_add_3),
+                Ok(vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Ok(TU::i(4+3)), Ok(TU::i(6+3)), Ok(TU::i(8+3))]),
+            ),
+            (
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), conv_add_3),
+                Ok(vec![Ok(TU::i(0+3)), Ok(TU::i(2+3)), Err(ErrorKind::NotNumeric), Ok(TU::i(6+3)), Ok(TU::i(8+3))]),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::map(VP::raw(input_a), input_b).map(|e| e.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>();
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.map(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
-    // #[test]
-    // fn test_map_s() {
-    //     let inputs_and_expected: Vec<((_, fn(MetaVal) -> Result<MetaVal, Error>), _)> = vec![
-    //         (
-    //             (vec![], conv_repr),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence(), conv_repr),
-    //             Ok(vec![
-    //                 TU::s("string"), TU::s("integer"), TU::s("decimal"), TU::s("boolean"),
-    //                 TU::s("null"), TU::s("sequence"), TU::s("mapping"),
-    //             ]),
-    //         ),
-    //         (
-    //             (vec![TU::b(false), MetaVal::Int(1)], conv_repr),
-    //             Ok(vec![TU::s("boolean"), TU::s("integer")]),
-    //         ),
-    //         (
-    //             (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)], conv_add_3),
-    //             Ok(vec![TU::i(0+3), TU::i(2+3), TU::i(4+3), TU::i(6+3), TU::i(8+3)]),
-    //         ),
-    //         (
-    //             (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)], conv_add_3),
-    //             Err(ErrorKind::NotNumeric),
-    //         ),
-    //     ];
+    #[test]
+    fn test_step_by() {
+        let inputs_and_expected: Vec<((IL, usize), Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>)> = vec![
+            (
+                (vec![].into(), 1),
+                Ok(vec![]),
+            ),
+            (
+                (vec![].into(), 2),
+                Ok(vec![]),
+            ),
+            (
+                (vec![].into(), 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                (TU::core_nested_sequence().into(), 1),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                (TU::core_nested_sequence().into(), 2),
+                Ok(TU::core_nested_sequence().into_iter().step_by(2).map(Result::Ok).collect()),
+            ),
+            (
+                (vec![TU::b(false), MetaVal::Int(1)].into(), 10),
+                Ok(vec![Ok(TU::b(false))]),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect::<Vec<_>>().into(), 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect::<Vec<_>>().into(), 1),
+                Ok((0i64..=100).into_iter().step_by(1).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect::<Vec<_>>().into(), 2),
+                Ok((0i64..=100).into_iter().step_by(2).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                ((0i64..=100).into_iter().map(TU::i).collect::<Vec<_>>().into(), 4),
+                Ok((0i64..=100).into_iter().step_by(4).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 1),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 2),
+                Ok(vec![]),
+            ),
+            (
+                (VP::fixed(vec![]).into(), 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                (VP::fixed(TU::core_nested_sequence()).into(), 1),
+                Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
+            ),
+            (
+                (VP::fixed(TU::core_nested_sequence()).into(), 2),
+                Ok(TU::core_nested_sequence().into_iter().step_by(2).map(Result::Ok).collect()),
+            ),
+            (
+                (VP::raw(vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)]).into(), 10),
+                Ok(vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel)]),
+            ),
+            (
+                // TODO: Does this case make sense?
+                //       Emitting leading errors, but not counting them as "stepped", and then emitting the first non-error item.
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))]).into(), 10),
+                Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::b(false))]),
+            ),
+            (
+                (VP::raw((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect::<Vec<_>>()).into(), 0),
+                Err(ErrorKind::ZeroStepSize),
+            ),
+            (
+                (VP::raw((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect::<Vec<_>>()).into(), 1),
+                Ok((0i64..=100).into_iter().step_by(1).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                (VP::raw((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect::<Vec<_>>()).into(), 2),
+                Ok((0i64..=100).into_iter().step_by(2).map(TU::i).map(Result::Ok).collect()),
+            ),
+            (
+                (VP::raw((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect::<Vec<_>>()).into(), 4),
+                Ok((0i64..=100).into_iter().step_by(4).map(TU::i).map(Result::Ok).collect()),
+            ),
+        ];
 
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::map_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_step_by() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], 1),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![], 2),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![], 0),
-    //             Err(ErrorKind::ZeroStepSize),
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), 1),
-    //             Ok(TU::core_nested_sequence().into_iter().map(Result::Ok).collect()),
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence().into_iter().map(Result::Ok).collect(), 2),
-    //             Ok(TU::core_nested_sequence().into_iter().step_by(2).map(Result::Ok).collect()),
-    //         ),
-    //         (
-    //             (vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)], 10),
-    //             Ok(vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel)]),
-    //         ),
-    //         (
-    //             // TODO: Does this case make sense?
-    //             //       Emitting leading errors, but not counting them as "stepped", and then emitting the first non-error item.
-    //             (vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))], 10),
-    //             Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::b(false))]),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 0),
-    //             Err(ErrorKind::ZeroStepSize),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 1),
-    //             Ok((0i64..=100).into_iter().step_by(1).map(TU::i).map(Result::Ok).collect()),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 2),
-    //             Ok((0i64..=100).into_iter().step_by(2).map(TU::i).map(Result::Ok).collect()),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).map(Result::Ok).collect(), 4),
-    //             Ok((0i64..=100).into_iter().step_by(4).map(TU::i).map(Result::Ok).collect()),
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::step_by(VP::raw(input_a), input_b).map_err(Into::<ErrorKind>::into).map(|it| it.map(|r| r.map_err(Into::<ErrorKind>::into)).collect::<Vec<_>>());
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
-
-    // #[test]
-    // fn test_step_by_s() {
-    //     let inputs_and_expected = vec![
-    //         (
-    //             (vec![], 1),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![], 2),
-    //             Ok(vec![]),
-    //         ),
-    //         (
-    //             (vec![], 0),
-    //             Err(ErrorKind::ZeroStepSize),
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence(), 1),
-    //             Ok(TU::core_nested_sequence()),
-    //         ),
-    //         (
-    //             (TU::core_nested_sequence(), 2),
-    //             Ok(TU::core_nested_sequence().into_iter().step_by(2).collect()),
-    //         ),
-    //         (
-    //             (vec![TU::b(false), MetaVal::Int(1)], 10),
-    //             Ok(vec![TU::b(false)]),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).collect(), 0),
-    //             Err(ErrorKind::ZeroStepSize),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).collect(), 1),
-    //             Ok((0i64..=100).into_iter().step_by(1).map(TU::i).collect()),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).collect(), 2),
-    //             Ok((0i64..=100).into_iter().step_by(2).map(TU::i).collect()),
-    //         ),
-    //         (
-    //             ((0i64..=100).into_iter().map(TU::i).collect(), 4),
-    //             Ok((0i64..=100).into_iter().step_by(4).map(TU::i).collect()),
-    //         ),
-    //     ];
-
-    //     for (inputs, expected) in inputs_and_expected {
-    //         let (input_a, input_b) = inputs;
-    //         let produced = Impl::step_by_s(input_a, input_b).map_err(Into::<ErrorKind>::into);
-    //         assert_eq!(expected, produced);
-    //     }
-    // }
+        for (inputs, expected) in inputs_and_expected {
+            let (input, extra) = inputs;
+            let produced = input.step_by(extra)
+                .map_err(ErrorKind::from)
+                .map(|il| {
+                    il.into_iter().map(|res| {
+                        res.map_err(ErrorKind::from)
+                    })
+                    .collect::<Vec<_>>()
+                })
+            ;
+            assert_eq!(expected, produced);
+        }
+    }
 
     // #[test]
     // fn test_chain() {
