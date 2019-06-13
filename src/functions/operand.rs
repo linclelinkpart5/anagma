@@ -3,6 +3,8 @@ use std::convert::TryFrom;
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::util::value_producer::ValueProducer;
+use crate::functions::util::UnaryPred;
+use crate::functions::util::UnaryConv;
 
 /// Values that are pushed onto an operand stack.
 /// In order for a stack to be valid, it must result in exactly one value operand after processing.
@@ -10,6 +12,8 @@ pub enum Operand<'o> {
     Producer(ValueProducer<'o>),
     Value(MetaVal<'o>),
     Usize(usize),
+    UnaryPred(UnaryPred),
+    UnaryConv(UnaryConv),
 }
 
 impl<'o> TryFrom<Operand<'o>> for ValueProducer<'o> {
@@ -45,6 +49,28 @@ impl<'o> TryFrom<Operand<'o>> for bool {
         match o {
             Operand::Value(MetaVal::Bul(b)) => Ok(b),
             _ => Err(Error::NotBoolean),
+        }
+    }
+}
+
+impl<'o> TryFrom<Operand<'o>> for UnaryPred {
+    type Error = Error;
+
+    fn try_from(o: Operand<'o>) -> Result<Self, Self::Error> {
+        match o {
+            Operand::UnaryPred(p) => Ok(p),
+            _ => Err(Error::NotPredicate),
+        }
+    }
+}
+
+impl<'o> TryFrom<Operand<'o>> for UnaryConv {
+    type Error = Error;
+
+    fn try_from(o: Operand<'o>) -> Result<Self, Self::Error> {
+        match o {
+            Operand::UnaryConv(c) => Ok(c),
+            _ => Err(Error::NotConverter),
         }
     }
 }
