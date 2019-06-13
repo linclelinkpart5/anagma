@@ -1,8 +1,10 @@
 use std::convert::TryFrom;
+use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::util::value_producer::ValueProducer;
+use crate::functions::util::number_like::NumberLike;
 use crate::functions::util::UnaryPred;
 use crate::functions::util::UnaryConv;
 
@@ -87,5 +89,16 @@ where
 {
     fn from(i: I) -> Self {
         Operand::Value(i.into())
+    }
+}
+
+impl<'o> TryFrom<&Operand<'o>> for NumberLike {
+    type Error = Error;
+
+    fn try_from(o: &Operand<'o>) -> Result<Self, Self::Error> {
+        match o {
+            Operand::Value(ref v) => v.try_into(),
+            _ => Err(Error::NotBoolean),
+        }
     }
 }

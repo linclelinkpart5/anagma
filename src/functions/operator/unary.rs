@@ -11,6 +11,7 @@ pub use self::iter_adaptor::IterAdaptor;
 use std::convert::TryInto;
 use std::convert::TryFrom;
 
+use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::operand::Operand;
 use crate::functions::util::iterable_like::IterableLike;

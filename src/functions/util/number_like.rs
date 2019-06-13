@@ -12,7 +12,7 @@ use crate::metadata::types::MetaVal;
 use crate::functions::operand::Operand;
 use crate::functions::Error;
 
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum NumberLike {
     Integer(i64),
     Decimal(Decimal),
@@ -69,6 +69,18 @@ impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
         match value {
             MetaVal::Int(i) => Ok(Self::Integer(i)),
             MetaVal::Dec(d) => Ok(Self::Decimal(d)),
+            _ => Err(Error::NotNumeric),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k MetaVal<'k>> for NumberLike {
+    type Error = Error;
+
+    fn try_from(value: &'k MetaVal<'k>) -> Result<Self, Self::Error> {
+        match value {
+            &MetaVal::Int(i) => Ok(Self::Integer(i)),
+            &MetaVal::Dec(d) => Ok(Self::Decimal(d)),
             _ => Err(Error::NotNumeric),
         }
     }
