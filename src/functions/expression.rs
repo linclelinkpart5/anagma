@@ -1,11 +1,7 @@
 use crate::functions::Error;
 use crate::functions::operand::Operand;
-
-pub enum UnaryOp {
-}
-
-pub enum BinaryOp {
-}
+use crate::functions::operator::UnaryOp;
+use crate::functions::operator::BinaryOp;
 
 pub enum Expression<'e> {
     Unary(UnaryOp, Thunk<'e>),
@@ -14,7 +10,10 @@ pub enum Expression<'e> {
 
 impl<'e> Expression<'e> {
     pub fn eval(self) -> Result<Operand<'e>, Error> {
-        Err(Error::InvalidOperand)
+        match self {
+            Self::Unary(u_op, th) => u_op.process(th.eval()?),
+            Self::Binary(b_op, th_a, th_b) => b_op.process(th_a.eval()?, th_b.eval()?),
+        }
     }
 }
 
