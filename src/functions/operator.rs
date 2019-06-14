@@ -1,15 +1,6 @@
 pub mod unary;
 pub mod binary;
 
-pub use self::unary::Converter as UnaryConverter;
-pub use self::unary::Predicate as UnaryPredicate;
-pub use self::unary::IterConsumer as UnaryIterConsumer;
-pub use self::unary::IterAdaptor as UnaryIterAdaptor;
-pub use self::binary::Converter as BinaryConverter;
-pub use self::binary::Predicate as BinaryPredicate;
-pub use self::binary::IterConsumer as BinaryIterConsumer;
-pub use self::binary::IterAdaptor as BinaryIterAdaptor;
-
 use std::convert::TryFrom;
 
 use crate::functions::Error;
