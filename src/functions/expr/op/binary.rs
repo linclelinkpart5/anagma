@@ -1,12 +1,12 @@
 use std::convert::TryInto;
 use std::convert::TryFrom;
-use std::cmp::Ordering;
+// use std::cmp::Ordering;
 
 use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::expr::arg::Arg;
 use crate::functions::util::iterable_like::IterableLike;
-use crate::functions::util::number_like::NumberLike;
+// use crate::functions::util::number_like::NumberLike;
 // use crate::functions::util::value_producer::ValueProducer;
 
 #[derive(Clone, Copy, Debug)]
@@ -72,31 +72,31 @@ impl Op {
         }
     }
 
-    fn eq(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {
-        mv_a == mv_b
-    }
+    // fn eq(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {
+    //     mv_a == mv_b
+    // }
 
-    fn ne(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {
-        mv_a != mv_b
-    }
+    // fn ne(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {
+    //     mv_a != mv_b
+    // }
 
-    fn lt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-        let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Less)
-    }
+    // fn lt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    //     let ord = num_a.val_cmp(&num_b);
+    //     Ok(ord == Ordering::Less)
+    // }
 
-    fn le(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-        let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Less || ord == Ordering::Equal)
-    }
+    // fn le(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    //     let ord = num_a.val_cmp(&num_b);
+    //     Ok(ord == Ordering::Less || ord == Ordering::Equal)
+    // }
 
-    fn gt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-        let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Greater)
-    }
+    // fn gt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    //     let ord = num_a.val_cmp(&num_b);
+    //     Ok(ord == Ordering::Greater)
+    // }
 
-    fn ge(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-        let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Greater || ord == Ordering::Equal)
-    }
+    // fn ge(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    //     let ord = num_a.val_cmp(&num_b);
+    //     Ok(ord == Ordering::Greater || ord == Ordering::Equal)
+    // }
 }

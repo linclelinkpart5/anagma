@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::convert::TryFrom;
 
-use crate::metadata::types::MetaVal;
 use crate::functions::Error;
 use crate::functions::expr::arg::Arg;
 use crate::functions::util::iterable_like::IterableLike;

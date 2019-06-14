@@ -220,13 +220,13 @@ impl<'il> IterableLike<'il> {
         Self::all_equal_agnostic(r_s.into_iter().map(Cow::Borrowed).map(Result::Ok))
     }
 
-    fn all_equal_pred<'a>(ref_mv: &MetaVal<'a>) -> Result<bool, Error> {
-        // Conforms to the predicate interface.
-        match ref_mv {
-            &MetaVal::Seq(ref s) => Self::all_equal_s(&s),
-            _ => Err(Error::NotSequence),
-        }
-    }
+    // fn all_equal_pred<'a>(ref_mv: &MetaVal<'a>) -> Result<bool, Error> {
+    //     // Conforms to the predicate interface.
+    //     match ref_mv {
+    //         &MetaVal::Seq(ref s) => Self::all_equal_s(&s),
+    //         _ => Err(Error::NotSequence),
+    //     }
+    // }
 
     fn all_equal_p<'a>(p: ValueProducer<'a>) -> Result<bool, Error> {
         Self::all_equal_agnostic(p.map(|res| res.map(Cow::Owned)))
