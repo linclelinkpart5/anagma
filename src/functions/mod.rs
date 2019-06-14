@@ -1,7 +1,5 @@
-pub mod operand;
-pub mod operator;
+pub mod expr;
 pub mod util;
-pub mod expression;
 
 use crate::metadata::stream::value::Error as MetaValueStreamError;
 
@@ -31,7 +29,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Self::ValueStream(ref err) => write!(f, "value stream error: {}", err),
-            Self::EmptyStack => write!(f, "empty operand stack"),
+            Self::EmptyStack => write!(f, "empty arg stack"),
             Self::NotSequence => write!(f, "not a sequence"),
             Self::NotProducer => write!(f, "not a producer"),
             Self::NotNumeric => write!(f, "not a number"),

@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use std::iter::FusedIterator;
 
 use crate::functions::Error;
-use crate::functions::operator::UnaryPredicate;
-use crate::functions::operator::UnaryConverter;
+use crate::functions::op::UnaryPredicate;
+use crate::functions::op::UnaryConverter;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 

@@ -9,7 +9,7 @@ use std::cmp::Ordering;
 use rust_decimal::Decimal;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::operand::Operand;
+use crate::functions::expr::arg::Arg;
 use crate::functions::Error;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -87,18 +87,18 @@ impl<'k> TryFrom<&'k MetaVal<'k>> for NumberLike {
 }
 
 // NOTE: Superseded by blanket impl.
-// impl<'k> From<NumberLike> for Operand<'k> {
-//     fn from(nl: NumberLike) -> Operand<'k> {
-//         Operand::Value(nl.into())
+// impl<'k> From<NumberLike> for Arg<'k> {
+//     fn from(nl: NumberLike) -> Arg<'k> {
+//         Arg::Value(nl.into())
 //     }
 // }
 
-impl<'k> TryFrom<Operand<'k>> for NumberLike {
+impl<'k> TryFrom<Arg<'k>> for NumberLike {
     type Error = Error;
 
-    fn try_from(operand: Operand<'k>) -> Result<Self, Self::Error> {
-        match operand {
-            Operand::Value(mv) => mv.try_into(),
+    fn try_from(arg: Arg<'k>) -> Result<Self, Self::Error> {
+        match arg {
+            Arg::Value(mv) => mv.try_into(),
             _ => Err(Error::NotNumeric),
         }
     }

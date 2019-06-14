@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
+use crate::functions::expr::arg::Arg;
 use crate::functions::Error;
 use crate::functions::util::value_producer::ValueProducer;
 use crate::functions::util::value_producer::Flatten;
@@ -17,7 +18,6 @@ use crate::functions::util::value_producer::Skip;
 use crate::functions::util::value_producer::Take;
 use crate::functions::util::value_producer::SkipWhile;
 use crate::functions::util::value_producer::TakeWhile;
-use crate::functions::operand::Operand;
 use crate::functions::util::NumberLike;
 use crate::functions::util::UnaryPred;
 use crate::functions::util::UnaryConv;
@@ -436,7 +436,7 @@ impl<'il> IterableLike<'il> {
     // }
 }
 
-impl<'il> From<IterableLike<'il>> for Operand<'il> {
+impl<'il> From<IterableLike<'il>> for Arg<'il> {
     fn from(il: IterableLike<'il>) -> Self {
         match il {
             IterableLike::Sequence(sequence) => Self::Value(MetaVal::Seq(sequence)),
@@ -445,13 +445,13 @@ impl<'il> From<IterableLike<'il>> for Operand<'il> {
     }
 }
 
-impl<'il> TryFrom<Operand<'il>> for IterableLike<'il> {
+impl<'il> TryFrom<Arg<'il>> for IterableLike<'il> {
     type Error = Error;
 
-    fn try_from(value: Operand<'il>) -> Result<Self, Self::Error> {
+    fn try_from(value: Arg<'il>) -> Result<Self, Self::Error> {
         match value {
-            Operand::Value(mv) => Self::try_from(mv),
-            Operand::Producer(s) => Ok(Self::Producer(s)),
+            Arg::Value(mv) => Self::try_from(mv),
+            Arg::Producer(s) => Ok(Self::Producer(s)),
             _ => Err(Error::NotIterable),
         }
     }
