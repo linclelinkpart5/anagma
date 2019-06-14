@@ -3,7 +3,7 @@ use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
-use crate::scripting::expr::thunk::Thunk;
+use crate::scripting::expr::Expr;
 use crate::scripting::util::value_producer::ValueProducer;
 use crate::scripting::util::number_like::NumberLike;
 use crate::scripting::util::UnaryPred;
@@ -17,7 +17,7 @@ pub enum Arg<'o> {
     Usize(usize),
     UnaryPred(UnaryPred),
     UnaryConv(UnaryConv),
-    Thunk(Box<Thunk<'o>>),
+    Expr(Box<Expr<'o>>),
 }
 
 impl<'o> TryFrom<Arg<'o>> for ValueProducer<'o> {
