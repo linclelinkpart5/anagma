@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 use std::convert::TryFrom;
 
-use crate::functions::Error;
-use crate::functions::expr::arg::Arg;
-use crate::functions::util::iterable_like::IterableLike;
-use crate::functions::util::number_like::NumberLike;
+use crate::scripting::Error;
+use crate::scripting::expr::arg::Arg;
+use crate::scripting::util::iterable_like::IterableLike;
+use crate::scripting::util::number_like::NumberLike;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {

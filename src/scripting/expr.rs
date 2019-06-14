@@ -7,7 +7,7 @@ pub use self::op::UnaryOp;
 pub use self::op::BinaryOp;
 pub use self::thunk::Thunk;
 
-use crate::functions::Error;
+use crate::scripting::Error;
 
 pub enum Expr<'e> {
     Unary(UnaryOp, Thunk<'e>),

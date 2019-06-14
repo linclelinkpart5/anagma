@@ -3,11 +3,11 @@ use std::convert::TryFrom;
 // use std::cmp::Ordering;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::Error;
-use crate::functions::expr::arg::Arg;
-use crate::functions::util::iterable_like::IterableLike;
-// use crate::functions::util::number_like::NumberLike;
-// use crate::functions::util::value_producer::ValueProducer;
+use crate::scripting::Error;
+use crate::scripting::expr::arg::Arg;
+use crate::scripting::util::iterable_like::IterableLike;
+// use crate::scripting::util::number_like::NumberLike;
+// use crate::scripting::util::value_producer::ValueProducer;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {

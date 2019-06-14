@@ -8,7 +8,7 @@ pub use self::value_producer::*;
 pub use self::iterable_like::IterableLike;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::Error;
+use crate::scripting::Error;
 
 pub type UnaryPred = fn(&MetaVal) -> Result<bool, Error>;
 pub type UnaryConv = fn(MetaVal) -> Result<MetaVal, Error>;

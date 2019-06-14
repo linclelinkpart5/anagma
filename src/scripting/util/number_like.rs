@@ -9,8 +9,8 @@ use std::cmp::Ordering;
 use rust_decimal::Decimal;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::expr::arg::Arg;
-use crate::functions::Error;
+use crate::scripting::expr::arg::Arg;
+use crate::scripting::Error;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum NumberLike {

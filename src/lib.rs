@@ -21,6 +21,6 @@ extern crate rust_decimal;
 pub mod metadata;
 pub mod config;
 mod util;
-pub mod functions;
+pub mod scripting;
 
 #[cfg(test)] mod test_util;

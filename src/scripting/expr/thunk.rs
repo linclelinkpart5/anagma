@@ -1,6 +1,6 @@
-use crate::functions::expr::Expr;
-use crate::functions::expr::arg::Arg;
-use crate::functions::Error;
+use crate::scripting::expr::Expr;
+use crate::scripting::expr::arg::Arg;
+use crate::scripting::Error;
 
 pub enum Thunk<'t> {
     Arg(Arg<'t>),

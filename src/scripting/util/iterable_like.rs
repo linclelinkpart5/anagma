@@ -3,24 +3,24 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
-use crate::functions::expr::arg::Arg;
-use crate::functions::Error;
-use crate::functions::util::value_producer::ValueProducer;
-use crate::functions::util::value_producer::Flatten;
-use crate::functions::util::value_producer::Dedup;
-use crate::functions::util::value_producer::Unique;
-use crate::functions::util::value_producer::Filter;
-use crate::functions::util::value_producer::Map;
-use crate::functions::util::value_producer::StepBy;
-use crate::functions::util::value_producer::Chain;
-use crate::functions::util::value_producer::Zip;
-use crate::functions::util::value_producer::Skip;
-use crate::functions::util::value_producer::Take;
-use crate::functions::util::value_producer::SkipWhile;
-use crate::functions::util::value_producer::TakeWhile;
-use crate::functions::util::NumberLike;
-use crate::functions::util::UnaryPred;
-use crate::functions::util::UnaryConv;
+use crate::scripting::expr::arg::Arg;
+use crate::scripting::Error;
+use crate::scripting::util::value_producer::ValueProducer;
+use crate::scripting::util::value_producer::Flatten;
+use crate::scripting::util::value_producer::Dedup;
+use crate::scripting::util::value_producer::Unique;
+use crate::scripting::util::value_producer::Filter;
+use crate::scripting::util::value_producer::Map;
+use crate::scripting::util::value_producer::StepBy;
+use crate::scripting::util::value_producer::Chain;
+use crate::scripting::util::value_producer::Zip;
+use crate::scripting::util::value_producer::Skip;
+use crate::scripting::util::value_producer::Take;
+use crate::scripting::util::value_producer::SkipWhile;
+use crate::scripting::util::value_producer::TakeWhile;
+use crate::scripting::util::NumberLike;
+use crate::scripting::util::UnaryPred;
+use crate::scripting::util::UnaryConv;
 
 #[derive(Clone, Copy)]
 enum MinMax { Min, Max, }
@@ -535,12 +535,12 @@ mod tests {
     use crate::test_util::TestUtil as TU;
 
     use crate::metadata::types::MetaVal;
-    use crate::functions::Error;
-    use crate::functions::ErrorKind;
-    use crate::functions::util::value_producer::ValueProducer as VP;
-    use crate::functions::util::NumberLike;
-    use crate::functions::util::UnaryPred as UPred;
-    use crate::functions::util::UnaryConv as UConv;
+    use crate::scripting::Error;
+    use crate::scripting::ErrorKind;
+    use crate::scripting::util::value_producer::ValueProducer as VP;
+    use crate::scripting::util::NumberLike;
+    use crate::scripting::util::UnaryPred as UPred;
+    use crate::scripting::util::UnaryConv as UConv;
 
     type ProducerTestResult = Result<Vec<Result<MetaVal<'static>, ErrorKind>>, ErrorKind>;
 
