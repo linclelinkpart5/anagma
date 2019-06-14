@@ -21,3 +21,12 @@ impl<'t> TryFrom<Thunk<'t>> for Arg<'t> {
         }
     }
 }
+
+// Used for short-circuiting `and` and `or` operators.
+impl<'t> TryFrom<Thunk<'t>> for bool {
+    type Error = Error;
+
+    fn try_from(t: Thunk<'t>) -> Result<Self, Self::Error> {
+        Arg::try_from(t)?.try_into()
+    }
+}
