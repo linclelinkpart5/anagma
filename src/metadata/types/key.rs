@@ -2,21 +2,21 @@ use std::borrow::Cow;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Deserialize, Serialize)]
 #[serde(transparent)]
-pub struct MetaKey<'k>(Cow<'k, str>);
+pub struct MetaKey(String);
 
-impl<'k> From<String> for MetaKey<'k> {
+impl From<String> for MetaKey {
     fn from(s: String) -> Self {
-        Self(s.into())
+        Self(s)
     }
 }
 
-impl<'k> From<&'k str> for MetaKey<'k> {
-    fn from(s: &'k str) -> Self {
-        Self(s.into())
+impl<'a> From<&'a str> for MetaKey {
+    fn from(s: &'a str) -> Self {
+        String::from(s).into()
     }
 }
 
-impl<'k> std::fmt::Display for MetaKey<'k> {
+impl std::fmt::Display for MetaKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Self(ref s) => s.fmt(f),
@@ -25,7 +25,7 @@ impl<'k> std::fmt::Display for MetaKey<'k> {
 }
 
 #[derive(Clone, Debug)]
-pub struct MetaKeyPath<'k>(Cow<'k, [MetaKey<'k>]>);
+pub struct MetaKeyPath<'k>(Cow<'k, [MetaKey]>);
 
 impl<'k> MetaKeyPath<'k> {
     pub fn new() -> Self {
@@ -48,42 +48,42 @@ impl<'k> MetaKeyPath<'k> {
 //     type Item = &'k MetaKey<'k>;
 //     type IntoIter = std::slice::Iter<'k, MetaKey<'k>>;
 impl<'a, 'k> IntoIterator for &'a MetaKeyPath<'k> {
-    type Item = &'a MetaKey<'k>;
-    type IntoIter = std::slice::Iter<'a, MetaKey<'k>>;
+    type Item = &'a MetaKey;
+    type IntoIter = std::slice::Iter<'a, MetaKey>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
     }
 }
 
-impl<'k> From<MetaKey<'k>> for MetaKeyPath<'k> {
-    fn from(mk: MetaKey<'k>) -> Self {
+impl<'k> From<MetaKey> for MetaKeyPath<'k> {
+    fn from(mk: MetaKey) -> Self {
         Self(Cow::Owned(vec![mk]))
     }
 }
 
-impl<'k> From<Vec<MetaKey<'k>>> for MetaKeyPath<'k> {
-    fn from(mks: Vec<MetaKey<'k>>) -> Self {
+impl<'k> From<Vec<MetaKey>> for MetaKeyPath<'k> {
+    fn from(mks: Vec<MetaKey>) -> Self {
         Self(mks.into())
     }
 }
 
-impl<'k> From<&'k [MetaKey<'k>]> for MetaKeyPath<'k> {
-    fn from(mks: &'k [MetaKey<'k>]) -> Self {
+impl<'k> From<&'k [MetaKey]> for MetaKeyPath<'k> {
+    fn from(mks: &'k [MetaKey]) -> Self {
         Self(mks.into())
     }
 }
 
 impl<'k> From<String> for MetaKeyPath<'k> {
     fn from(s: String) -> Self {
-        let mk: MetaKey<'k> = s.into();
+        let mk: MetaKey = s.into();
         mk.into()
     }
 }
 
 impl<'k> From<&'k str> for MetaKeyPath<'k> {
     fn from(s: &'k str) -> Self {
-        let mk: MetaKey<'k> = s.into();
+        let mk: MetaKey = s.into();
         mk.into()
     }
 }

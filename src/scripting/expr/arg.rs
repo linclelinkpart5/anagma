@@ -13,7 +13,7 @@ use crate::scripting::util::UnaryConv;
 /// In order for a stack to be valid, it must result in exactly one value arg after processing.
 pub enum Arg<'o> {
     Producer(ValueProducer<'o>),
-    Value(MetaVal<'o>),
+    Value(MetaVal),
     Usize(usize),
     UnaryPred(UnaryPred),
     UnaryConv(UnaryConv),
@@ -87,7 +87,7 @@ impl<'o> From<usize> for Arg<'o> {
 
 impl<'o, I> From<I> for Arg<'o>
 where
-    I: Into<MetaVal<'o>>,
+    I: Into<MetaVal>,
 {
     fn from(i: I) -> Self {
         Arg::Value(i.into())

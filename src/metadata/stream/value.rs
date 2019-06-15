@@ -29,13 +29,13 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug)]
-pub enum MetaValueStream<'mvs> {
-    Fixed(FixedMetaValueStream<'mvs>),
-    Block(BlockMetaValueStream<'mvs>),
+pub enum MetaValueStream<'p> {
+    Fixed(FixedMetaValueStream<'p>),
+    Block(BlockMetaValueStream<'p>),
 }
 
-impl<'mvs> Iterator for MetaValueStream<'mvs> {
-    type Item = Result<(Cow<'mvs, Path>, MetaVal<'mvs>), Error>;
+impl<'p> Iterator for MetaValueStream<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -45,32 +45,32 @@ impl<'mvs> Iterator for MetaValueStream<'mvs> {
     }
 }
 
-impl<'mvs> From<FixedMetaValueStream<'mvs>> for MetaValueStream<'mvs> {
-    fn from(other: FixedMetaValueStream<'mvs>) -> Self {
+impl<'p> From<FixedMetaValueStream<'p>> for MetaValueStream<'p> {
+    fn from(other: FixedMetaValueStream<'p>) -> Self {
         Self::Fixed(other)
     }
 }
 
-impl<'mvs> From<BlockMetaValueStream<'mvs>> for MetaValueStream<'mvs> {
-    fn from(other: BlockMetaValueStream<'mvs>) -> Self {
+impl<'p> From<BlockMetaValueStream<'p>> for MetaValueStream<'p> {
+    fn from(other: BlockMetaValueStream<'p>) -> Self {
         Self::Block(other)
     }
 }
 
 #[derive(Debug)]
-pub struct FixedMetaValueStream<'mvs>(VecDeque<(Cow<'mvs, Path>, MetaVal<'mvs>)>);
+pub struct FixedMetaValueStream<'p>(VecDeque<(Cow<'p, Path>, MetaVal)>);
 
-impl<'mvs> FixedMetaValueStream<'mvs> {
+impl<'p> FixedMetaValueStream<'p> {
     pub fn new<II>(items: II) -> Self
     where
-        II: IntoIterator<Item = (Cow<'mvs, Path>, MetaVal<'mvs>)>,
+        II: IntoIterator<Item = (Cow<'p, Path>, MetaVal)>,
     {
         FixedMetaValueStream(items.into_iter().collect())
     }
 }
 
-impl<'mvs> Iterator for FixedMetaValueStream<'mvs> {
-    type Item = Result<(Cow<'mvs, Path>, MetaVal<'mvs>), Error>;
+impl<'p> Iterator for FixedMetaValueStream<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
@@ -78,15 +78,15 @@ impl<'mvs> Iterator for FixedMetaValueStream<'mvs> {
 }
 
 #[derive(Debug)]
-pub struct BlockMetaValueStream<'mvs> {
-    target_key_path: MetaKeyPath<'mvs>,
-    meta_block_stream: MetaBlockStream<'mvs>,
+pub struct BlockMetaValueStream<'p> {
+    target_key_path: MetaKeyPath<'p>,
+    meta_block_stream: MetaBlockStream<'p>,
 }
 
-impl<'mvs> BlockMetaValueStream<'mvs> {
-    pub fn new<MBS>(target_key_path: MetaKeyPath<'mvs>, meta_block_stream: MBS) -> Self
+impl<'p> BlockMetaValueStream<'p> {
+    pub fn new<MBS>(target_key_path: MetaKeyPath<'p>, meta_block_stream: MBS) -> Self
     where
-        MBS: Into<MetaBlockStream<'mvs>>,
+        MBS: Into<MetaBlockStream<'p>>,
     {
         Self {
             target_key_path,
@@ -95,8 +95,8 @@ impl<'mvs> BlockMetaValueStream<'mvs> {
     }
 }
 
-impl<'mvs> Iterator for BlockMetaValueStream<'mvs> {
-    type Item = Result<(Cow<'mvs, Path>, MetaVal<'mvs>), Error>;
+impl<'p> Iterator for BlockMetaValueStream<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_stream.next() {

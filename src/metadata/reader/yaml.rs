@@ -3,7 +3,7 @@ use crate::metadata::types::MetaStructureRepr;
 use crate::metadata::reader::Error;
 use crate::metadata::location::MetaLocation;
 
-pub(crate) fn read_str<'k, S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure<'k>, Error> {
+pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
     Ok(match mt {
         MetaLocation::Contains => MetaStructureRepr::Unit(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
         MetaLocation::Siblings => MetaStructureRepr::Many(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),

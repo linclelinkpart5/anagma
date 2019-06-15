@@ -53,8 +53,8 @@ impl NumberLike {
     }
 }
 
-impl<'k> From<NumberLike> for MetaVal<'k> {
-    fn from(nl: NumberLike) -> MetaVal<'k> {
+impl<'k> From<NumberLike> for MetaVal {
+    fn from(nl: NumberLike) -> MetaVal {
         match nl {
             NumberLike::Integer(i) => Self::Int(i),
             NumberLike::Decimal(d) => Self::Dec(d),
@@ -62,10 +62,10 @@ impl<'k> From<NumberLike> for MetaVal<'k> {
     }
 }
 
-impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
+impl<'k> TryFrom<MetaVal> for NumberLike {
     type Error = Error;
 
-    fn try_from(value: MetaVal<'k>) -> Result<Self, Self::Error> {
+    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
         match value {
             MetaVal::Int(i) => Ok(Self::Integer(i)),
             MetaVal::Dec(d) => Ok(Self::Decimal(d)),
@@ -74,10 +74,10 @@ impl<'k> TryFrom<MetaVal<'k>> for NumberLike {
     }
 }
 
-impl<'k> TryFrom<&'k MetaVal<'k>> for NumberLike {
+impl<'k> TryFrom<&'k MetaVal> for NumberLike {
     type Error = Error;
 
-    fn try_from(value: &'k MetaVal<'k>) -> Result<Self, Self::Error> {
+    fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
         match value {
             &MetaVal::Int(i) => Ok(Self::Integer(i)),
             &MetaVal::Dec(d) => Ok(Self::Decimal(d)),

@@ -11,8 +11,8 @@ use crate::scripting::util::UnaryConv;
 
 pub enum ValueProducer<'v> {
     Source(Source<'v>),
-    Fixed(Fixed<'v>),
-    Raw(Raw<'v>),
+    Fixed(Fixed),
+    Raw(Raw),
     Flatten(Flatten<'v>),
     Dedup(Dedup<'v>),
     Unique(Unique<'v>),
@@ -29,19 +29,19 @@ pub enum ValueProducer<'v> {
     Interleave(Interleave<'v>),
 }
 
-impl<'v> From<Vec<MetaVal<'v>>> for ValueProducer<'v> {
-    fn from(v: Vec<MetaVal<'v>>) -> Self {
+impl<'v> From<Vec<MetaVal>> for ValueProducer<'v> {
+    fn from(v: Vec<MetaVal>) -> Self {
         Self::Fixed(v.into())
     }
 }
 
-impl<'v> From<Vec<Result<MetaVal<'v>, Error>>> for ValueProducer<'v> {
-    fn from(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+impl<'v> From<Vec<Result<MetaVal, Error>>> for ValueProducer<'v> {
+    fn from(v: Vec<Result<MetaVal, Error>>) -> Self {
         Self::Raw(v.into())
     }
 }
 
-impl<'v> TryFrom<ValueProducer<'v>> for Vec<MetaVal<'v>> {
+impl<'v> TryFrom<ValueProducer<'v>> for Vec<MetaVal> {
     type Error = Error;
 
     fn try_from(vp: ValueProducer<'v>) -> Result<Self, Self::Error> {
@@ -49,24 +49,24 @@ impl<'v> TryFrom<ValueProducer<'v>> for Vec<MetaVal<'v>> {
     }
 }
 
-impl<'v> From<ValueProducer<'v>> for Vec<Result<MetaVal<'v>, Error>> {
+impl<'v> From<ValueProducer<'v>> for Vec<Result<MetaVal, Error>> {
     fn from(vp: ValueProducer<'v>) -> Self {
         vp.collect()
     }
 }
 
 impl<'v> ValueProducer<'v> {
-    pub fn fixed(v: Vec<MetaVal<'v>>) -> Self {
+    pub fn fixed(v: Vec<MetaVal>) -> Self {
         Self::Fixed(Fixed::new(v))
     }
 
-    pub fn raw(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+    pub fn raw(v: Vec<Result<MetaVal, Error>>) -> Self {
         Self::Raw(Raw::new(v))
     }
 }
 
 impl<'v> Iterator for ValueProducer<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -100,58 +100,58 @@ impl<'v> Source<'v> {
 }
 
 impl<'v> Iterator for Source<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(|res| res.map(|(_, mv)| mv).map_err(Error::ValueStream))
     }
 }
 
-pub struct Fixed<'v>(std::vec::IntoIter<MetaVal<'v>>);
+pub struct Fixed(std::vec::IntoIter<MetaVal>);
 
-impl<'v> Fixed<'v> {
-    pub fn new(v: Vec<MetaVal<'v>>) -> Self {
+impl Fixed {
+    pub fn new(v: Vec<MetaVal>) -> Self {
         Self(v.into_iter())
     }
 }
 
-impl<'v> Iterator for Fixed<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+impl Iterator for Fixed {
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next().map(Result::Ok)
     }
 }
 
-impl<'v> From<Vec<MetaVal<'v>>> for Fixed<'v> {
-    fn from(v: Vec<MetaVal<'v>>) -> Self {
+impl From<Vec<MetaVal>> for Fixed {
+    fn from(v: Vec<MetaVal>) -> Self {
         Fixed::new(v)
     }
 }
 
-pub struct Raw<'v>(std::vec::IntoIter<Result<MetaVal<'v>, Error>>);
+pub struct Raw(std::vec::IntoIter<Result<MetaVal, Error>>);
 
-impl<'v> Raw<'v> {
-    pub fn new(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+impl Raw {
+    pub fn new(v: Vec<Result<MetaVal, Error>>) -> Self {
         Self(v.into_iter())
     }
 }
 
-impl<'v> Iterator for Raw<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+impl Iterator for Raw {
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
     }
 }
 
-impl<'v> From<Vec<Result<MetaVal<'v>, Error>>> for Raw<'v> {
-    fn from(v: Vec<Result<MetaVal<'v>, Error>>) -> Self {
+impl From<Vec<Result<MetaVal, Error>>> for Raw {
+    fn from(v: Vec<Result<MetaVal, Error>>) -> Self {
         Raw::new(v)
     }
 }
 
-pub struct Flatten<'v>(Box<ValueProducer<'v>>, VecDeque<MetaVal<'v>>);
+pub struct Flatten<'v>(Box<ValueProducer<'v>>, VecDeque<MetaVal>);
 
 impl<'v> Flatten<'v> {
     pub fn new(vp: ValueProducer<'v>) -> Self {
@@ -160,7 +160,7 @@ impl<'v> Flatten<'v> {
 }
 
 impl<'v> Iterator for Flatten<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.1.pop_front() {
@@ -180,7 +180,7 @@ impl<'v> Iterator for Flatten<'v> {
     }
 }
 
-pub struct Dedup<'v>(Box<ValueProducer<'v>>, Option<MetaVal<'v>>);
+pub struct Dedup<'v>(Box<ValueProducer<'v>>, Option<MetaVal>);
 
 impl<'v> Dedup<'v> {
     pub fn new(vp: ValueProducer<'v>) -> Self {
@@ -189,7 +189,7 @@ impl<'v> Dedup<'v> {
 }
 
 impl<'v> Iterator for Dedup<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = self.0.next()?;
@@ -211,7 +211,7 @@ impl<'v> Iterator for Dedup<'v> {
     }
 }
 
-pub struct Unique<'v>(Box<ValueProducer<'v>>, HashSet<MetaVal<'v>>);
+pub struct Unique<'v>(Box<ValueProducer<'v>>, HashSet<MetaVal>);
 
 impl<'v> Unique<'v> {
     pub fn new(vp: ValueProducer<'v>) -> Self {
@@ -220,7 +220,7 @@ impl<'v> Unique<'v> {
 }
 
 impl<'v> Iterator for Unique<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let res = self.0.next()?;
@@ -250,7 +250,7 @@ impl<'v> Filter<'v> {
 }
 
 impl<'v> Iterator for Filter<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.0.next()? {
@@ -277,7 +277,7 @@ impl<'v> Map<'v> {
 }
 
 impl<'v> Iterator for Map<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.0.next()? {
@@ -308,7 +308,7 @@ impl<'v> StepBy<'v> {
 }
 
 impl<'v> Iterator for StepBy<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.vp.next()? {
@@ -338,7 +338,7 @@ impl<'v> Chain<'v> {
 }
 
 impl<'v> Iterator for Chain<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Iterate the first stream.
@@ -367,7 +367,7 @@ impl<'v> Zip<'v> {
 }
 
 impl<'v> Iterator for Zip<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let res_a = self.0.next()?;
@@ -398,7 +398,7 @@ impl<'v> Skip<'v> {
 }
 
 impl<'v> Iterator for Skip<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.curr < self.n {
@@ -429,7 +429,7 @@ impl<'v> Take<'v> {
 }
 
 impl<'v> Iterator for Take<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.curr < self.n {
@@ -451,7 +451,7 @@ impl<'v> SkipWhile<'v> {
 }
 
 impl<'v> Iterator for SkipWhile<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.2 {
@@ -485,7 +485,7 @@ impl<'v> TakeWhile<'v> {
 }
 
 impl<'v> Iterator for TakeWhile<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.2 {
@@ -507,16 +507,16 @@ impl<'v> Iterator for TakeWhile<'v> {
     }
 }
 
-pub struct Intersperse<'v>(Box<ValueProducer<'v>>, MetaVal<'v>, bool);
+pub struct Intersperse<'v>(Box<ValueProducer<'v>>, MetaVal, bool);
 
 impl<'v> Intersperse<'v> {
-    pub fn new(vp: ValueProducer<'v>, mv: MetaVal<'v>) -> Self {
+    pub fn new(vp: ValueProducer<'v>, mv: MetaVal) -> Self {
         Self(Box::new(vp), mv, false)
     }
 }
 
 impl<'v> Iterator for Intersperse<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.2 = !self.2;
@@ -537,7 +537,7 @@ impl<'v> Interleave<'v> {
 }
 
 impl<'v> Iterator for Interleave<'v> {
-    type Item = Result<MetaVal<'v>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.2 = !self.2;

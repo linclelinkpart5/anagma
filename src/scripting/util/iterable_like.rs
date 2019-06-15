@@ -45,7 +45,7 @@ impl AllAny {
 
 /// Represents one of several different kinds of iterables, producing meta values.
 pub enum IterableLike<'il> {
-    Sequence(Vec<MetaVal<'il>>),
+    Sequence(Vec<MetaVal>),
     Producer(ValueProducer<'il>),
 }
 
@@ -61,7 +61,7 @@ impl<'il> IterableLike<'il> {
         !self.is_lazy()
     }
 
-    pub fn collect(self) -> Result<Vec<MetaVal<'il>>, Error> {
+    pub fn collect(self) -> Result<Vec<MetaVal>, Error> {
         match self {
             Self::Sequence(s) => Ok(s),
             Self::Producer(p) => p.collect::<Result<Vec<_>, _>>(),
@@ -79,14 +79,14 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    pub fn first(self) -> Result<MetaVal<'il>, Error> {
+    pub fn first(self) -> Result<MetaVal, Error> {
         match self {
             Self::Sequence(s) => s.into_iter().next().ok_or(Error::EmptySequence),
             Self::Producer(p) => p.into_iter().next().ok_or(Error::EmptyProducer)?,
         }
     }
 
-    pub fn last(self) -> Result<MetaVal<'il>, Error> {
+    pub fn last(self) -> Result<MetaVal, Error> {
         match self {
             Self::Sequence(s) => s.into_iter().last().ok_or(Error::EmptySequence),
             Self::Producer(p) => {
@@ -130,7 +130,7 @@ impl<'il> IterableLike<'il> {
         self.min_in_max_in(MinMax::Max)
     }
 
-    fn smart_sort_by<'mv>(a: &MetaVal<'mv>, b: &MetaVal<'mv>) -> std::cmp::Ordering {
+    fn smart_sort_by<'mv>(a: &MetaVal, b: &MetaVal) -> std::cmp::Ordering {
         // Smooth over comparsions between integers and decimals.
         // TODO: Create a stable ordering for equal integers and decimals. (e.g. I(5) vs D(5.0))
         match (a, b) {
@@ -147,7 +147,7 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    fn rev_sort(self, flag: RevSort) -> Result<Vec<MetaVal<'il>>, Error> {
+    fn rev_sort(self, flag: RevSort) -> Result<Vec<MetaVal>, Error> {
         let mut new_s = self.collect()?;
 
         match flag {
@@ -158,11 +158,11 @@ impl<'il> IterableLike<'il> {
         Ok(new_s)
     }
 
-    pub fn rev(self) -> Result<Vec<MetaVal<'il>>, Error> {
+    pub fn rev(self) -> Result<Vec<MetaVal>, Error> {
         self.rev_sort(RevSort::Rev)
     }
 
-    pub fn sort(self) -> Result<Vec<MetaVal<'il>>, Error> {
+    pub fn sort(self) -> Result<Vec<MetaVal>, Error> {
         self.rev_sort(RevSort::Sort)
     }
 
@@ -199,7 +199,7 @@ impl<'il> IterableLike<'il> {
 
     fn all_equal_agnostic<'a, I>(it: I) -> Result<bool, Error>
     where
-        I: Iterator<Item = Result<Cow<'a, MetaVal<'a>>, Error>>,
+        I: Iterator<Item = Result<Cow<'a, MetaVal>, Error>>,
     {
         let mut it = it.into_iter();
         Ok(match it.next() {
@@ -216,11 +216,11 @@ impl<'il> IterableLike<'il> {
         })
     }
 
-    fn all_equal_s<'a>(r_s: &Vec<MetaVal<'a>>) -> Result<bool, Error> {
+    fn all_equal_s<'a>(r_s: &Vec<MetaVal>) -> Result<bool, Error> {
         Self::all_equal_agnostic(r_s.into_iter().map(Cow::Borrowed).map(Result::Ok))
     }
 
-    // fn all_equal_pred<'a>(ref_mv: &MetaVal<'a>) -> Result<bool, Error> {
+    // fn all_equal_pred<'a>(ref_mv: &MetaVal) -> Result<bool, Error> {
     //     // Conforms to the predicate interface.
     //     match ref_mv {
     //         &MetaVal::Seq(ref s) => Self::all_equal_s(&s),
@@ -260,7 +260,7 @@ impl<'il> IterableLike<'il> {
         })
     }
 
-    pub fn nth(self, n: usize) -> Result<MetaVal<'il>, Error> {
+    pub fn nth(self, n: usize) -> Result<MetaVal, Error> {
         match self {
             Self::Sequence(s) => s.into_iter().nth(n).ok_or(Error::OutOfBounds),
             Self::Producer(p) => {
@@ -300,7 +300,7 @@ impl<'il> IterableLike<'il> {
         self.all_any(u_pred, AllAny::Any)
     }
 
-    pub fn find(self, u_pred: UnaryPred) -> Result<MetaVal<'il>, Error> {
+    pub fn find(self, u_pred: UnaryPred) -> Result<MetaVal, Error> {
         let new_p = match self {
             Self::Sequence(s) => ValueProducer::from(s),
             Self::Producer(p) => p,
@@ -429,7 +429,7 @@ impl<'il> IterableLike<'il> {
         })
     }
 
-    // pub fn intersperse(self, mv: MetaVal<'il>) -> Self {
+    // pub fn intersperse(self, mv: MetaVal) -> Self {
     // }
 
     // pub fn interleave(self, other: IterableLike<'il>) -> Self {
@@ -457,10 +457,10 @@ impl<'il> TryFrom<Arg<'il>> for IterableLike<'il> {
     }
 }
 
-impl<'il> TryFrom<MetaVal<'il>> for IterableLike<'il> {
+impl<'il> TryFrom<MetaVal> for IterableLike<'il> {
     type Error = Error;
 
-    fn try_from(value: MetaVal<'il>) -> Result<Self, Self::Error> {
+    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
         match value {
             MetaVal::Seq(s) => Ok(Self::Sequence(s)),
             _ => Err(Error::NotIterable),
@@ -477,7 +477,7 @@ impl<'il> From<IterableLike<'il>> for ValueProducer<'il> {
     }
 }
 
-impl<'il> TryFrom<IterableLike<'il>> for Vec<MetaVal<'il>> {
+impl<'il> TryFrom<IterableLike<'il>> for Vec<MetaVal> {
     type Error = Error;
 
     fn try_from(il: IterableLike<'il>) -> Result<Self, Self::Error> {
@@ -488,8 +488,8 @@ impl<'il> TryFrom<IterableLike<'il>> for Vec<MetaVal<'il>> {
     }
 }
 
-impl<'il> From<Vec<MetaVal<'il>>> for IterableLike<'il> {
-    fn from(s: Vec<MetaVal<'il>>) -> Self {
+impl<'il> From<Vec<MetaVal>> for IterableLike<'il> {
+    fn from(s: Vec<MetaVal>) -> Self {
         IterableLike::Sequence(s)
     }
 }
@@ -501,7 +501,7 @@ impl<'il> From<ValueProducer<'il>> for IterableLike<'il> {
 }
 
 impl<'il> IntoIterator for IterableLike<'il> {
-    type Item = Result<MetaVal<'il>, Error>;
+    type Item = Result<MetaVal, Error>;
     type IntoIter = IteratorLike<'il>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -513,12 +513,12 @@ impl<'il> IntoIterator for IterableLike<'il> {
 }
 
 pub enum IteratorLike<'il> {
-    Sequence(std::vec::IntoIter<MetaVal<'il>>),
+    Sequence(std::vec::IntoIter<MetaVal>),
     Producer(ValueProducer<'il>),
 }
 
 impl<'il> Iterator for IteratorLike<'il> {
-    type Item = Result<MetaVal<'il>, Error>;
+    type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -542,7 +542,7 @@ mod tests {
     use crate::scripting::util::UnaryPred as UPred;
     use crate::scripting::util::UnaryConv as UConv;
 
-    type ProducerTestResult = Result<Vec<Result<MetaVal<'static>, ErrorKind>>, ErrorKind>;
+    type ProducerTestResult = Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>;
 
     #[test]
     fn test_collect() {

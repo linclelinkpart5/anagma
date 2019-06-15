@@ -54,9 +54,9 @@ impl std::error::Error for Error {
 }
 
 pub trait MetaReader {
-    fn from_str<'ms, S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure<'ms>, Error>;
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
 
-    fn from_file<'ms, P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure<'ms>, Error> {
+    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
@@ -68,7 +68,7 @@ pub trait MetaReader {
 }
 
 impl MetaReader for MetaFormat {
-    fn from_str<'ms, S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure<'ms>, Error> {
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
         Ok(match *self {
             MetaFormat::Yaml => yaml::read_str(s, mt)?,
             MetaFormat::Json => json::read_str(s, mt)?,

@@ -40,13 +40,13 @@ impl std::error::Error for Error {
 
 /// Generic meta block stream, that can be fed in a variety of ways.
 #[derive(Debug)]
-pub enum MetaBlockStream<'mbs> {
-    Fixed(FixedMetaBlockStream<'mbs>),
-    File(FileMetaBlockStream<'mbs>),
+pub enum MetaBlockStream<'p> {
+    Fixed(FixedMetaBlockStream<'p>),
+    File(FileMetaBlockStream<'p>),
 }
 
-impl<'mbs> Iterator for MetaBlockStream<'mbs> {
-    type Item = Result<(Cow<'mbs, Path>, MetaBlock<'mbs>), Error>;
+impl<'p> Iterator for MetaBlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -56,7 +56,7 @@ impl<'mbs> Iterator for MetaBlockStream<'mbs> {
     }
 }
 
-impl<'mbs> MetaBlockStream<'mbs> {
+impl<'p> MetaBlockStream<'p> {
     pub fn delve(&mut self) -> Result<(), Error> {
         match self {
             &mut Self::Fixed(..) => Ok(()),
@@ -65,33 +65,33 @@ impl<'mbs> MetaBlockStream<'mbs> {
     }
 }
 
-impl<'mbs> From<FixedMetaBlockStream<'mbs>> for MetaBlockStream<'mbs> {
-    fn from(other: FixedMetaBlockStream<'mbs>) -> Self {
+impl<'p> From<FixedMetaBlockStream<'p>> for MetaBlockStream<'p> {
+    fn from(other: FixedMetaBlockStream<'p>) -> Self {
         Self::Fixed(other)
     }
 }
 
-impl<'mbs> From<FileMetaBlockStream<'mbs>> for MetaBlockStream<'mbs> {
-    fn from(other: FileMetaBlockStream<'mbs>) -> Self {
+impl<'p> From<FileMetaBlockStream<'p>> for MetaBlockStream<'p> {
+    fn from(other: FileMetaBlockStream<'p>) -> Self {
         Self::File(other)
     }
 }
 
 /// A meta block stream that yields from a fixed sequence, used for testing.
 #[derive(Debug)]
-pub struct FixedMetaBlockStream<'mbs>(VecDeque<(Cow<'mbs, Path>, MetaBlock<'mbs>)>);
+pub struct FixedMetaBlockStream<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
 
-impl<'mbs> FixedMetaBlockStream<'mbs> {
+impl<'p> FixedMetaBlockStream<'p> {
     pub fn new<II>(items: II) -> Self
     where
-        II: IntoIterator<Item = (Cow<'mbs, Path>, MetaBlock<'mbs>)>,
+        II: IntoIterator<Item = (Cow<'p, Path>, MetaBlock)>,
     {
         FixedMetaBlockStream(items.into_iter().collect())
     }
 }
 
-impl<'mbs> Iterator for FixedMetaBlockStream<'mbs> {
-    type Item = Result<(Cow<'mbs, Path>, MetaBlock<'mbs>), Error>;
+impl<'p> Iterator for FixedMetaBlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
@@ -100,22 +100,22 @@ impl<'mbs> Iterator for FixedMetaBlockStream<'mbs> {
 
 /// A meta block stream that yields from files on disk, powered by a file walker.
 #[derive(Debug)]
-pub struct FileMetaBlockStream<'mbs> {
-    file_walker: FileWalker<'mbs>,
+pub struct FileMetaBlockStream<'p> {
+    file_walker: FileWalker<'p>,
     meta_format: MetaFormat,
-    selection: &'mbs Selection,
+    selection: &'p Selection,
     sort_order: SortOrder,
 }
 
-impl<'mbs> FileMetaBlockStream<'mbs> {
+impl<'p> FileMetaBlockStream<'p> {
     pub fn new<FW>(
         file_walker: FW,
         meta_format: MetaFormat,
-        selection: &'mbs Selection,
+        selection: &'p Selection,
         sort_order: SortOrder,
     ) -> Self
     where
-        FW: Into<FileWalker<'mbs>>,
+        FW: Into<FileWalker<'p>>,
     {
         FileMetaBlockStream {
             file_walker: file_walker.into(),
@@ -126,8 +126,8 @@ impl<'mbs> FileMetaBlockStream<'mbs> {
     }
 }
 
-impl<'mbs> Iterator for FileMetaBlockStream<'mbs> {
-    type Item = Result<(Cow<'mbs, Path>, MetaBlock<'mbs>), Error>;
+impl<'p> Iterator for FileMetaBlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next() {
@@ -153,7 +153,7 @@ impl<'mbs> Iterator for FileMetaBlockStream<'mbs> {
     }
 }
 
-impl<'mbs> FileMetaBlockStream<'mbs> {
+impl<'p> FileMetaBlockStream<'p> {
     pub fn delve(&mut self) -> Result<(), Error> {
         self.file_walker.delve(&self.selection, self.sort_order).map_err(Error::FileWalker)
     }

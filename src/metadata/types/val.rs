@@ -9,20 +9,20 @@ use crate::metadata::types::key::MetaKeyPath;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize)]
 #[serde(untagged)]
-pub enum MetaVal<'k> {
+pub enum MetaVal {
     Nil,
     Str(String),
-    Seq(Vec<MetaVal<'k>>),
-    Map(BTreeMap<MetaKey<'k>, MetaVal<'k>>),
+    Seq(Vec<MetaVal>),
+    Map(BTreeMap<MetaKey, MetaVal>),
     Int(i64),
     Bul(bool),
     Dec(Decimal),
 }
 
-impl<'k> MetaVal<'k> {
+impl MetaVal {
     // LEARN: The following line does not work!
-    // pub fn get_key_path(&self, key_path: &'k MetaKeyPath<'k>) -> Option<&MetaVal> {
-    pub fn get_key_path(&self, key_path: &MetaKeyPath<'k>) -> Option<&MetaVal<'k>> {
+    // pub fn get_key_path(&self, key_path: &'k MetaKeyPath) -> Option<&MetaVal> {
+    pub fn get_key_path(&self, key_path: &MetaKeyPath) -> Option<&MetaVal> {
         let mut curr_val = self;
 
         for key in key_path {
@@ -53,38 +53,38 @@ impl<'k> MetaVal<'k> {
     }
 }
 
-impl<'k> From<String> for MetaVal<'k> {
+impl From<String> for MetaVal {
     fn from(s: String) -> Self {
         Self::Str(s)
     }
 }
 
-impl<'k> From<&str> for MetaVal<'k> {
+impl From<&str> for MetaVal {
     fn from(s: &str) -> Self {
         Self::Str(s.to_string())
     }
 }
 
-impl<'k> From<i64> for MetaVal<'k> {
+impl From<i64> for MetaVal {
     fn from(i: i64) -> Self {
         Self::Int(i)
     }
 }
 
-impl<'k> From<bool> for MetaVal<'k> {
+impl From<bool> for MetaVal {
     fn from(b: bool) -> Self {
         Self::Bul(b)
     }
 }
 
-impl<'k> From<Decimal> for MetaVal<'k> {
+impl From<Decimal> for MetaVal {
     fn from(d: Decimal) -> Self {
         Self::Dec(d)
     }
 }
 
-impl<'k> From<Vec<MetaVal<'k>>> for MetaVal<'k> {
-    fn from(s: Vec<MetaVal<'k>>) -> Self {
+impl From<Vec<MetaVal>> for MetaVal {
+    fn from(s: Vec<MetaVal>) -> Self {
         Self::Seq(s)
     }
 }

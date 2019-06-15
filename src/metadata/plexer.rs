@@ -10,13 +10,13 @@ use crate::metadata::types::MetaBlock;
 use crate::util::GenConverter;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
-pub enum Error<'k> {
+pub enum Error {
     UnusedItemPath(PathBuf),
-    UnusedMetaBlock(MetaBlock<'k>, Option<String>),
+    UnusedMetaBlock(MetaBlock, Option<String>),
     NamelessItemPath(PathBuf),
 }
 
-impl<'k> std::fmt::Display for Error<'k> {
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
@@ -33,7 +33,7 @@ impl<'k> std::fmt::Display for Error<'k> {
     }
 }
 
-impl<'k> std::error::Error for Error<'k> {
+impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::UnusedItemPath(..) => None,
@@ -46,11 +46,11 @@ impl<'k> std::error::Error for Error<'k> {
 pub struct MetaPlexer;
 
 impl MetaPlexer {
-    pub fn plex<'k, II, P>(
-        meta_structure: MetaStructure<'k>,
+    pub fn plex<II, P>(
+        meta_structure: MetaStructure,
         item_paths: II,
         sort_order: SortOrder,
-    ) -> impl Iterator<Item = Result<(PathBuf, MetaBlock<'k>), Error>>
+    ) -> impl Iterator<Item = Result<(PathBuf, MetaBlock), Error>>
     where II: IntoIterator<Item = P>,
           P: AsRef<Path>,
     {
