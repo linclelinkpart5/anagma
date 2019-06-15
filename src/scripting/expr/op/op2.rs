@@ -4,6 +4,7 @@ use std::convert::TryFrom;
 
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
+use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
 // use crate::scripting::util::number_like::NumberLike;
@@ -29,6 +30,9 @@ pub enum Op {
     // Intersperse,
     // Chunks,
     // Windows,
+    And,
+    Or,
+    Xor,
     Eq,
     Ne,
     Lt,
@@ -68,8 +72,28 @@ impl Op {
                 IterableLike::try_from(o_a)?.skip_while(o_b.try_into()?).map(Arg::from),
             &Self::TakeWhile =>
                 IterableLike::try_from(o_a)?.take_while(o_b.try_into()?).map(Arg::from),
+            &Self::And =>
+                Self::and(o_a.try_into()?, o_b.try_into()?).map(Arg::from),
+            &Self::Or =>
+                Self::or(o_a.try_into()?, o_b.try_into()?).map(Arg::from),
+            &Self::Xor =>
+                Self::xor(o_a.try_into()?, o_b.try_into()?).map(Arg::from),
             _ => Ok(Arg::Value(MetaVal::Nil)),
         }
+    }
+
+    pub fn and(e_a: Expr, e_b: Expr) -> Result<bool, Error> {
+        Ok(e_a.try_into()? && e_b.try_into()?)
+    }
+
+    pub fn or(e_a: Expr, e_b: Expr) -> Result<bool, Error> {
+        Ok(e_a.try_into()? || e_b.try_into()?)
+    }
+
+    pub fn xor(e_a: Expr, e_b: Expr) -> Result<bool, Error> {
+        let b_a: bool = e_a.try_into()?;
+        let b_b: bool = e_b.try_into()?;
+        Ok(b_a ^ b_b)
     }
 
     // fn eq(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {

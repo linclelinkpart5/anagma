@@ -1,5 +1,5 @@
-pub mod unary;
-pub mod binary;
+pub mod op1;
+pub mod op2;
 
-pub use self::unary::Op as UnaryOp;
-pub use self::binary::Op as BinaryOp;
+pub use self::op1::Op as Op1;
+pub use self::op2::Op as Op2;
