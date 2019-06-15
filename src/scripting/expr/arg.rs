@@ -17,7 +17,6 @@ pub enum Arg<'o> {
     Usize(usize),
     UnaryPred(UnaryPred),
     UnaryConv(UnaryConv),
-    Expr(Box<Expr<'o>>),
 }
 
 impl<'o> TryFrom<Arg<'o>> for ValueProducer<'o> {

@@ -2,6 +2,7 @@ use std::convert::TryInto;
 use std::convert::TryFrom;
 
 use crate::scripting::Error;
+use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
 use crate::scripting::util::number_like::NumberLike;
@@ -28,39 +29,39 @@ pub enum Op {
 }
 
 impl Op {
-    pub fn process<'a>(&self, o: Arg<'a>) -> Result<Arg<'a>, Error> {
+    pub fn process<'a>(&self, expr: Expr<'a>) -> Result<Arg<'a>, Error> {
         match self {
             &Self::Collect =>
-                IterableLike::try_from(o)?.collect().map(Arg::from),
+                IterableLike::try_from(expr)?.collect().map(Arg::from),
             &Self::Count =>
-                IterableLike::try_from(o)?.count().map(Arg::from),
+                IterableLike::try_from(expr)?.count().map(Arg::from),
             &Self::First =>
-                IterableLike::try_from(o)?.first().map(Arg::from),
+                IterableLike::try_from(expr)?.first().map(Arg::from),
             &Self::Last =>
-                IterableLike::try_from(o)?.last().map(Arg::from),
+                IterableLike::try_from(expr)?.last().map(Arg::from),
             &Self::MinIn =>
-                IterableLike::try_from(o)?.min_in().map(Arg::from),
+                IterableLike::try_from(expr)?.min_in().map(Arg::from),
             &Self::MaxIn =>
-                IterableLike::try_from(o)?.max_in().map(Arg::from),
+                IterableLike::try_from(expr)?.max_in().map(Arg::from),
             &Self::Rev =>
-                IterableLike::try_from(o)?.rev().map(Arg::from),
+                IterableLike::try_from(expr)?.rev().map(Arg::from),
             &Self::Sort =>
-                IterableLike::try_from(o)?.sort().map(Arg::from),
+                IterableLike::try_from(expr)?.sort().map(Arg::from),
             &Self::Sum =>
-                IterableLike::try_from(o)?.sum().map(Arg::from),
+                IterableLike::try_from(expr)?.sum().map(Arg::from),
             &Self::Prod =>
-                IterableLike::try_from(o)?.prod().map(Arg::from),
+                IterableLike::try_from(expr)?.prod().map(Arg::from),
             &Self::AllEqual =>
-                IterableLike::try_from(o)?.all_equal().map(Arg::from),
+                IterableLike::try_from(expr)?.all_equal().map(Arg::from),
             &Self::Flatten =>
-                IterableLike::try_from(o)?.flatten().map(Arg::from),
+                IterableLike::try_from(expr)?.flatten().map(Arg::from),
             &Self::Dedup =>
-                IterableLike::try_from(o)?.dedup().map(Arg::from),
+                IterableLike::try_from(expr)?.dedup().map(Arg::from),
             &Self::Unique =>
-                IterableLike::try_from(o)?.unique().map(Arg::from),
-            &Self::Neg => Ok(Self::neg(o.try_into()?).into()),
-            &Self::Abs => Ok(Self::abs(o.try_into()?).into()),
-            &Self::Not => Ok(Self::not(o.try_into()?).into()),
+                IterableLike::try_from(expr)?.unique().map(Arg::from),
+            &Self::Neg => Ok(Self::neg(expr.try_into()?).into()),
+            &Self::Abs => Ok(Self::abs(expr.try_into()?).into()),
+            &Self::Not => Ok(Self::not(expr.try_into()?).into()),
         }
     }
 

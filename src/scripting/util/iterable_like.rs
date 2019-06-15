@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
+use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::Error;
 use crate::scripting::util::value_producer::ValueProducer;
@@ -454,6 +455,14 @@ impl<'il> TryFrom<Arg<'il>> for IterableLike<'il> {
             Arg::Producer(s) => Ok(Self::Producer(s)),
             _ => Err(Error::NotIterable),
         }
+    }
+}
+
+impl<'il> TryFrom<Expr<'il>> for IterableLike<'il> {
+    type Error = Error;
+
+    fn try_from(expr: Expr<'il>) -> Result<Self, Self::Error> {
+        Arg::try_from(expr).and_then(IterableLike::try_from)
     }
 }
 

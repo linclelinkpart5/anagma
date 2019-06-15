@@ -42,57 +42,57 @@ pub enum Op {
 }
 
 impl Op {
-    pub fn process<'a>(&self, o_a: Arg<'a>, o_b: Arg<'a>) -> Result<Arg<'a>, Error> {
+    pub fn process<'a>(&self, expr_a: Expr<'a>, expr_b: Expr<'a>) -> Result<Arg<'a>, Error> {
         match self {
             &Self::Nth =>
-                IterableLike::try_from(o_a)?.nth(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.nth(expr_b.try_into()?).map(Arg::from),
             &Self::All =>
-                IterableLike::try_from(o_a)?.all(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.all(expr_b.try_into()?).map(Arg::from),
             &Self::Any =>
-                IterableLike::try_from(o_a)?.any(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.any(expr_b.try_into()?).map(Arg::from),
             &Self::Find =>
-                IterableLike::try_from(o_a)?.find(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.find(expr_b.try_into()?).map(Arg::from),
             &Self::Position =>
-                IterableLike::try_from(o_a)?.position(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.position(expr_b.try_into()?).map(Arg::from),
             &Self::Filter =>
-                IterableLike::try_from(o_a)?.filter(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.filter(expr_b.try_into()?).map(Arg::from),
             &Self::Map =>
-                IterableLike::try_from(o_a)?.map(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.map(expr_b.try_into()?).map(Arg::from),
             &Self::StepBy =>
-                IterableLike::try_from(o_a)?.step_by(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.step_by(expr_b.try_into()?).map(Arg::from),
             &Self::Chain =>
-                IterableLike::try_from(o_a)?.chain(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.chain(expr_b.try_into()?).map(Arg::from),
             &Self::Zip =>
-                IterableLike::try_from(o_a)?.zip(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.zip(expr_b.try_into()?).map(Arg::from),
             &Self::Skip =>
-                IterableLike::try_from(o_a)?.skip(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.skip(expr_b.try_into()?).map(Arg::from),
             &Self::Take =>
-                IterableLike::try_from(o_a)?.take(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.take(expr_b.try_into()?).map(Arg::from),
             &Self::SkipWhile =>
-                IterableLike::try_from(o_a)?.skip_while(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.skip_while(expr_b.try_into()?).map(Arg::from),
             &Self::TakeWhile =>
-                IterableLike::try_from(o_a)?.take_while(o_b.try_into()?).map(Arg::from),
+                IterableLike::try_from(expr_a)?.take_while(expr_b.try_into()?).map(Arg::from),
             &Self::And =>
-                Self::and(o_a.try_into()?, o_b.try_into()?).map(Arg::from),
+                Self::and(expr_a, expr_b).map(Arg::from),
             &Self::Or =>
-                Self::or(o_a.try_into()?, o_b.try_into()?).map(Arg::from),
+                Self::or(expr_a, expr_b).map(Arg::from),
             &Self::Xor =>
-                Self::xor(o_a.try_into()?, o_b.try_into()?).map(Arg::from),
+                Self::xor(expr_a, expr_b).map(Arg::from),
             _ => Ok(Arg::Value(MetaVal::Nil)),
         }
     }
 
-    pub fn and(e_a: Expr, e_b: Expr) -> Result<bool, Error> {
-        Ok(e_a.try_into()? && e_b.try_into()?)
+    pub fn and(expr_a: Expr, expr_b: Expr) -> Result<bool, Error> {
+        Ok(expr_a.try_into()? && expr_b.try_into()?)
     }
 
-    pub fn or(e_a: Expr, e_b: Expr) -> Result<bool, Error> {
-        Ok(e_a.try_into()? || e_b.try_into()?)
+    pub fn or(expr_a: Expr, expr_b: Expr) -> Result<bool, Error> {
+        Ok(expr_a.try_into()? || expr_b.try_into()?)
     }
 
-    pub fn xor(e_a: Expr, e_b: Expr) -> Result<bool, Error> {
-        let b_a: bool = e_a.try_into()?;
-        let b_b: bool = e_b.try_into()?;
+    pub fn xor(expr_a: Expr, expr_b: Expr) -> Result<bool, Error> {
+        let b_a: bool = expr_a.try_into()?;
+        let b_b: bool = expr_b.try_into()?;
         Ok(b_a ^ b_b)
     }
 

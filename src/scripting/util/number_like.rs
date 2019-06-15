@@ -9,6 +9,7 @@ use std::cmp::Ordering;
 use rust_decimal::Decimal;
 
 use crate::metadata::types::MetaVal;
+use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::Error;
 
@@ -101,6 +102,14 @@ impl<'k> TryFrom<Arg<'k>> for NumberLike {
             Arg::Value(mv) => mv.try_into(),
             _ => Err(Error::NotNumeric),
         }
+    }
+}
+
+impl<'e> TryFrom<Expr<'e>> for NumberLike {
+    type Error = Error;
+
+    fn try_from(expr: Expr<'e>) -> Result<Self, Self::Error> {
+        Arg::try_from(expr).and_then(NumberLike::try_from)
     }
 }
 
