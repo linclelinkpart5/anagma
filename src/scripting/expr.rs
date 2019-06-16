@@ -6,7 +6,6 @@ pub use self::op::Op1;
 pub use self::op::Op2;
 
 use std::convert::TryFrom;
-use std::convert::TryInto;
 
 use crate::scripting::Error;
 use crate::scripting::util::UnaryPred;

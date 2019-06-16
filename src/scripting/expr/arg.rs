@@ -3,7 +3,6 @@ use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
-use crate::scripting::expr::Expr;
 use crate::scripting::util::value_producer::ValueProducer;
 use crate::scripting::util::number_like::NumberLike;
 use crate::scripting::util::UnaryPred;

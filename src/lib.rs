@@ -13,10 +13,10 @@ extern crate itertools;
 #[macro_use] extern crate log;
 extern crate rust_decimal;
 #[macro_use] extern crate rust_decimal_macros;
+extern crate strum;
+#[macro_use] extern crate strum_macros;
 
 #[cfg(test)] extern crate tempfile;
-#[cfg(test)] extern crate strum;
-#[cfg(test)] #[macro_use] extern crate strum_macros;
 
 pub mod metadata;
 pub mod config;

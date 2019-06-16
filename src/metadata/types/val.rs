@@ -7,8 +7,9 @@ use rust_decimal::Decimal;
 use crate::metadata::types::key::MetaKey;
 use crate::metadata::types::key::MetaKeyPath;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
+#[strum_discriminants(name(MetaValKind))]
 pub enum MetaVal {
     Nil,
     Str(String),
