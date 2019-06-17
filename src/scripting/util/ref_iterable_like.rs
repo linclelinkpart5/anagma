@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::convert::TryFrom;
 
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
@@ -7,9 +8,32 @@ use crate::scripting::util::UnaryPred;
 
 /// Represents one of several different kinds of iterables, producing "references" to meta values.
 pub enum RefIterableLike<'il> {
-    Sequence(Vec<MetaVal>),
+    // Sequence(Vec<MetaVal>),
     RefSequence(&'il [MetaVal]),
     Producer(ValueProducer<'il>),
+}
+
+impl<'il> TryFrom<&'il MetaVal> for RefIterableLike<'il> {
+    type Error = Error;
+
+    fn try_from(value: &'il MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            &MetaVal::Seq(ref s) => Ok(Self::RefSequence(s.as_slice())),
+            _ => Err(Error::NotIterable),
+        }
+    }
+}
+
+impl<'il> From<&'il Vec<MetaVal>> for RefIterableLike<'il> {
+    fn from(s: &'il Vec<MetaVal>) -> Self {
+        RefIterableLike::RefSequence(s)
+    }
+}
+
+impl<'il> From<ValueProducer<'il>> for RefIterableLike<'il> {
+    fn from(p: ValueProducer<'il>) -> Self {
+        RefIterableLike::Producer(p)
+    }
 }
 
 impl<'il> IntoIterator for RefIterableLike<'il> {
@@ -18,7 +42,7 @@ impl<'il> IntoIterator for RefIterableLike<'il> {
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
-            Self::Sequence(s) => RefIteratorLike::Sequence(s.into_iter()),
+            // Self::Sequence(s) => RefIteratorLike::Sequence(s.into_iter()),
             Self::RefSequence(s) => RefIteratorLike::RefSequence(s.into_iter()),
             Self::Producer(p) => RefIteratorLike::Producer(p),
         }
@@ -26,7 +50,7 @@ impl<'il> IntoIterator for RefIterableLike<'il> {
 }
 
 pub enum RefIteratorLike<'il> {
-    Sequence(std::vec::IntoIter<MetaVal>),
+    // Sequence(std::vec::IntoIter<MetaVal>),
     RefSequence(std::slice::Iter<'il, MetaVal>),
     Producer(ValueProducer<'il>),
 }
@@ -36,7 +60,7 @@ impl<'il> Iterator for RefIteratorLike<'il> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::Sequence(ref mut it) => it.next().map(Cow::Owned).map(Result::Ok),
+            // &mut Self::Sequence(ref mut it) => it.next().map(Cow::Owned).map(Result::Ok),
             &mut Self::RefSequence(ref mut it) => it.next().map(Cow::Borrowed).map(Result::Ok),
             &mut Self::Producer(ref mut it) => it.next().map(|res| res.map(Cow::Owned)),
         }

@@ -1,10 +1,12 @@
 use std::convert::TryInto;
 use std::convert::TryFrom;
 
+use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
 use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
+use crate::scripting::util::ref_iterable_like::RefIterableLike;
 use crate::scripting::util::number_like::NumberLike;
 
 #[derive(Clone, Copy, Debug)]
@@ -51,8 +53,13 @@ impl Op {
                 IterableLike::try_from(expr)?.sum().map(Arg::from),
             &Self::Prod =>
                 IterableLike::try_from(expr)?.prod().map(Arg::from),
-            &Self::AllEqual =>
-                IterableLike::try_from(expr)?.all_equal().map(Arg::from),
+            &Self::AllEqual => {
+                match expr.try_into()? {
+                    Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s).all_equal().map(Arg::from),
+                    Arg::Producer(p) => RefIterableLike::from(p).all_equal().map(Arg::from),
+                    _ => Err(Error::NotIterable),
+                }
+            },
             &Self::Flatten =>
                 IterableLike::try_from(expr)?.flatten().map(Arg::from),
             &Self::Dedup =>
