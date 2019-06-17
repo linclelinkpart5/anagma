@@ -1,14 +1,14 @@
 use std::borrow::Cow;
-use std::convert::TryFrom;
-use std::convert::TryInto;
 
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
 use crate::scripting::util::value_producer::ValueProducer;
+use crate::scripting::util::UnaryPred;
 
 /// Represents one of several different kinds of iterables, producing "references" to meta values.
 pub enum RefIterableLike<'il> {
-    Sequence(Vec<Cow<'il, MetaVal>>),
+    Sequence(Vec<MetaVal>),
+    RefSequence(&'il [MetaVal]),
     Producer(ValueProducer<'il>),
 }
 
@@ -19,13 +19,15 @@ impl<'il> IntoIterator for RefIterableLike<'il> {
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Self::Sequence(s) => RefIteratorLike::Sequence(s.into_iter()),
-            Self::Producer(s) => RefIteratorLike::Producer(s),
+            Self::RefSequence(s) => RefIteratorLike::RefSequence(s.into_iter()),
+            Self::Producer(p) => RefIteratorLike::Producer(p),
         }
     }
 }
 
 pub enum RefIteratorLike<'il> {
-    Sequence(std::vec::IntoIter<Cow<'il, MetaVal>>),
+    Sequence(std::vec::IntoIter<MetaVal>),
+    RefSequence(std::slice::Iter<'il, MetaVal>),
     Producer(ValueProducer<'il>),
 }
 
@@ -34,8 +36,57 @@ impl<'il> Iterator for RefIteratorLike<'il> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            &mut Self::Sequence(ref mut it) => it.next().map(Result::Ok),
+            &mut Self::Sequence(ref mut it) => it.next().map(Cow::Owned).map(Result::Ok),
+            &mut Self::RefSequence(ref mut it) => it.next().map(Cow::Borrowed).map(Result::Ok),
             &mut Self::Producer(ref mut it) => it.next().map(|res| res.map(Cow::Owned)),
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum AllAny { All, Any, }
+
+impl AllAny {
+    fn target(self) -> bool {
+        match self {
+            Self::All => false,
+            Self::Any => true,
+        }
+    }
+}
+
+impl<'il> RefIterableLike<'il> {
+    pub fn all_equal(self) -> Result<bool, Error> {
+        let mut it = self.into_iter();
+        Ok(match it.next() {
+            None => true,
+            Some(res_first_mv) => {
+                let first_mv = res_first_mv?;
+                for res_mv in it {
+                    let mv = res_mv?;
+                    if mv != first_mv { return Ok(false) }
+                }
+
+                true
+            },
+        })
+    }
+
+    fn all_any(self, u_pred: UnaryPred, flag: AllAny) -> Result<bool, Error> {
+        let target = flag.target();
+        for res_mv in self {
+            let mv = res_mv?;
+            if u_pred(&mv)? == target { return Ok(target) }
+        }
+
+        Ok(!target)
+    }
+
+    pub fn all(self, u_pred: UnaryPred) -> Result<bool, Error> {
+        self.all_any(u_pred, AllAny::All)
+    }
+
+    pub fn any(self, u_pred: UnaryPred) -> Result<bool, Error> {
+        self.all_any(u_pred, AllAny::Any)
     }
 }
