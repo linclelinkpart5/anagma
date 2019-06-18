@@ -55,10 +55,10 @@ impl Op {
                 IterableLike::try_from(expr)?.prod().map(Arg::from),
             &Self::AllEqual => {
                 match expr.try_into()? {
-                    Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s).all_equal().map(Arg::from),
-                    Arg::Producer(p) => RefIterableLike::from(p).all_equal().map(Arg::from),
-                    _ => Err(Error::NotIterable),
-                }
+                    Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s),
+                    Arg::Producer(p) => RefIterableLike::from(p),
+                    _ => Err(Error::NotIterable)?,
+                }.all_equal().map(Arg::from)
             },
             &Self::Flatten =>
                 IterableLike::try_from(expr)?.flatten().map(Arg::from),

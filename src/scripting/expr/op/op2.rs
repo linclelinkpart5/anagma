@@ -1,13 +1,14 @@
 use std::convert::TryInto;
 use std::convert::TryFrom;
-// use std::cmp::Ordering;
+use std::cmp::Ordering;
 
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
 use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
-// use crate::scripting::util::number_like::NumberLike;
+use crate::scripting::util::ref_iterable_like::RefIterableLike;
+use crate::scripting::util::number_like::NumberLike;
 // use crate::scripting::util::value_producer::ValueProducer;
 
 #[derive(Clone, Copy, Debug)]
@@ -33,12 +34,12 @@ pub enum Op {
     And,
     Or,
     Xor,
-    Eq,
-    Ne,
-    Lt,
-    Le,
-    Gt,
-    Ge,
+    // Eq,
+    // Ne,
+    // Lt,
+    // Le,
+    // Gt,
+    // Ge,
 }
 
 impl Op {
@@ -46,10 +47,20 @@ impl Op {
         match self {
             &Self::Nth =>
                 IterableLike::try_from(expr_a)?.nth(expr_b.try_into()?).map(Arg::from),
-            &Self::All =>
-                IterableLike::try_from(expr_a)?.all(expr_b.try_into()?).map(Arg::from),
-            &Self::Any =>
-                IterableLike::try_from(expr_a)?.any(expr_b.try_into()?).map(Arg::from),
+            &Self::All => {
+                match expr_a.try_into()? {
+                    Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s),
+                    Arg::Producer(p) => RefIterableLike::from(p),
+                    _ => Err(Error::NotIterable)?,
+                }.all(expr_b.try_into()?).map(Arg::from)
+            },
+            &Self::Any => {
+                match expr_a.try_into()? {
+                    Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s),
+                    Arg::Producer(p) => RefIterableLike::from(p),
+                    _ => Err(Error::NotIterable)?,
+                }.any(expr_b.try_into()?).map(Arg::from)
+            },
             &Self::Find =>
                 IterableLike::try_from(expr_a)?.find(expr_b.try_into()?).map(Arg::from),
             &Self::Position =>
@@ -78,7 +89,6 @@ impl Op {
                 Self::or(expr_a, expr_b).map(Arg::from),
             &Self::Xor =>
                 Self::xor(expr_a, expr_b).map(Arg::from),
-            _ => Ok(Arg::Value(MetaVal::Nil)),
         }
     }
 
@@ -104,23 +114,23 @@ impl Op {
     //     mv_a != mv_b
     // }
 
-    // fn lt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-    //     let ord = num_a.val_cmp(&num_b);
-    //     Ok(ord == Ordering::Less)
-    // }
+    fn lt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+        let ord = num_a.val_cmp(&num_b);
+        Ok(ord == Ordering::Less)
+    }
 
-    // fn le(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-    //     let ord = num_a.val_cmp(&num_b);
-    //     Ok(ord == Ordering::Less || ord == Ordering::Equal)
-    // }
+    fn le(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+        let ord = num_a.val_cmp(&num_b);
+        Ok(ord == Ordering::Less || ord == Ordering::Equal)
+    }
 
-    // fn gt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-    //     let ord = num_a.val_cmp(&num_b);
-    //     Ok(ord == Ordering::Greater)
-    // }
+    fn gt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+        let ord = num_a.val_cmp(&num_b);
+        Ok(ord == Ordering::Greater)
+    }
 
-    // fn ge(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
-    //     let ord = num_a.val_cmp(&num_b);
-    //     Ok(ord == Ordering::Greater || ord == Ordering::Equal)
-    // }
+    fn ge(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+        let ord = num_a.val_cmp(&num_b);
+        Ok(ord == Ordering::Greater || ord == Ordering::Equal)
+    }
 }
