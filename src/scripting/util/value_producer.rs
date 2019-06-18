@@ -6,7 +6,7 @@ use std::iter::FusedIterator;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
-use crate::scripting::util::UnaryPred;
+use crate::scripting::expr::op::pred1::Pred1;
 use crate::scripting::util::UnaryConv;
 
 pub enum ValueProducer<'v> {
@@ -241,10 +241,10 @@ impl<'v> Iterator for Unique<'v> {
     }
 }
 
-pub struct Filter<'v>(Box<ValueProducer<'v>>, UnaryPred);
+pub struct Filter<'v>(Box<ValueProducer<'v>>, Pred1);
 
 impl<'v> Filter<'v> {
-    pub fn new(vp: ValueProducer<'v>, pred: UnaryPred) -> Self {
+    pub fn new(vp: ValueProducer<'v>, pred: Pred1) -> Self {
         Self(Box::new(vp), pred)
     }
 }
@@ -255,7 +255,7 @@ impl<'v> Iterator for Filter<'v> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.0.next()? {
             Ok(mv) => {
-                match self.1(&mv) {
+                match self.1.test(&mv) {
                     Err(err) => Some(Err(err)),
                     Ok(b) => {
                         if b { Some(Ok(mv)) }
@@ -442,10 +442,10 @@ impl<'v> Iterator for Take<'v> {
     }
 }
 
-pub struct SkipWhile<'v>(Box<ValueProducer<'v>>, UnaryPred, bool);
+pub struct SkipWhile<'v>(Box<ValueProducer<'v>>, Pred1, bool);
 
 impl<'v> SkipWhile<'v> {
-    pub fn new(vp: ValueProducer<'v>, u_pred: UnaryPred) -> Self {
+    pub fn new(vp: ValueProducer<'v>, u_pred: Pred1) -> Self {
         Self(Box::new(vp), u_pred, true)
     }
 }
@@ -459,7 +459,7 @@ impl<'v> Iterator for SkipWhile<'v> {
                 match self.0.next()? {
                     Err(e) => return Some(Err(e)),
                     Ok(mv) => {
-                        match self.1(&mv) {
+                        match self.1.test(&mv) {
                             Err(e) => return Some(Err(e)),
                             Ok(true) => continue,
                             Ok(false) => {
@@ -476,10 +476,10 @@ impl<'v> Iterator for SkipWhile<'v> {
     }
 }
 
-pub struct TakeWhile<'v>(Box<ValueProducer<'v>>, UnaryPred, bool);
+pub struct TakeWhile<'v>(Box<ValueProducer<'v>>, Pred1, bool);
 
 impl<'v> TakeWhile<'v> {
-    pub fn new(vp: ValueProducer<'v>, u_pred: UnaryPred) -> Self {
+    pub fn new(vp: ValueProducer<'v>, u_pred: Pred1) -> Self {
         Self(Box::new(vp), u_pred, true)
     }
 }
@@ -491,7 +491,7 @@ impl<'v> Iterator for TakeWhile<'v> {
         if self.2 {
             match self.0.next()? {
                 Ok(mv) => {
-                    match self.1(&mv) {
+                    match self.1.test(&mv) {
                         Ok(true) => Some(Ok(mv)),
                         Ok(false) => {
                             self.2 = false;

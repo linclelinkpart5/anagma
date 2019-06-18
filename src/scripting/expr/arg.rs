@@ -5,7 +5,8 @@ use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
 use crate::scripting::util::value_producer::ValueProducer;
 use crate::scripting::util::number_like::NumberLike;
-use crate::scripting::util::UnaryPred;
+use crate::scripting::expr::op::pred1::Pred1;
+// use crate::scripting::util::UnaryPred;
 use crate::scripting::util::UnaryConv;
 
 /// Values that are pushed onto an arg stack.
@@ -14,7 +15,7 @@ pub enum Arg<'o> {
     Producer(ValueProducer<'o>),
     Value(MetaVal),
     Usize(usize),
-    UnaryPred(UnaryPred),
+    Pred1(Pred1),
     UnaryConv(UnaryConv),
 }
 
@@ -55,12 +56,12 @@ impl<'o> TryFrom<Arg<'o>> for bool {
     }
 }
 
-impl<'o> TryFrom<Arg<'o>> for UnaryPred {
+impl<'o> TryFrom<Arg<'o>> for Pred1 {
     type Error = Error;
 
     fn try_from(o: Arg<'o>) -> Result<Self, Self::Error> {
         match o {
-            Arg::UnaryPred(p) => Ok(p),
+            Arg::Pred1(p) => Ok(p),
             _ => Err(Error::NotPredicate),
         }
     }

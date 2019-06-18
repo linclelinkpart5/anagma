@@ -9,6 +9,7 @@ use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
 use crate::scripting::util::ref_iterable_like::RefIterableLike;
 use crate::scripting::util::number_like::NumberLike;
+use crate::scripting::expr::op::pred1::Pred1;
 // use crate::scripting::util::value_producer::ValueProducer;
 
 #[derive(Clone, Copy, Debug)]
@@ -48,18 +49,20 @@ impl Op {
             &Self::Nth =>
                 IterableLike::try_from(expr_a)?.nth(expr_b.try_into()?).map(Arg::from),
             &Self::All => {
+                let pred = Pred1::try_from(expr_b)?;
                 match expr_a.try_into()? {
                     Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s),
                     Arg::Producer(p) => RefIterableLike::from(p),
                     _ => Err(Error::NotIterable)?,
-                }.all(expr_b.try_into()?).map(Arg::from)
+                }.all(&pred).map(Arg::from)
             },
             &Self::Any => {
+                let pred = Pred1::try_from(expr_b)?;
                 match expr_a.try_into()? {
                     Arg::Value(MetaVal::Seq(ref s)) => RefIterableLike::from(s),
                     Arg::Producer(p) => RefIterableLike::from(p),
                     _ => Err(Error::NotIterable)?,
-                }.any(expr_b.try_into()?).map(Arg::from)
+                }.any(&pred).map(Arg::from)
             },
             &Self::Find =>
                 IterableLike::try_from(expr_a)?.find(expr_b.try_into()?).map(Arg::from),

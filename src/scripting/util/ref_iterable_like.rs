@@ -4,7 +4,7 @@ use std::convert::TryFrom;
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
 use crate::scripting::util::value_producer::ValueProducer;
-use crate::scripting::util::UnaryPred;
+use crate::scripting::expr::op::pred1::Pred1;
 
 /// Represents one of several different kinds of iterables, producing "references" to meta values.
 pub enum RefIterableLike<'il> {
@@ -96,21 +96,21 @@ impl<'il> RefIterableLike<'il> {
         })
     }
 
-    fn all_any(self, u_pred: UnaryPred, flag: AllAny) -> Result<bool, Error> {
+    fn all_any(self, pred_1: &Pred1, flag: AllAny) -> Result<bool, Error> {
         let target = flag.target();
         for res_mv in self {
             let mv = res_mv?;
-            if u_pred(&mv)? == target { return Ok(target) }
+            if pred_1.test(&mv)? == target { return Ok(target) }
         }
 
         Ok(!target)
     }
 
-    pub fn all(self, u_pred: UnaryPred) -> Result<bool, Error> {
-        self.all_any(u_pred, AllAny::All)
+    pub fn all(self, pred_1: &Pred1) -> Result<bool, Error> {
+        self.all_any(pred_1, AllAny::All)
     }
 
-    pub fn any(self, u_pred: UnaryPred) -> Result<bool, Error> {
-        self.all_any(u_pred, AllAny::Any)
+    pub fn any(self, pred_1: &Pred1) -> Result<bool, Error> {
+        self.all_any(pred_1, AllAny::Any)
     }
 }

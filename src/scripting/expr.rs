@@ -8,7 +8,8 @@ pub use self::op::Op2;
 use std::convert::TryFrom;
 
 use crate::scripting::Error;
-use crate::scripting::util::UnaryPred;
+use crate::scripting::expr::op::pred1::Pred1;
+// use crate::scripting::util::UnaryPred;
 use crate::scripting::util::UnaryConv;
 
 pub enum Expr<'e> {
@@ -46,7 +47,7 @@ impl<'e> TryFrom<Expr<'e>> for usize {
     }
 }
 
-impl<'e> TryFrom<Expr<'e>> for UnaryPred {
+impl<'e> TryFrom<Expr<'e>> for Pred1 {
     type Error = Error;
 
     fn try_from(e: Expr<'e>) -> Result<Self, Self::Error> {
