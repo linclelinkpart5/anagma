@@ -34,12 +34,12 @@ pub enum Op {
     And,
     Or,
     Xor,
-    // Eq,
-    // Ne,
-    // Lt,
-    // Le,
-    // Gt,
-    // Ge,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
 }
 
 impl Op {
@@ -89,6 +89,36 @@ impl Op {
                 Self::or(expr_a, expr_b).map(Arg::from),
             &Self::Xor =>
                 Self::xor(expr_a, expr_b).map(Arg::from),
+            &Self::Eq => {
+                let num_a = NumberLike::try_from(expr_a)?;
+                let num_b = NumberLike::try_from(expr_b)?;
+                Ok(Self::eq(&num_a, &num_b).into())
+            },
+            &Self::Ne => {
+                let num_a = NumberLike::try_from(expr_a)?;
+                let num_b = NumberLike::try_from(expr_b)?;
+                Ok(Self::ne(&num_a, &num_b).into())
+            },
+            &Self::Lt => {
+                let num_a = NumberLike::try_from(expr_a)?;
+                let num_b = NumberLike::try_from(expr_b)?;
+                Ok(Self::lt(&num_a, &num_b).into())
+            },
+            &Self::Le => {
+                let num_a = NumberLike::try_from(expr_a)?;
+                let num_b = NumberLike::try_from(expr_b)?;
+                Ok(Self::le(&num_a, &num_b).into())
+            },
+            &Self::Gt => {
+                let num_a = NumberLike::try_from(expr_a)?;
+                let num_b = NumberLike::try_from(expr_b)?;
+                Ok(Self::gt(&num_a, &num_b).into())
+            },
+            &Self::Ge => {
+                let num_a = NumberLike::try_from(expr_a)?;
+                let num_b = NumberLike::try_from(expr_b)?;
+                Ok(Self::ge(&num_a, &num_b).into())
+            },
         }
     }
 
@@ -106,31 +136,33 @@ impl Op {
         Ok(b_a ^ b_b)
     }
 
-    // fn eq(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {
-    //     mv_a == mv_b
-    // }
-
-    // fn ne(mv_a: &MetaVal, mv_b: &MetaVal) -> bool {
-    //     mv_a != mv_b
-    // }
-
-    fn lt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    fn eq(num_a: &NumberLike, num_b: &NumberLike) -> bool {
         let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Less)
+        ord == Ordering::Equal
     }
 
-    fn le(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    fn ne(num_a: &NumberLike, num_b: &NumberLike) -> bool {
         let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Less || ord == Ordering::Equal)
+        ord != Ordering::Equal
     }
 
-    fn gt(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    fn lt(num_a: &NumberLike, num_b: &NumberLike) -> bool {
         let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Greater)
+        ord == Ordering::Less
     }
 
-    fn ge(num_a: &NumberLike, num_b: &NumberLike) -> Result<bool, Error> {
+    fn le(num_a: &NumberLike, num_b: &NumberLike) -> bool {
         let ord = num_a.val_cmp(&num_b);
-        Ok(ord == Ordering::Greater || ord == Ordering::Equal)
+        ord == Ordering::Less || ord == Ordering::Equal
+    }
+
+    fn gt(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+        let ord = num_a.val_cmp(&num_b);
+        ord == Ordering::Greater
+    }
+
+    fn ge(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+        let ord = num_a.val_cmp(&num_b);
+        ord == Ordering::Greater || ord == Ordering::Equal
     }
 }
