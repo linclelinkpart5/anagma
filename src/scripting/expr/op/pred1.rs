@@ -23,7 +23,7 @@ pub enum Pred1 {
     Le(NumberLike),
     Gt(NumberLike),
     Ge(NumberLike),
-    #[cfg(test)] Test(fn(&MetaVal) -> Result<bool, Error>),
+    #[cfg(test)] Raw(fn(&MetaVal) -> Result<bool, Error>),
 }
 
 impl Pred1 {
@@ -95,7 +95,7 @@ impl Pred1 {
                 let ord = num_a.val_cmp(&(mv.try_into()?));
                 Ok(ord == Ordering::Greater || ord == Ordering::Equal)
             },
-            #[cfg(test)] &Self::Test(ref raw_fn) => raw_fn(&mv),
+            #[cfg(test)] &Self::Raw(ref raw_fn) => raw_fn(&mv),
         }
     }
 }

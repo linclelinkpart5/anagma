@@ -1374,87 +1374,87 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_all() {
         let inputs_and_expected: Vec<((IL, Pred1), Result<bool, ErrorKind>)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (TU::core_nested_sequence().into(), Pred1::Test(is_boolean)),
+                (TU::core_nested_sequence().into(), Pred1::Raw(is_boolean)),
                 Ok(false),
             ),
             (
-                (vec![TU::b(true), TU::b(true)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(true), TU::b(true)].into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (vec![TU::b(true), TU::i(0)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(true), TU::i(0)].into(), Pred1::Raw(is_boolean)),
                 Ok(false),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (VP::fixed(vec![]).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(vec![]).into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Raw(is_boolean)),
                 Ok(false),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::Sentinel),
             ),
             (
-                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::Sentinel),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::i(0)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::i(0)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Ok(false),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
         ];
@@ -1470,87 +1470,87 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_any() {
         let inputs_and_expected: Vec<((IL, Pred1), Result<bool, ErrorKind>)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Ok(false),
             ),
             (
-                (TU::core_nested_sequence().into(), Pred1::Test(is_boolean)),
+                (TU::core_nested_sequence().into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (vec![TU::b(true), TU::b(true)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(true), TU::b(true)].into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (vec![TU::b(true), TU::i(0)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(true), TU::i(0)].into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (VP::fixed(vec![]).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(vec![]).into(), Pred1::Raw(is_boolean)),
                 Ok(false),
             ),
             (
-                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::Sentinel),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::i(0)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(true)), Ok(TU::i(0)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Ok(true),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(false),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(true),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
         ];
@@ -1566,79 +1566,79 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_find() {
         let inputs_and_expected: Vec<((IL, Pred1), Result<MetaVal, ErrorKind>)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (TU::core_nested_sequence().into(), Pred1::Test(is_boolean)),
+                (TU::core_nested_sequence().into(), Pred1::Raw(is_boolean)),
                 Ok(TU::sample_boolean()),
             ),
             (
-                (vec![TU::b(false), TU::b(true)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(false), TU::b(true)].into(), Pred1::Raw(is_boolean)),
                 Ok(TU::b(false)),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(0)),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(4)),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(0)),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(0)),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Raw(is_boolean)),
                 Ok(TU::sample_boolean()),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(false)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(false)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Ok(TU::b(false)),
             ),
             (
-                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::Sentinel),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(0)),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(4)),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(0)),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(TU::i(0)),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
         ];
@@ -1654,79 +1654,79 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_position() {
         let inputs_and_expected: Vec<((IL, Pred1), Result<usize, ErrorKind>)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (TU::core_nested_sequence().into(), Pred1::Test(is_boolean)),
+                (TU::core_nested_sequence().into(), Pred1::Raw(is_boolean)),
                 Ok(3),
             ),
             (
-                (vec![TU::b(false), TU::b(true)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(false), TU::b(true)].into(), Pred1::Raw(is_boolean)),
                 Ok(0),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(0),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(2),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(0),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(0),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Raw(is_boolean)),
                 Ok(3),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(false)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(false)), Ok(TU::b(true)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Ok(0),
             ),
             (
-                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(true)), Ok(TU::b(true))]).into(), Pred1::Raw(is_boolean)),
                 Err(ErrorKind::Sentinel),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(0),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(4), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(2),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(0),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::ItemNotFound),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(0),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
         ];
@@ -1742,75 +1742,75 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_filter() {
         let inputs_and_expected: Vec<((IL, Pred1), ProducerTestResult)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_boolean)),
+                (vec![].into(), Pred1::Raw(is_boolean)),
                 Ok(vec![]),
             ),
             (
-                (TU::core_nested_sequence().into(), Pred1::Test(is_boolean)),
+                (TU::core_nested_sequence().into(), Pred1::Raw(is_boolean)),
                 Ok(vec![Ok(TU::sample_boolean())]),
             ),
             (
-                (vec![TU::b(false), MetaVal::Int(1)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(false), MetaVal::Int(1)].into(), Pred1::Raw(is_boolean)),
                 Ok(vec![Ok(TU::b(false))]),
             ),
             (
-                (vec![TU::b(false), MetaVal::Int(1)].into(), Pred1::Test(is_boolean)),
+                (vec![TU::b(false), MetaVal::Int(1)].into(), Pred1::Raw(is_boolean)),
                 Ok(vec![Ok(TU::b(false))]),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))]),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(6)), Ok(TU::i(8))]),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Ok(vec![]),
             ),
             (
-                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Test(is_even_int)),
+                (vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)].into(), Pred1::Raw(is_even_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (VP::fixed(vec![]).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(vec![]).into(), Pred1::Raw(is_boolean)),
                 Ok(vec![]),
             ),
             (
-                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Test(is_boolean)),
+                (VP::fixed(TU::core_nested_sequence()).into(), Pred1::Raw(is_boolean)),
                 Ok(vec![Ok(TU::sample_boolean())]),
             ),
             (
-                (VP::raw(vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Ok(TU::b(false)), Ok(MetaVal::Int(1)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_boolean)),
                 Ok(vec![Ok(TU::b(false)), Err(ErrorKind::Sentinel)]),
             ),
             (
-                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))]).into(), Pred1::Test(is_boolean)),
+                (VP::raw(vec![Err(Error::Sentinel), Ok(TU::b(false)), Ok(MetaVal::Int(1))]).into(), Pred1::Raw(is_boolean)),
                 Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::b(false))]),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(4), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(4)), Ok(TU::i(6)), Ok(TU::i(8))]),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::i(5), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Ok(TU::i(6)), Ok(TU::i(8))]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::i(5), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(vec![]),
             ),
             (
-                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(0), TU::i(2), TU::b(false), TU::i(6), TU::i(8)]).into(), Pred1::Raw(is_even_int)),
                 Ok(vec![Ok(TU::i(0)), Ok(TU::i(2)), Err(ErrorKind::NotNumeric), Ok(TU::i(6)), Ok(TU::i(8))]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Test(is_even_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(3), TU::b(false), TU::i(7), TU::i(9)]).into(), Pred1::Raw(is_even_int)),
                 Ok(vec![Err(ErrorKind::NotNumeric)]),
             ),
         ];
@@ -2425,59 +2425,59 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_skip_while() {
         let inputs_and_expected: Vec<((IL, Pred1), ProducerTestResult)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_lt_4_int)),
+                (vec![].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (vec![TU::i(1), TU::i(2), TU::i(3)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(1), TU::i(2), TU::i(3)].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (vec![TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
             ),
             (
-                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
             ),
             (
-                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), Pred1::Raw(is_lt_4_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))]),
             ),
             (
-                (VP::fixed(vec![]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (VP::fixed(vec![TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::i(6))]),
             ),
             (
-                (VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Err(ErrorKind::Sentinel), Ok(TU::i(4)), Ok(TU::i(5))]),
             ),
             (
-                (VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Err(ErrorKind::Sentinel)]),
             ),
             (
-                (VP::fixed(vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Err(ErrorKind::NotNumeric), Ok(TU::i(4)), Ok(TU::i(5))]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(4)), Ok(TU::i(5)), Ok(TU::s("a"))]),
             ),
         ];
@@ -2501,59 +2501,59 @@ use crate::scripting::expr::op::pred1::Pred1;
     fn test_take_while() {
         let inputs_and_expected: Vec<((IL, Pred1), ProducerTestResult)> = vec![
             (
-                (vec![].into(), Pred1::Test(is_lt_4_int)),
+                (vec![].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (vec![TU::i(1), TU::i(2), TU::i(3)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(1), TU::i(2), TU::i(3)].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (vec![TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)].into(), Pred1::Raw(is_lt_4_int)),
                 Err(ErrorKind::NotNumeric),
             ),
             (
-                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")].into(), Pred1::Test(is_lt_4_int)),
+                (vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")].into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (VP::fixed(vec![]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (VP::fixed(vec![TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::i(6)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::raw(vec![Ok(TU::i(1)), Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Err(ErrorKind::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::raw(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5)), Err(Error::Sentinel)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (VP::fixed(vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::s("a"), TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5)]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Err(ErrorKind::NotNumeric), Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
             (
-                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")]).into(), Pred1::Test(is_lt_4_int)),
+                (VP::fixed(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(4), TU::i(5), TU::s("a")]).into(), Pred1::Raw(is_lt_4_int)),
                 Ok(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]),
             ),
         ];
