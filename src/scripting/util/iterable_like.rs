@@ -548,7 +548,7 @@ mod tests {
     use crate::scripting::ErrorKind;
     use crate::scripting::util::value_producer::ValueProducer as VP;
     use crate::scripting::util::number_like::NumberLike;
-use crate::scripting::expr::op::pred1::Pred1;
+    use crate::scripting::expr::op::pred1::Pred1;
     use crate::scripting::util::UnaryConv as UConv;
 
     type ProducerTestResult = Result<Vec<Result<MetaVal, ErrorKind>>, ErrorKind>;
