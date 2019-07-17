@@ -1,5 +1,6 @@
 pub mod expr;
 pub mod util;
+pub mod token;
 
 use crate::metadata::stream::value::Error as MetaValueStreamError;
 
