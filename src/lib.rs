@@ -21,5 +21,6 @@ pub mod metadata;
 pub mod config;
 mod util;
 pub mod scripting;
+pub mod new_scripting;
 
 #[cfg(test)] mod test_util;
