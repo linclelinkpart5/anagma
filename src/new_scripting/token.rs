@@ -66,8 +66,8 @@ impl TryFrom<RawValues> for Vec<Token> {
                             }
                             else {
                                 // Actually an operator, process as such.
-                                let unary_op = BinaryOp::from_str(&s_trimmed).map_err(|_| Error::InvalidBinaryOp(s_trimmed))?;
-                                Token::BinaryOp(unary_op)
+                                let binary_op = BinaryOp::from_str(&s_trimmed).map_err(|_| Error::InvalidBinaryOp(s_trimmed))?;
+                                Token::BinaryOp(binary_op)
                             }
                         }
                         else {
