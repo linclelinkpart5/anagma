@@ -1,11 +1,13 @@
 //! Types for modeling and representing item metadata.
 
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 
 use rust_decimal::Decimal;
 
 use crate::metadata::types::key::MetaKey;
 use crate::metadata::types::key::MetaKeyPath;
+use crate::util::Number;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
@@ -87,6 +89,39 @@ impl From<Decimal> for MetaVal {
 impl From<Vec<MetaVal>> for MetaVal {
     fn from(s: Vec<MetaVal>) -> Self {
         Self::Seq(s)
+    }
+}
+
+impl From<Number> for MetaVal {
+    fn from(nl: Number) -> MetaVal {
+        match nl {
+            Number::Integer(i) => Self::from(i),
+            Number::Decimal(d) => Self::from(d),
+        }
+    }
+}
+
+impl TryFrom<MetaVal> for Number {
+    type Error = ();
+
+    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Int(i) => Ok(Self::from(i)),
+            MetaVal::Dec(d) => Ok(Self::from(d)),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k MetaVal> for Number {
+    type Error = ();
+
+    fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            &MetaVal::Int(i) => Ok(Self::Integer(i)),
+            &MetaVal::Dec(d) => Ok(Self::Decimal(d)),
+            _ => Err(()),
+        }
     }
 }
 

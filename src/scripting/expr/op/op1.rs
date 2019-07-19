@@ -7,7 +7,7 @@ use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
 use crate::scripting::util::ref_iterable_like::RefIterableLike;
-use crate::scripting::util::number_like::NumberLike;
+use crate::util::Number;
 
 #[derive(Clone, Copy, Debug)]
 pub enum Op {
@@ -72,17 +72,17 @@ impl Op {
         }
     }
 
-    fn neg(number: NumberLike) -> NumberLike {
+    fn neg(number: Number) -> Number {
         match number {
-            NumberLike::Integer(i) => NumberLike::Integer(-i),
-            NumberLike::Decimal(d) => NumberLike::Decimal(if d == dec!(0) { d } else { -d }),
+            Number::Integer(i) => Number::Integer(-i),
+            Number::Decimal(d) => Number::Decimal(if d == dec!(0) { d } else { -d }),
         }
     }
 
-    fn abs(number: NumberLike) -> NumberLike {
+    fn abs(number: Number) -> Number {
         match number {
-            NumberLike::Integer(i) => NumberLike::Integer(i.abs()),
-            NumberLike::Decimal(d) => NumberLike::Decimal(d.abs()),
+            Number::Integer(i) => Number::Integer(i.abs()),
+            Number::Decimal(d) => Number::Decimal(d.abs()),
         }
     }
 

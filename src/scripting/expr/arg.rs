@@ -4,7 +4,7 @@ use std::convert::TryInto;
 use crate::metadata::types::MetaVal;
 use crate::scripting::Error;
 use crate::scripting::util::value_producer::ValueProducer;
-use crate::scripting::util::number_like::NumberLike;
+use crate::util::Number;
 use crate::scripting::expr::op::pred1::Pred1;
 // use crate::scripting::util::UnaryPred;
 use crate::scripting::util::UnaryConv;
@@ -93,13 +93,31 @@ where
     }
 }
 
-impl<'o> TryFrom<&Arg<'o>> for NumberLike {
+impl<'o> TryFrom<&Arg<'o>> for Number {
     type Error = Error;
 
     fn try_from(o: &Arg<'o>) -> Result<Self, Self::Error> {
         match o {
-            Arg::Value(ref v) => v.try_into(),
-            _ => Err(Error::NotBoolean),
+            Arg::Value(ref v) => v.try_into().map_err(|_| Error::NotNumeric),
+            _ => Err(Error::NotNumeric),
         }
     }
 }
+
+impl<'k> TryFrom<Arg<'k>> for Number {
+    type Error = Error;
+
+    fn try_from(arg: Arg<'k>) -> Result<Self, Self::Error> {
+        match arg {
+            Arg::Value(mv) => mv.try_into().map_err(|_| Error::NotNumeric),
+            _ => Err(Error::NotNumeric),
+        }
+    }
+}
+
+// NOTE: Superseded by blanket impl.
+// impl<'k> From<Number> for Arg<'k> {
+//     fn from(nl: Number) -> Arg<'k> {
+//         Arg::Value(nl.into())
+//     }
+// }

@@ -7,6 +7,7 @@ pub use self::op::Op2;
 
 use std::convert::TryFrom;
 
+use crate::util::Number;
 use crate::scripting::Error;
 use crate::scripting::expr::op::pred1::Pred1;
 // use crate::scripting::util::UnaryPred;
@@ -66,5 +67,13 @@ impl<'e> TryFrom<Expr<'e>> for UnaryConv {
 impl<'e> From<Arg<'e>> for Expr<'e> {
     fn from(a: Arg<'e>) -> Self {
         Self::Arg(a)
+    }
+}
+
+impl<'e> TryFrom<Expr<'e>> for Number {
+    type Error = Error;
+
+    fn try_from(expr: Expr<'e>) -> Result<Self, Self::Error> {
+        Arg::try_from(expr).and_then(Number::try_from).map_err(|_| Error::NotNumeric)
     }
 }

@@ -1,6 +1,8 @@
 pub mod file_walkers;
 pub mod number;
 
+pub use number::Number;
+
 use std::ops::Generator;
 use std::ops::GeneratorState;
 use std::path::Path;

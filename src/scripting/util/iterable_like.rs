@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::convert::TryInto;
 
+use crate::util::Number;
 use crate::metadata::types::MetaVal;
 use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
@@ -20,7 +21,6 @@ use crate::scripting::util::value_producer::Skip;
 use crate::scripting::util::value_producer::Take;
 use crate::scripting::util::value_producer::SkipWhile;
 use crate::scripting::util::value_producer::TakeWhile;
-use crate::scripting::util::number_like::NumberLike;
 use crate::scripting::util::UnaryConv;
 
 #[derive(Clone, Copy)]
@@ -98,7 +98,7 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    fn min_in_max_in(self, flag: MinMax) -> Result<NumberLike, Error> {
+    fn min_in_max_in(self, flag: MinMax) -> Result<Number, Error> {
         let (new_p, err) = match self {
             Self::Sequence(s) => (ValueProducer::from(s), Error::EmptySequence),
             Self::Producer(p) => (p, Error::EmptyProducer),
@@ -108,10 +108,10 @@ impl<'il> IterableLike<'il> {
         match it.next() {
             None => Err(err),
             Some(first_res_mv) => {
-                let mut target_nl: NumberLike = first_res_mv?.try_into()?;
+                let mut target_nl: Number = first_res_mv?.try_into().map_err(|_| Error::NotNumeric)?;
 
                 for res_mv in it {
-                    let nl: NumberLike = res_mv?.try_into()?;
+                    let nl: Number = res_mv?.try_into().map_err(|_| Error::NotNumeric)?;
                     target_nl = match flag {
                         MinMax::Min => target_nl.val_min(nl),
                         MinMax::Max => target_nl.val_max(nl),
@@ -123,11 +123,11 @@ impl<'il> IterableLike<'il> {
         }
     }
 
-    pub fn min_in(self) -> Result<NumberLike, Error> {
+    pub fn min_in(self) -> Result<Number, Error> {
         self.min_in_max_in(MinMax::Min)
     }
 
-    pub fn max_in(self) -> Result<NumberLike, Error> {
+    pub fn max_in(self) -> Result<Number, Error> {
         self.min_in_max_in(MinMax::Max)
     }
 
@@ -167,10 +167,10 @@ impl<'il> IterableLike<'il> {
         self.rev_sort(RevSort::Sort)
     }
 
-    fn sum_prod(self, flag: SumProd) -> Result<NumberLike, Error> {
+    fn sum_prod(self, flag: SumProd) -> Result<Number, Error> {
         let mut total = match flag {
-            SumProd::Sum => NumberLike::Integer(0),
-            SumProd::Prod => NumberLike::Integer(1),
+            SumProd::Sum => Number::Integer(0),
+            SumProd::Prod => Number::Integer(1),
         };
 
         let new_p = match self {
@@ -179,22 +179,22 @@ impl<'il> IterableLike<'il> {
         };
 
         for res_mv in new_p {
-            let nl: NumberLike = res_mv?.try_into()?;
+            let nl: Number = res_mv?.try_into().map_err(|_| Error::NotNumeric)?;
 
             match flag {
-                SumProd::Sum => { total += nl; },
-                SumProd::Prod => { total *= nl; },
+                SumProd::Sum => { total = total + nl; },
+                SumProd::Prod => { total = total * nl; },
             };
         }
 
         Ok(total)
     }
 
-    pub fn sum(self) -> Result<NumberLike, Error> {
+    pub fn sum(self) -> Result<Number, Error> {
         self.sum_prod(SumProd::Sum)
     }
 
-    pub fn prod(self) -> Result<NumberLike, Error> {
+    pub fn prod(self) -> Result<Number, Error> {
         self.sum_prod(SumProd::Prod)
     }
 
@@ -547,7 +547,7 @@ mod tests {
     use crate::scripting::Error;
     use crate::scripting::ErrorKind;
     use crate::scripting::util::value_producer::ValueProducer as VP;
-    use crate::scripting::util::number_like::NumberLike;
+    use crate::util::Number;
     use crate::scripting::expr::op::pred1::Pred1;
     use crate::scripting::util::UnaryConv as UConv;
 
@@ -695,22 +695,22 @@ mod tests {
 
     #[test]
     fn test_min_in() {
-        let inputs_and_expected: Vec<(IL, Result<NumberLike, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, Result<Number, ErrorKind>)> = vec![
             (
                 vec![].into(),
                 Err(ErrorKind::EmptySequence),
             ),
             (
                 TU::core_number_sequence(2, false, true, false).into(),
-                Ok(NumberLike::Integer(-2)),
+                Ok(Number::Integer(-2)),
             ),
             (
                 TU::core_number_sequence(2, true, true, false).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(-25, 1))),
+                Ok(Number::Decimal(TU::d_raw(-25, 1))),
             ),
             (
                 vec![TU::i(1)].into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 vec![TU::i(1), TU::b(true)].into(),
@@ -722,15 +722,15 @@ mod tests {
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, false, true, false)).into(),
-                Ok(NumberLike::Integer(-2)),
+                Ok(Number::Integer(-2)),
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, true, true, false)).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(-25, 1))),
+                Ok(Number::Decimal(TU::d_raw(-25, 1))),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1))]).into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1)), Ok(TU::b(false))]).into(),
@@ -750,22 +750,22 @@ mod tests {
 
     #[test]
     fn test_max_in() {
-        let inputs_and_expected: Vec<(IL, Result<NumberLike, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, Result<Number, ErrorKind>)> = vec![
             (
                 vec![].into(),
                 Err(ErrorKind::EmptySequence),
             ),
             (
                 TU::core_number_sequence(2, false, true, false).into(),
-                Ok(NumberLike::Integer(2)),
+                Ok(Number::Integer(2)),
             ),
             (
                 TU::core_number_sequence(2, true, true, false).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(25, 1))),
+                Ok(Number::Decimal(TU::d_raw(25, 1))),
             ),
             (
                 vec![TU::i(1)].into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 vec![TU::i(1), TU::b(true)].into(),
@@ -777,15 +777,15 @@ mod tests {
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, false, true, false)).into(),
-                Ok(NumberLike::Integer(2)),
+                Ok(Number::Integer(2)),
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, true, true, false)).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(25, 1))),
+                Ok(Number::Decimal(TU::d_raw(25, 1))),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1))]).into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1)), Ok(TU::b(false))]).into(),
@@ -883,26 +883,26 @@ mod tests {
 
     #[test]
     fn test_sum() {
-        let inputs_and_expected: Vec<(IL, Result<NumberLike, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, Result<Number, ErrorKind>)> = vec![
             (
                 vec![].into(),
-                Ok(NumberLike::Integer(0)),
+                Ok(Number::Integer(0)),
             ),
             (
                 TU::core_number_sequence(2, false, true, true).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+                Ok(Number::Decimal(TU::d_raw(0, 0))),
             ),
             (
                 vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)].into(),
-                Ok(NumberLike::Integer(13)),
+                Ok(Number::Integer(13)),
             ),
             (
                 vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)].into(),
-                Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
+                Ok(Number::Decimal(TU::d_raw(135, 1))),
             ),
             (
                 vec![TU::i(1)].into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 vec![TU::i(1), TU::b(true)].into(),
@@ -910,23 +910,23 @@ mod tests {
             ),
             (
                 VP::fixed(vec![]).into(),
-                Ok(NumberLike::Integer(0)),
+                Ok(Number::Integer(0)),
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, false, true, true)).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+                Ok(Number::Decimal(TU::d_raw(0, 0))),
             ),
             (
                 VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))]).into(),
-                Ok(NumberLike::Integer(13)),
+                Ok(Number::Integer(13)),
             ),
             (
                 VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))]).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(135, 1))),
+                Ok(Number::Decimal(TU::d_raw(135, 1))),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1))]).into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1)), Ok(TU::b(true))]).into(),
@@ -946,30 +946,30 @@ mod tests {
 
     #[test]
     fn test_prod() {
-        let inputs_and_expected: Vec<(IL, Result<NumberLike, ErrorKind>)> = vec![
+        let inputs_and_expected: Vec<(IL, Result<Number, ErrorKind>)> = vec![
             (
                 vec![].into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 TU::core_number_sequence(2, false, true, true).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+                Ok(Number::Decimal(TU::d_raw(0, 0))),
             ),
             (
                 TU::core_number_sequence(2, false, true, false).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
+                Ok(Number::Decimal(TU::d_raw(225, 2))),
             ),
             (
                 vec![TU::i(-2), TU::i(3), TU::i(5), TU::i(7)].into(),
-                Ok(NumberLike::Integer(-210)),
+                Ok(Number::Integer(-210)),
             ),
             (
                 vec![TU::i(-2), TU::i(3), TU::d(55, 1), TU::i(7)].into(),
-                Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
+                Ok(Number::Decimal(TU::d_raw(-231, 0))),
             ),
             (
                 vec![TU::i(1)].into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 vec![TU::i(1), TU::b(true)].into(),
@@ -977,27 +977,27 @@ mod tests {
             ),
             (
                 VP::fixed(vec![]).into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, false, true, true)).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(0, 0))),
+                Ok(Number::Decimal(TU::d_raw(0, 0))),
             ),
             (
                 VP::fixed(TU::core_number_sequence(2, false, true, false)).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(225, 2))),
+                Ok(Number::Decimal(TU::d_raw(225, 2))),
             ),
             (
                 VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::i(5)), Ok(TU::i(7))]).into(),
-                Ok(NumberLike::Integer(-210)),
+                Ok(Number::Integer(-210)),
             ),
             (
                 VP::raw(vec![Ok(TU::i(-2)), Ok(TU::i(3)), Ok(TU::d(55, 1)), Ok(TU::i(7))]).into(),
-                Ok(NumberLike::Decimal(TU::d_raw(-231, 0))),
+                Ok(Number::Decimal(TU::d_raw(-231, 0))),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1))]).into(),
-                Ok(NumberLike::Integer(1)),
+                Ok(Number::Integer(1)),
             ),
             (
                 VP::raw(vec![Ok(TU::i(1)), Ok(TU::b(true))]).into(),

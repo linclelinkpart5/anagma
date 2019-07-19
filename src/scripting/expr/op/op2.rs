@@ -8,7 +8,7 @@ use crate::scripting::expr::Expr;
 use crate::scripting::expr::arg::Arg;
 use crate::scripting::util::iterable_like::IterableLike;
 use crate::scripting::util::ref_iterable_like::RefIterableLike;
-use crate::scripting::util::number_like::NumberLike;
+use crate::util::Number;
 use crate::scripting::expr::op::pred1::Pred1;
 // use crate::scripting::util::value_producer::ValueProducer;
 
@@ -89,33 +89,33 @@ impl Op {
             &Self::Xor =>
                 Self::xor(expr_a, expr_b).map(Arg::from),
             &Self::Eq => {
-                let num_a = NumberLike::try_from(expr_a)?;
-                let num_b = NumberLike::try_from(expr_b)?;
+                let num_a = Number::try_from(expr_a)?;
+                let num_b = Number::try_from(expr_b)?;
                 Ok(Self::eq(&num_a, &num_b).into())
             },
             &Self::Ne => {
-                let num_a = NumberLike::try_from(expr_a)?;
-                let num_b = NumberLike::try_from(expr_b)?;
+                let num_a = Number::try_from(expr_a)?;
+                let num_b = Number::try_from(expr_b)?;
                 Ok(Self::ne(&num_a, &num_b).into())
             },
             &Self::Lt => {
-                let num_a = NumberLike::try_from(expr_a)?;
-                let num_b = NumberLike::try_from(expr_b)?;
+                let num_a = Number::try_from(expr_a)?;
+                let num_b = Number::try_from(expr_b)?;
                 Ok(Self::lt(&num_a, &num_b).into())
             },
             &Self::Le => {
-                let num_a = NumberLike::try_from(expr_a)?;
-                let num_b = NumberLike::try_from(expr_b)?;
+                let num_a = Number::try_from(expr_a)?;
+                let num_b = Number::try_from(expr_b)?;
                 Ok(Self::le(&num_a, &num_b).into())
             },
             &Self::Gt => {
-                let num_a = NumberLike::try_from(expr_a)?;
-                let num_b = NumberLike::try_from(expr_b)?;
+                let num_a = Number::try_from(expr_a)?;
+                let num_b = Number::try_from(expr_b)?;
                 Ok(Self::gt(&num_a, &num_b).into())
             },
             &Self::Ge => {
-                let num_a = NumberLike::try_from(expr_a)?;
-                let num_b = NumberLike::try_from(expr_b)?;
+                let num_a = Number::try_from(expr_a)?;
+                let num_b = Number::try_from(expr_b)?;
                 Ok(Self::ge(&num_a, &num_b).into())
             },
         }
@@ -135,32 +135,32 @@ impl Op {
         Ok(b_a ^ b_b)
     }
 
-    fn eq(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+    fn eq(num_a: &Number, num_b: &Number) -> bool {
         let ord = num_a.val_cmp(&num_b);
         ord == Ordering::Equal
     }
 
-    fn ne(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+    fn ne(num_a: &Number, num_b: &Number) -> bool {
         let ord = num_a.val_cmp(&num_b);
         ord != Ordering::Equal
     }
 
-    fn lt(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+    fn lt(num_a: &Number, num_b: &Number) -> bool {
         let ord = num_a.val_cmp(&num_b);
         ord == Ordering::Less
     }
 
-    fn le(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+    fn le(num_a: &Number, num_b: &Number) -> bool {
         let ord = num_a.val_cmp(&num_b);
         ord == Ordering::Less || ord == Ordering::Equal
     }
 
-    fn gt(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+    fn gt(num_a: &Number, num_b: &Number) -> bool {
         let ord = num_a.val_cmp(&num_b);
         ord == Ordering::Greater
     }
 
-    fn ge(num_a: &NumberLike, num_b: &NumberLike) -> bool {
+    fn ge(num_a: &Number, num_b: &Number) -> bool {
         let ord = num_a.val_cmp(&num_b);
         ord == Ordering::Greater || ord == Ordering::Equal
     }
