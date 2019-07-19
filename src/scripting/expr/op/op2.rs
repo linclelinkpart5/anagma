@@ -12,7 +12,9 @@ use crate::util::Number;
 use crate::scripting::expr::op::pred1::Pred1;
 // use crate::scripting::util::value_producer::ValueProducer;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum Op {
     Nth,
     All,

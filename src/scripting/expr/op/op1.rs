@@ -9,7 +9,9 @@ use crate::scripting::util::iterable_like::IterableLike;
 use crate::scripting::util::ref_iterable_like::RefIterableLike;
 use crate::util::Number;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum Op {
     Collect,
     Count,

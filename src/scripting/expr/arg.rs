@@ -11,30 +11,30 @@ use crate::scripting::util::UnaryConv;
 
 /// Values that are pushed onto an arg stack.
 /// In order for a stack to be valid, it must result in exactly one value arg after processing.
-pub enum Arg<'o> {
-    Producer(ValueProducer<'o>),
+pub enum Arg<'a> {
+    Producer(ValueProducer<'a>),
     Value(MetaVal),
     Usize(usize),
     Pred1(Pred1),
     UnaryConv(UnaryConv),
 }
 
-impl<'o> TryFrom<Arg<'o>> for ValueProducer<'o> {
+impl<'a> TryFrom<Arg<'a>> for ValueProducer<'a> {
     type Error = Error;
 
-    fn try_from(o: Arg<'o>) -> Result<Self, Self::Error> {
-        match o {
+    fn try_from(arg: Arg<'a>) -> Result<Self, Self::Error> {
+        match arg {
             Arg::Producer(vp) => Ok(vp),
             _ => Err(Error::NotProducer),
         }
     }
 }
 
-impl<'o> TryFrom<Arg<'o>> for usize {
+impl<'a> TryFrom<Arg<'a>> for usize {
     type Error = Error;
 
-    fn try_from(o: Arg<'o>) -> Result<Self, Self::Error> {
-        match o {
+    fn try_from(arg: Arg<'a>) -> Result<Self, Self::Error> {
+        match arg {
             Arg::Usize(u) => Ok(u),
             Arg::Value(MetaVal::Int(i)) => {
                 if i < 0 { Err(Error::NotUsize) }
@@ -45,46 +45,46 @@ impl<'o> TryFrom<Arg<'o>> for usize {
     }
 }
 
-impl<'o> TryFrom<Arg<'o>> for bool {
+impl<'a> TryFrom<Arg<'a>> for bool {
     type Error = Error;
 
-    fn try_from(o: Arg<'o>) -> Result<Self, Self::Error> {
-        match o {
+    fn try_from(arg: Arg<'a>) -> Result<Self, Self::Error> {
+        match arg {
             Arg::Value(MetaVal::Bul(b)) => Ok(b),
             _ => Err(Error::NotBoolean),
         }
     }
 }
 
-impl<'o> TryFrom<Arg<'o>> for Pred1 {
+impl<'a> TryFrom<Arg<'a>> for Pred1 {
     type Error = Error;
 
-    fn try_from(o: Arg<'o>) -> Result<Self, Self::Error> {
-        match o {
+    fn try_from(arg: Arg<'a>) -> Result<Self, Self::Error> {
+        match arg {
             Arg::Pred1(p) => Ok(p),
             _ => Err(Error::NotPredicate),
         }
     }
 }
 
-impl<'o> TryFrom<Arg<'o>> for UnaryConv {
+impl<'a> TryFrom<Arg<'a>> for UnaryConv {
     type Error = Error;
 
-    fn try_from(o: Arg<'o>) -> Result<Self, Self::Error> {
-        match o {
+    fn try_from(arg: Arg<'a>) -> Result<Self, Self::Error> {
+        match arg {
             Arg::UnaryConv(c) => Ok(c),
             _ => Err(Error::NotConverter),
         }
     }
 }
 
-impl<'o> From<usize> for Arg<'o> {
+impl<'a> From<usize> for Arg<'a> {
     fn from(u: usize) -> Self {
         Arg::Usize(u)
     }
 }
 
-impl<'o, I> From<I> for Arg<'o>
+impl<'a, I> From<I> for Arg<'a>
 where
     I: Into<MetaVal>,
 {
@@ -93,21 +93,21 @@ where
     }
 }
 
-impl<'o> TryFrom<&Arg<'o>> for Number {
+impl<'a> TryFrom<&Arg<'a>> for Number {
     type Error = Error;
 
-    fn try_from(o: &Arg<'o>) -> Result<Self, Self::Error> {
-        match o {
+    fn try_from(arg: &Arg<'a>) -> Result<Self, Self::Error> {
+        match arg {
             Arg::Value(ref v) => v.try_into().map_err(|_| Error::NotNumeric),
             _ => Err(Error::NotNumeric),
         }
     }
 }
 
-impl<'k> TryFrom<Arg<'k>> for Number {
+impl<'a> TryFrom<Arg<'a>> for Number {
     type Error = Error;
 
-    fn try_from(arg: Arg<'k>) -> Result<Self, Self::Error> {
+    fn try_from(arg: Arg<'a>) -> Result<Self, Self::Error> {
         match arg {
             Arg::Value(mv) => mv.try_into().map_err(|_| Error::NotNumeric),
             _ => Err(Error::NotNumeric),
@@ -117,7 +117,7 @@ impl<'k> TryFrom<Arg<'k>> for Number {
 
 // NOTE: Superseded by blanket impl.
 // impl<'k> From<Number> for Arg<'k> {
-//     fn from(nl: Number) -> Arg<'k> {
-//         Arg::Value(nl.into())
+//     fn from(num: Number) -> Arg<'k> {
+//         Arg::Value(num.into())
 //     }
 // }
