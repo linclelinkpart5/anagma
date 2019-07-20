@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use crate::metadata::types::MetaVal;
 use crate::new_scripting::Error;
 
+/// Represents a generic iterable over metadata values, both owned and borrowed.
 pub enum GenericIterable<'gi> {
     Vector(Vec<MetaVal>),
     Slice(&'gi [MetaVal]),
@@ -18,6 +19,20 @@ impl<'gi> GenericIterable<'gi> {
 
     pub fn is_eager(&self) -> bool {
         !self.is_lazy()
+    }
+
+    pub fn collect(self) -> Result<Vec<MetaVal>, Error> {
+        match self {
+            GenericIterable::Vector(v) => Ok(v),
+            GenericIterable::Slice(s) => Ok(s.to_vec()),
+        }
+    }
+
+    pub fn count(self) -> Result<usize, Error> {
+        match self {
+            GenericIterable::Vector(v) => Ok(v.len()),
+            GenericIterable::Slice(s) => Ok(s.len()),
+        }
     }
 }
 
