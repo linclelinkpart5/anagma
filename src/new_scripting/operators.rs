@@ -19,6 +19,7 @@ pub enum UnaryOp {
     Neg,
     Abs,
     Not,
+    Noop,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -48,4 +49,9 @@ pub enum BinaryOp {
     Le,
     Gt,
     Ge,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Rem,
 }
