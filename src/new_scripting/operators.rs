@@ -1,6 +1,7 @@
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
 #[derive(EnumString)]
 #[strum(serialize_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum UnaryOp {
     // Iterable -> Sequence
     Collect,
@@ -49,9 +50,10 @@ pub enum UnaryOp {
     Pick,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
 #[derive(EnumString)]
 #[strum(serialize_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum BinaryOp {
     // Iterable<T>, Usize -> T
     Nth,
@@ -110,9 +112,10 @@ pub enum BinaryOp {
     Lookup,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Deserialize)]
 #[derive(EnumString)]
 #[strum(serialize_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum TernaryOp {
     // Boolean, Expression<Any>, Expression<Any> -> Any
     If,

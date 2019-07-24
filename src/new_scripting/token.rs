@@ -1,9 +1,12 @@
 use std::str::FromStr;
 use std::convert::TryFrom;
+use std::collections::BTreeMap;
 
-use crate::metadata::types::MetaVal;
+use rust_decimal::Decimal;
+
 use crate::new_scripting::operators::UnaryOp;
 use crate::new_scripting::operators::BinaryOp;
+use crate::new_scripting::operators::TernaryOp;
 
 const UNARY_OP_SIGIL: &'static str = "$";
 const BINARY_OP_SIGIL: &'static str = "@";
@@ -30,25 +33,25 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct RawValues(Vec<MetaVal>);
+pub struct RawTokens(Vec<Token>);
 
-impl TryFrom<RawValues> for Vec<Token> {
+impl TryFrom<RawTokens> for Vec<Token> {
     type Error = Error;
 
-    fn try_from(raw_values: RawValues) -> Result<Self, Self::Error> {
+    fn try_from(raw_values: RawTokens) -> Result<Self, Self::Error> {
         let mut tokens = Vec::with_capacity(raw_values.0.len());
 
         for mv in raw_values.0.into_iter() {
             let token =
                 match mv {
-                    MetaVal::Str(s) => {
+                    Token::Text(s) => {
                         if s.starts_with(UNARY_OP_SIGIL) {
                             // Trim the first occurrence of the sigil.
                             let s_trimmed = s.replacen(UNARY_OP_SIGIL, "", 1);
 
                             // If the trimmed string still starts with a sigil, it was an escaped sigil, treat as a string.
                             if s_trimmed.starts_with(UNARY_OP_SIGIL) {
-                                Token::Value(MetaVal::Str(s_trimmed))
+                                Token::Text(s_trimmed)
                             }
                             else {
                                 // Actually an operator, process as such.
@@ -62,7 +65,7 @@ impl TryFrom<RawValues> for Vec<Token> {
 
                             // If the trimmed string still starts with a sigil, it was an escaped sigil, treat as a string.
                             if s_trimmed.starts_with(BINARY_OP_SIGIL) {
-                                Token::Value(MetaVal::Str(s_trimmed))
+                                Token::Text(s_trimmed)
                             }
                             else {
                                 // Actually an operator, process as such.
@@ -72,13 +75,10 @@ impl TryFrom<RawValues> for Vec<Token> {
                         }
                         else {
                             // A plain string that doesn't start with any sigils.
-                            Token::Value(MetaVal::Str(s))
+                            Token::Text(s)
                         }
                     },
-                    mv => {
-                        // Take the original meta value and wrap it in a token.
-                        Token::Value(mv)
-                    },
+                    tok => tok,
                 }
             ;
 
@@ -90,11 +90,19 @@ impl TryFrom<RawValues> for Vec<Token> {
 }
 
 /// Represents the various values found when parsing a script command.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, EnumDiscriminants)]
+#[serde(untagged)]
 pub enum Token {
-    Value(MetaVal),
+    Null,
+    Text(String),
+    Boolean(bool),
+    Integer(i64),
+    Decimal(Decimal),
+    Sequence(Vec<Token>),
+    Mapping(BTreeMap<String, Token>),
     UnaryOp(UnaryOp),
     BinaryOp(BinaryOp),
+    TernaryOp(TernaryOp),
 }
 
 #[cfg(test)]
@@ -104,20 +112,20 @@ mod tests {
     #[test]
     fn raw_values_deserialize() {
         let raw_values_ser = r#"[1, 3.1415, false, null, "hello", "$collect", "@all", "$$escaped", "@@escaped"]"#;
-        let raw_values: RawValues = serde_json::from_str(raw_values_ser).unwrap();
+        let raw_values: RawTokens = serde_json::from_str(raw_values_ser).unwrap();
 
         println!("{:?}", raw_values);
 
         let expected = vec![
-            MetaVal::Int(1),
-            MetaVal::Dec(dec!(3.1415)),
-            MetaVal::Bul(false),
-            MetaVal::Nil,
-            MetaVal::Str("hello".into()),
-            MetaVal::Str("$collect".into()),
-            MetaVal::Str("@all".into()),
-            MetaVal::Str("$$escaped".into()),
-            MetaVal::Str("@@escaped".into()),
+            Token::Integer(1),
+            Token::Decimal(dec!(3.1415)),
+            Token::Boolean(false),
+            Token::Null,
+            Token::Text("hello".into()),
+            Token::Text("$collect".into()),
+            Token::Text("@all".into()),
+            Token::Text("$$escaped".into()),
+            Token::Text("@@escaped".into()),
         ];
         let produced = raw_values.0;
 
@@ -126,40 +134,40 @@ mod tests {
 
     #[test]
     fn raw_values_try_into_vec_token() {
-        let raw_values = RawValues(vec![
-            MetaVal::Int(1),
-            MetaVal::Dec(dec!(3.1415)),
-            MetaVal::Bul(false),
-            MetaVal::Nil,
-            MetaVal::Str("hello".into()),
-            MetaVal::Str("$collect".into()),
-            MetaVal::Str("@all".into()),
-            MetaVal::Str("$$escaped".into()),
-            MetaVal::Str("@@escaped".into()),
+        let raw_values = RawTokens(vec![
+            Token::Integer(1),
+            Token::Decimal(dec!(3.1415)),
+            Token::Boolean(false),
+            Token::Null,
+            Token::Text("hello".into()),
+            Token::Text("$collect".into()),
+            Token::Text("@all".into()),
+            Token::Text("$$escaped".into()),
+            Token::Text("@@escaped".into()),
         ]);
 
         let expected = Ok(vec![
-            Token::Value(MetaVal::Int(1)),
-            Token::Value(MetaVal::Dec(dec!(3.1415))),
-            Token::Value(MetaVal::Bul(false)),
-            Token::Value(MetaVal::Nil),
-            Token::Value(MetaVal::Str("hello".into())),
+            Token::Integer(1),
+            Token::Decimal(dec!(3.1415)),
+            Token::Boolean(false),
+            Token::Null,
+            Token::Text("hello".into()),
             Token::UnaryOp(UnaryOp::Collect),
             Token::BinaryOp(BinaryOp::All),
-            Token::Value(MetaVal::Str("$escaped".into())),
-            Token::Value(MetaVal::Str("@escaped".into())),
+            Token::Text("$escaped".into()),
+            Token::Text("@escaped".into()),
         ]);
         let produced: Result<Vec<Token>, _> = TryFrom::try_from(raw_values);
 
         assert_eq!(expected, produced);
 
-        let raw_values = RawValues(vec![
-            MetaVal::Str("$UNKNOWN!".into()),
-            MetaVal::Int(2),
-            MetaVal::Dec(dec!(2.7182)),
-            MetaVal::Bul(true),
-            MetaVal::Nil,
-            MetaVal::Str("goodbye".into()),
+        let raw_values = RawTokens(vec![
+            Token::Text("$UNKNOWN!".into()),
+            Token::Integer(2),
+            Token::Decimal(dec!(2.7182)),
+            Token::Boolean(true),
+            Token::Null,
+            Token::Text("goodbye".into()),
         ]);
 
         let expected = Err(Error::InvalidUnaryOp("UNKNOWN!".into()));
@@ -167,13 +175,13 @@ mod tests {
 
         assert_eq!(expected, produced);
 
-        let raw_values = RawValues(vec![
-            MetaVal::Str("@UNKNOWN!".into()),
-            MetaVal::Int(2),
-            MetaVal::Dec(dec!(2.7182)),
-            MetaVal::Bul(true),
-            MetaVal::Nil,
-            MetaVal::Str("goodbye".into()),
+        let raw_values = RawTokens(vec![
+            Token::Text("@UNKNOWN!".into()),
+            Token::Integer(2),
+            Token::Decimal(dec!(2.7182)),
+            Token::Boolean(true),
+            Token::Null,
+            Token::Text("goodbye".into()),
         ]);
 
         let expected = Err(Error::InvalidBinaryOp("UNKNOWN!".into()));
