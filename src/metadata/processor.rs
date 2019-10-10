@@ -62,7 +62,10 @@ impl MetaProcessor {
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, selection).map_err(Error::CannotFindItemPaths)?;
 
         let mut meta_plexed = hashmap![];
-        for meta_plex_res in MetaPlexer::plex(meta_structure, selected_item_paths, sort_order) {
+
+        let mut meta_plexer = MetaPlexer::new(meta_structure, selected_item_paths.into_iter(), sort_order);
+
+        for meta_plex_res in meta_plexer {
             match meta_plex_res {
                 Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
                 Err(e) => { warn!("{}", e); },

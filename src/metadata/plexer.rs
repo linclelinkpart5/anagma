@@ -5,9 +5,10 @@ use itertools::Itertools;
 use itertools::EitherOrBoth;
 
 use crate::config::sort_order::SortOrder;
-use crate::metadata::types::MetaStructure;
 use crate::metadata::types::MetaBlock;
-use crate::util::GenConverter;
+use crate::metadata::types::MetaBlockSeq;
+use crate::metadata::types::MetaBlockMap;
+use crate::metadata::types::MetaStructure;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Error {
@@ -43,89 +44,100 @@ impl std::error::Error for Error {
     }
 }
 
-pub struct MetaPlexer;
+pub enum MetaPlexer<I: Iterator<Item = PathBuf>> {
+    One(Option<MetaBlock>, I),
+    Seq(std::vec::IntoIter<MetaBlock>, std::vec::IntoIter<PathBuf>),
+    Map(MetaBlockMap, I),
+}
 
-impl MetaPlexer {
-    pub fn plex<II, P>(
-        meta_structure: MetaStructure,
-        item_paths: II,
-        sort_order: SortOrder,
-    ) -> impl Iterator<Item = Result<(PathBuf, MetaBlock), Error>>
-    where II: IntoIterator<Item = P>,
-          P: AsRef<Path>,
-    {
-        let closure = move || {
-            let mut item_paths = item_paths.into_iter();
+impl<I> Iterator for MetaPlexer<I>
+where
+    I: Iterator<Item = PathBuf>,
+{
+    type Item = Result<(PathBuf, MetaBlock), Error>;
 
-            match meta_structure {
-                MetaStructure::One(meta_block) => {
-                    // Exactly one item path is expected.
-                    if let Some(item_path) = item_paths.next() {
-                        yield Ok((item_path.as_ref().to_path_buf(), meta_block));
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::One(ref mut opt_block, ref mut path_iter) => {
+                match (opt_block.take(), path_iter.next()) {
+                    // Both iterators are exhausted, so this one is as well.
+                    (None, None) => None,
 
-                        // If there are excess paths provided, error for each of them.
-                        for excess_item_path in item_paths {
-                            yield Err(Error::UnusedItemPath(excess_item_path.as_ref().to_path_buf()));
+                    // Both iterators produced a result, emit a successful plex result.
+                    (Some(block), Some(path)) => Some(Ok((path, block))),
+
+                    // Got a file path with no meta block, report an error.
+                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path))),
+
+                    // Got a meta block with no file path, report an error.
+                    (Some(block), None) => Some(Err(Error::UnusedMetaBlock(block, None))),
+                }
+            },
+            Self::Seq(ref mut block_iter, ref mut sorted_path_iter) => {
+                match (block_iter.next(), sorted_path_iter.next()) {
+                    // Both iterators are exhausted, so this one is as well.
+                    (None, None) => None,
+
+                    // Both iterators produced a result, emit a successful plex result.
+                    (Some(block), Some(path)) => Some(Ok((path, block))),
+
+                    // Got a file path with no meta block, report an error.
+                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path))),
+
+                    // Got a meta block with no file path, report an error.
+                    (Some(block), None) => Some(Err(Error::UnusedMetaBlock(block, None))),
+                }
+            },
+            Self::Map(ref mut block_mapping, ref mut path_iter) => {
+                match path_iter.next() {
+                    Some(path) => {
+                        // Try and obtain a file name from the path, and convert into a string for lookup.
+                        // If this fails, return an error for this iteration and then skip the string.
+                        match path.file_name().and_then(|os| os.to_str()) {
+                            None => Some(Err(Error::NamelessItemPath(path))),
+                            Some(file_name_str) => {
+                                // See if the file name string is in the meta block mapping.
+                                match block_mapping.swap_remove(file_name_str) {
+                                    // No meta block in the mapping had a matching file name, report an error.
+                                    None => Some(Err(Error::UnusedItemPath(path))),
+
+                                    // Found a matching meta block, emit a successful plex result.
+                                    Some(block) => Some(Ok((path, block))),
+                                }
+                            },
                         }
-                    }
-                    else {
-                        yield Err(Error::UnusedMetaBlock(meta_block, None));
-                    }
-                },
-                MetaStructure::Seq(meta_block_seq) => {
-                    let mut item_paths: Vec<_> = item_paths.into_iter().collect();
+                    },
+                    None => {
+                        // No more file paths, see if there are any more meta blocks.
+                        match block_mapping.pop() {
+                            // Found an orphaned meta block, report an error.
+                            Some((block_tag, block)) => Some(Err(Error::UnusedMetaBlock(block, Some(block_tag)))),
 
-                    // Need to sort in order to get correct matches.
-                    item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
-
-                    for eob in item_paths.into_iter().zip_longest(meta_block_seq) {
-                        match eob {
-                            EitherOrBoth::Both(item_path, meta_block) => {
-                                yield Ok((item_path.as_ref().to_path_buf(), meta_block));
-                            },
-                            EitherOrBoth::Left(item_path) => {
-                                yield Err(Error::UnusedItemPath(item_path.as_ref().to_path_buf()));
-                            },
-                            EitherOrBoth::Right(meta_block) => {
-                                yield Err(Error::UnusedMetaBlock(meta_block, None));
-                            },
+                            // No more meta blocks were found, this iterator is now exhausted.
+                            None => None,
                         }
-                    }
-                },
-                // TODO: See if there is a way to do this without mutating the original value.
-                MetaStructure::Map(mut meta_block_map) => {
-                    for item_path in item_paths {
-                        // Use the file name of the item path as a key into the mapping.
-                        // LEARN: The string clone is due to a limitation of references, none can be alive during a yield.
-                        let key = match item_path.as_ref().file_name().and_then(|os| os.to_str()).map(|s| s.to_string()) {
-                            Some(file_name) => file_name,
-                            None => {
-                                yield Err(Error::NamelessItemPath(item_path.as_ref().to_path_buf()));
-                                continue;
-                            },
-                        };
+                    },
+                }
+            },
+        }
+    }
+}
 
-                        match meta_block_map.remove(&key) {
-                            Some(meta_block) => {
-                                yield Ok((item_path.as_ref().to_path_buf(), meta_block));
-                            },
-                            None => {
-                                // Key was not found, encountered a file that was not tagged in the mapping.
-                                yield Err(Error::UnusedItemPath(item_path.as_ref().to_path_buf()));
-                                continue;
-                            },
-                        };
-                    }
+impl<I: Iterator<Item = PathBuf>> std::iter::FusedIterator for MetaPlexer<I> {}
 
-                    // Warn for any leftover map entries.
-                    for (k, mb) in meta_block_map.into_iter() {
-                        yield Err(Error::UnusedMetaBlock(mb, Some(k)));
-                    }
-                },
-            };
-        };
+impl<I: Iterator<Item = PathBuf>> MetaPlexer<I> {
+    pub fn new(meta_structure: MetaStructure, file_path_iter: I, sort_order: SortOrder) -> Self {
+        match meta_structure {
+            MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
+            MetaStructure::Seq(mb_seq) => {
+                // Need to pre-sort the file paths.
+                let mut file_paths = file_path_iter.collect::<Vec<_>>();
+                file_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
 
-        GenConverter::gen_to_iter(closure)
+                Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
+            },
+            MetaStructure::Map(mb_map) => Self::Map(mb_map, file_path_iter),
+        }
     }
 }
 
@@ -134,7 +146,6 @@ mod tests {
     use super::MetaPlexer;
     use super::Error;
 
-    use std::path::Path;
     use std::path::PathBuf;
     use std::collections::HashSet;
 
@@ -163,7 +174,7 @@ mod tests {
 
         let ms_a = MetaStructure::One(mb_a.clone());
         let ms_b = MetaStructure::Seq(vec![mb_a.clone(), mb_b.clone(), mb_c.clone()]);
-        let ms_c = MetaStructure::Map(hashmap![
+        let ms_c = MetaStructure::Map(indexmap![
             String::from("item_c") => mb_c.clone(),
             String::from("item_a") => mb_a.clone(),
             String::from("item_b") => mb_b.clone(),
@@ -172,13 +183,13 @@ mod tests {
         // Test single and sequence structures.
         let inputs_and_expected = vec![
             (
-                (ms_a.clone(), vec![Path::new("item_a")]),
+                (ms_a.clone(), vec![PathBuf::from("item_a")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                 ],
             ),
             (
-                (ms_a.clone(), vec![Path::new("item_a"), Path::new("item_b")]),
+                (ms_a.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_b"))),
@@ -191,7 +202,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
+                (ms_b.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
@@ -199,7 +210,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c"), Path::new("item_d")]),
+                (ms_b.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c"), PathBuf::from("item_d")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
@@ -208,7 +219,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_b.clone(), vec![Path::new("item_a")]),
+                (ms_b.clone(), vec![PathBuf::from("item_a")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Err(Error::UnusedMetaBlock(mb_b.clone(), None)),
@@ -219,14 +230,14 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: Vec<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).collect();
+            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortOrder::Name).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
 
         // Test mapping structures.
         let inputs_and_expected = vec![
             (
-                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c")]),
+                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c")]),
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
@@ -234,7 +245,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b")]),
+                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b")]),
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
@@ -242,7 +253,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_c"), Path::new("item_d")]),
+                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c"), PathBuf::from("item_d")]),
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
@@ -251,7 +262,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_c.clone(), vec![Path::new("item_a"), Path::new("item_b"), Path::new("item_d")]),
+                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_d")]),
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
@@ -263,7 +274,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced: HashSet<_> = MetaPlexer::plex(meta_structure, item_paths, SortOrder::Name).collect();
+            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortOrder::Name).collect::<HashSet<_>>();
             assert_eq!(expected, produced);
         }
     }

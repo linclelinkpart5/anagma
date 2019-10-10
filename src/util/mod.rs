@@ -3,34 +3,10 @@ pub mod number;
 
 pub use number::Number;
 
-use std::ops::Generator;
-use std::ops::GeneratorState;
 use std::path::Path;
 use std::path::PathBuf;
 use std::path::Component;
 use std::pin::Pin;
-
-pub struct GenConverter;
-
-impl GenConverter {
-    pub fn gen_to_iter<G>(g: G) -> impl Iterator<Item = G::Yield>
-    where G: Generator<Return = ()> + std::marker::Unpin {
-        struct It<G>(G);
-
-        impl<G: Generator<Return = ()> + std::marker::Unpin> Iterator for It<G> {
-            type Item = G::Yield;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                match Pin::new(&mut self.0).resume() {
-                    GeneratorState::Yielded(y) => Some(y),
-                    GeneratorState::Complete(()) => None,
-                }
-            }
-        }
-
-        It(g)
-    }
-}
 
 pub fn _is_valid_item_name<S: AsRef<str>>(s: S) -> bool {
     let s = s.as_ref();

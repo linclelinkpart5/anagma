@@ -4,7 +4,8 @@ pub mod key;
 pub mod val;
 
 use std::collections::BTreeMap;
-use std::collections::HashMap;
+
+use indexmap::IndexMap;
 
 pub use crate::metadata::types::val::MetaVal;
 pub use crate::metadata::types::key::MetaKey;
@@ -12,7 +13,7 @@ pub use crate::metadata::types::key::MetaKeyPath;
 
 pub type MetaBlock = BTreeMap<MetaKey, MetaVal>;
 pub type MetaBlockSeq = Vec<MetaBlock>;
-pub type MetaBlockMap = HashMap<String, MetaBlock>;
+pub type MetaBlockMap = IndexMap<String, MetaBlock>;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]

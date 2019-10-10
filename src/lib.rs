@@ -1,7 +1,3 @@
-#![feature(generators)]
-#![feature(generator_trait)]
-#![feature(non_exhaustive)]
-
 #[macro_use] extern crate maplit;
 extern crate serde;
 extern crate serde_yaml;
@@ -14,6 +10,7 @@ extern crate rust_decimal;
 #[macro_use] extern crate rust_decimal_macros;
 extern crate strum;
 #[macro_use] extern crate strum_macros;
+#[macro_use] extern crate indexmap;
 
 #[cfg(test)] extern crate tempfile;
 
