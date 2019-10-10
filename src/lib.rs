@@ -10,7 +10,7 @@ extern crate rust_decimal;
 #[macro_use] extern crate rust_decimal_macros;
 extern crate strum;
 #[macro_use] extern crate strum_macros;
-#[macro_use] extern crate indexmap;
+#[cfg(test)] #[macro_use] extern crate indexmap;
 
 #[cfg(test)] extern crate tempfile;
 

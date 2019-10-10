@@ -63,7 +63,7 @@ impl MetaProcessor {
 
         let mut meta_plexed = hashmap![];
 
-        let mut meta_plexer = MetaPlexer::new(meta_structure, selected_item_paths.into_iter(), sort_order);
+        let meta_plexer = MetaPlexer::new(meta_structure, selected_item_paths.into_iter(), sort_order);
 
         for meta_plex_res in meta_plexer {
             match meta_plex_res {

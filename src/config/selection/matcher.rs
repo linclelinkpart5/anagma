@@ -127,7 +127,7 @@ impl Eq for Matcher {}
 #[cfg(test)]
 mod tests {
     use super::Matcher;
-    use super::Error;
+    // use super::Error;
 
     use std::path::Path;
 

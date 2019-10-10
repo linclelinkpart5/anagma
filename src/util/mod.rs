@@ -6,7 +6,6 @@ pub use number::Number;
 use std::path::Path;
 use std::path::PathBuf;
 use std::path::Component;
-use std::pin::Pin;
 
 pub fn _is_valid_item_name<S: AsRef<str>>(s: S) -> bool {
     let s = s.as_ref();

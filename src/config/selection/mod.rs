@@ -132,7 +132,7 @@ impl Selection {
 #[cfg(test)]
 mod tests {
     use super::Selection;
-    use super::Error;
+    // use super::Error;
 
     use std::fs::File;
 

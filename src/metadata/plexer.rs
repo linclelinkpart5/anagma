@@ -1,12 +1,8 @@
-use std::path::Path;
-use std::path::PathBuf;
 
-use itertools::Itertools;
-use itertools::EitherOrBoth;
+use std::path::PathBuf;
 
 use crate::config::sort_order::SortOrder;
 use crate::metadata::types::MetaBlock;
-use crate::metadata::types::MetaBlockSeq;
 use crate::metadata::types::MetaBlockMap;
 use crate::metadata::types::MetaStructure;
 
