@@ -99,6 +99,16 @@ impl<'a> IterableLike<'a> {
     /// Checks if all items are equal to each other.
     /// If empty, returns true.
     pub fn all_equal(self) -> bool {
-        true
+        let mut it = self.into_iter();
+        match it.next() {
+            None => true,
+            Some(first_item) => {
+                for item in it {
+                    if item != first_item { return false }
+                }
+
+                true
+            },
+        }
     }
 }
