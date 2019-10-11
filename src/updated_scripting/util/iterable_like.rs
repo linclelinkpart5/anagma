@@ -2,32 +2,36 @@
 use std::borrow::Cow;
 
 use crate::metadata::types::MetaVal;
-use crate::updated_scripting::Error;
 use crate::updated_scripting::util::Util;
+use crate::updated_scripting::util::iterator_like::IteratorLike;
 
 #[derive(Copy, Clone)]
 enum RevSort { Rev, Sort, }
 
 /// Represents one of several different kinds of iterables, producing meta values.
 pub enum IterableLike<'a> {
-    Borrowed(&'a [MetaVal]),
-    Owned(Vec<MetaVal>),
+    Slice(&'a [MetaVal]),
+    Vector(Vec<MetaVal>),
     // Producer(ValueProducer<'a>),
 }
 
-impl<'a> Iterator for IterableLike<'a> {
-    type Item = Result<Cow<'a, MetaVal>, Error>;
+impl<'a> IntoIterator for IterableLike<'a> {
+    type Item = Cow<'a, MetaVal>;
+    type IntoIter = IteratorLike<'a>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        None
+    fn into_iter(self) -> Self::IntoIter {
+        match self {
+            Self::Slice(s) => IteratorLike::Slice(s.into_iter()),
+            Self::Vector(v) => IteratorLike::Vector(v.into_iter()),
+        }
     }
 }
 
 impl<'a> IterableLike<'a> {
     pub fn is_lazy(&self) -> bool {
         match self {
-            &Self::Borrowed(..) => false,
-            &Self::Owned(..) => false,
+            &Self::Slice(..) => false,
+            &Self::Vector(..) => false,
             // &Self::Producer(..) => true,
         }
     }
@@ -35,8 +39,8 @@ impl<'a> IterableLike<'a> {
     /// Counts the number of items contained in this iterable.
     pub fn count(self) -> usize {
         match self {
-            Self::Borrowed(s) => s.len(),
-            Self::Owned(s) => s.len(),
+            Self::Slice(s) => s.len(),
+            Self::Vector(s) => s.len(),
         }
     }
 
@@ -44,8 +48,8 @@ impl<'a> IterableLike<'a> {
     /// This is a no-op if this iterable is already collected.
     pub fn collect(self) -> Vec<MetaVal> {
         match self {
-            Self::Borrowed(s) => s.to_vec(),
-            Self::Owned(s) => s,
+            Self::Slice(s) => s.to_vec(),
+            Self::Vector(s) => s,
         }
     }
 
@@ -79,16 +83,16 @@ impl<'a> IterableLike<'a> {
     /// Returns the first item in this iterable, if there is one.
     pub fn first(self) -> Option<Cow<'a, MetaVal>> {
         match self {
-            Self::Borrowed(s) => s.first().map(Cow::Borrowed),
-            Self::Owned(s) => s.into_iter().next().map(Cow::Owned),
+            Self::Slice(s) => s.first().map(Cow::Borrowed),
+            Self::Vector(s) => s.into_iter().next().map(Cow::Owned),
         }
     }
 
     /// Returns the last item in this iterable, if there is one.
     pub fn last(self) -> Option<Cow<'a, MetaVal>> {
         match self {
-            Self::Borrowed(s) => s.last().map(Cow::Borrowed),
-            Self::Owned(s) => s.into_iter().last().map(Cow::Owned),
+            Self::Slice(s) => s.last().map(Cow::Borrowed),
+            Self::Vector(s) => s.into_iter().last().map(Cow::Owned),
         }
     }
 
