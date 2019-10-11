@@ -4,6 +4,9 @@ pub mod iterator_like;
 
 use crate::metadata::types::MetaVal;
 
+pub use self::iterable_like::IterableLike;
+pub use self::iterator_like::IteratorLike;
+
 pub struct Util;
 
 impl Util {
