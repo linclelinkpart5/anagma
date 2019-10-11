@@ -9,13 +9,13 @@ use crate::updated_scripting::util::Util;
 enum RevSort { Rev, Sort, }
 
 /// Represents one of several different kinds of iterables, producing meta values.
-pub enum Iterable<'a> {
+pub enum IterableLike<'a> {
     Borrowed(&'a [MetaVal]),
     Owned(Vec<MetaVal>),
     // Producer(ValueProducer<'a>),
 }
 
-impl<'a> Iterator for Iterable<'a> {
+impl<'a> Iterator for IterableLike<'a> {
     type Item = Result<Cow<'a, MetaVal>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -23,7 +23,7 @@ impl<'a> Iterator for Iterable<'a> {
     }
 }
 
-impl<'a> Iterable<'a> {
+impl<'a> IterableLike<'a> {
     pub fn is_lazy(&self) -> bool {
         match self {
             &Self::Borrowed(..) => false,

@@ -1,4 +1,4 @@
-pub mod iterable;
+pub mod iterable_like;
 
 use crate::metadata::types::MetaVal;
 
