@@ -8,6 +8,7 @@ use crate::updated_scripting::Error;
 use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
 use crate::updated_scripting::traits::Predicate;
+use crate::updated_scripting::traits::Converter;
 
 #[derive(Copy, Clone)]
 enum RevSort { Rev, Sort, }
@@ -260,5 +261,26 @@ impl<'a> IterableLike<'a> {
     /// If no items pass the predicate, returns `None`.
     pub fn position<P: Predicate>(self, pred: P) -> Option<usize> {
         self.find_position(pred).map(|(index, _)| index)
+    }
+
+    /// Produces a new iterable containing only items that pass a given predicate.
+    pub fn filter<P: Predicate>(self, pred: P) -> Self {
+        match self.is_lazy() {
+            false => {
+                let mut v = self.collect();
+                v.retain(|i| pred.test(&i));
+                Self::Vector(v)
+            },
+            true => unreachable!("not possible until producers are added"),
+        }
+    }
+
+    /// Produces a new iterable by applying a converter to each item in the original iterable.
+    pub fn map<C: Converter>(self, conv: C) -> Self {
+        match self.is_lazy() {
+            // NOTE: The last `.collect()` is the one on `Iterator`.
+            false => Self::Vector(self.collect().into_iter().map(|i| conv.convert(i)).collect()),
+            true => unreachable!("not possible until producers are added"),
+        }
     }
 }
