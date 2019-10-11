@@ -57,9 +57,21 @@ impl From<i64> for Number {
     }
 }
 
+impl From<&i64> for Number {
+    fn from(n: &i64) -> Self {
+        Self::Integer(*n)
+    }
+}
+
 impl From<Decimal> for Number {
     fn from(n: Decimal) -> Self {
         Self::Decimal(n)
+    }
+}
+
+impl From<&Decimal> for Number {
+    fn from(n: &Decimal) -> Self {
+        Self::Decimal(*n)
     }
 }
 
