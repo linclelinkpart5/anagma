@@ -7,6 +7,7 @@ use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
 use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
+use crate::updated_scripting::traits::Predicate;
 
 #[derive(Copy, Clone)]
 enum RevSort { Rev, Sort, }
@@ -16,6 +17,9 @@ enum MinMax { Min, Max, }
 
 #[derive(Clone, Copy)]
 enum SumProd { Sum, Prod, }
+
+#[derive(Clone, Copy)]
+enum AllAny { All, Any, }
 
 /// Represents one of several different kinds of iterables, producing meta values.
 pub enum IterableLike<'a> {
@@ -182,5 +186,58 @@ impl<'a> IterableLike<'a> {
                 true
             },
         }
+    }
+
+    // pub fn flatten(self) -> Result<Self, Error> {
+    //     Ok(match self {
+    //         Self::Sequence(s) => Self::Sequence(Flatten::new(s.into()).collect::<Result<Vec<_>, _>>()?),
+    //         Self::Producer(p) => Self::Producer(ValueProducer::Flatten(Flatten::new(p))),
+    //     })
+    // }
+
+    // pub fn dedup(self) -> Result<Self, Error> {
+    //     Ok(match self {
+    //         Self::Sequence(s) => Self::Sequence(Dedup::new(s.into()).collect::<Result<Vec<_>, _>>()?),
+    //         Self::Producer(p) => Self::Producer(ValueProducer::Dedup(Dedup::new(p))),
+    //     })
+    // }
+
+    // pub fn unique(self) -> Result<Self, Error> {
+    //     Ok(match self {
+    //         Self::Sequence(s) => Self::Sequence(Unique::new(s.into()).collect::<Result<Vec<_>, _>>()?),
+    //         Self::Producer(p) => Self::Producer(ValueProducer::Unique(Unique::new(p))),
+    //     })
+    // }
+
+    /// Returns the item at a specific index position in the iterable, if present.
+    pub fn nth(self, n: usize) -> Option<Cow<'a, MetaVal>> {
+        match self {
+            Self::Slice(s) => s.get(n).map(Cow::Borrowed),
+            Self::Vector(v) => v.into_iter().nth(n).map(Cow::Owned),
+        }
+    }
+
+    /// Helper method for `all`/`any`.
+    fn all_any<P: Predicate>(self, pred: P, flag: AllAny) -> bool {
+        let target = match flag {
+            AllAny::All => false,
+            AllAny::Any => true,
+        };
+
+        for item in self { if pred.test(&item) == target { return target } }
+
+        !target
+    }
+
+    /// Applies a predicate to each item in the iterable.
+    /// Returns false if the iterable contains an item for which the predicate returns false.
+    pub fn all<P: Predicate>(self, pred: P) -> bool {
+        self.all_any(pred, AllAny::All)
+    }
+
+    /// Applies a predicate to each item in the iterable.
+    /// Returns true if the iterable contains an item for which the predicate returns true.
+    pub fn any<P: Predicate>(self, pred: P) -> bool {
+        self.all_any(pred, AllAny::Any)
     }
 }
