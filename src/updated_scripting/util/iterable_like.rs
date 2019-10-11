@@ -14,6 +14,9 @@ enum RevSort { Rev, Sort, }
 #[derive(Clone, Copy)]
 enum MinMax { Min, Max, }
 
+#[derive(Clone, Copy)]
+enum SumProd { Sum, Prod, }
+
 /// Represents one of several different kinds of iterables, producing meta values.
 pub enum IterableLike<'a> {
     Slice(&'a [MetaVal]),
@@ -125,16 +128,47 @@ impl<'a> IterableLike<'a> {
         }
     }
 
-    /// Returns the minimum number in this list, using the default numerical comparison.
-    /// If any non-numeric items are found, returns an error.
+    /// Returns the minimum number in this iterable, using the default numerical comparison.
+    /// Returns an error if any non-numeric items are found.
     pub fn min_in(self) -> Result<Option<Number>, Error> {
         self.min_in_max_in(MinMax::Min)
     }
 
-    /// Returns the maximum number in this list, using the default numerical comparison.
-    /// If any non-numeric items are found, returns an error.
+    /// Returns the maximum number in this iterable, using the default numerical comparison.
+    /// Returns an error if any non-numeric items are found.
     pub fn max_in(self) -> Result<Option<Number>, Error> {
         self.min_in_max_in(MinMax::Max)
+    }
+
+    /// Helper method for `sum`/`prod`.
+    fn sum_prod(self, flag: SumProd) -> Result<Number, Error> {
+        let mut total = match flag {
+            SumProd::Sum => Number::Integer(0),
+            SumProd::Prod => Number::Integer(1),
+        };
+
+        for item in self {
+            let num: Number = item.as_ref().try_into().map_err(|_| Error::NotNumeric)?;
+
+            match flag {
+                SumProd::Sum => { total = total + num; },
+                SumProd::Prod => { total = total * num; },
+            };
+        }
+
+        Ok(total)
+    }
+
+    /// Sums the numbers in this iterable.
+    /// Returns an error if any non-numeric items are found.
+    pub fn sum(self) -> Result<Number, Error> {
+        self.sum_prod(SumProd::Sum)
+    }
+
+    /// Multiplies the numbers in this iterable.
+    /// Returns an error if any non-numeric items are found.
+    pub fn prod(self) -> Result<Number, Error> {
+        self.sum_prod(SumProd::Prod)
     }
 
     /// Checks if all items are equal to each other.
