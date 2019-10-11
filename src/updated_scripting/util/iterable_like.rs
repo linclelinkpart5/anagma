@@ -240,4 +240,25 @@ impl<'a> IterableLike<'a> {
     pub fn any<P: Predicate>(self, pred: P) -> bool {
         self.all_any(pred, AllAny::Any)
     }
+
+    /// Helper method for `find`/`position`.
+    fn find_position<P: Predicate>(self, pred: P) -> Option<(usize, Cow<'a, MetaVal>)> {
+        for (n, item) in self.into_iter().enumerate() {
+            if pred.test(&item) { return Some((n, item)) }
+        }
+
+        None
+    }
+
+    /// Finds the first item in the iterable that passes a predicate, and returns the item.
+    /// If no items pass the predicate, returns `None`.
+    pub fn find<P: Predicate>(self, pred: P) -> Option<Cow<'a, MetaVal>> {
+        self.find_position(pred).map(|(_, item)| item)
+    }
+
+    /// Finds the first item in the iterable that passes a predicate, and returns the index of the item.
+    /// If no items pass the predicate, returns `None`.
+    pub fn position<P: Predicate>(self, pred: P) -> Option<usize> {
+        self.find_position(pred).map(|(index, _)| index)
+    }
 }
