@@ -1,11 +1,13 @@
 
 pub mod iterable_like;
 pub mod iterator_like;
+pub mod step_by_emitter;
 
 use crate::metadata::types::MetaVal;
 
 pub use self::iterable_like::IterableLike;
 pub use self::iterator_like::IteratorLike;
+pub use self::step_by_emitter::StepByEmitter;
 
 pub struct Util;
 

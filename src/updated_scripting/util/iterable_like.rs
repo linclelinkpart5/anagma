@@ -7,6 +7,7 @@ use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
 use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
+use crate::updated_scripting::util::StepByEmitter;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -280,6 +281,19 @@ impl<'a> IterableLike<'a> {
         match self.is_lazy() {
             // NOTE: The last `.collect()` is the one on `Iterator`.
             false => Self::Vector(self.collect().into_iter().map(|i| conv.convert(i)).collect()),
+            true => unreachable!("not possible until producers are added"),
+        }
+    }
+
+    /// Produces a new iterable by skipping a fixed number of items from the original iterable after each item.
+    pub fn step_by(self, step: usize) -> Self {
+        match self.is_lazy() {
+            false => {
+                let mut v = self.collect();
+                let mut step_by_emitter = StepByEmitter::new(step);
+                v.retain(|_| step_by_emitter.step());
+                Self::Vector(v)
+            },
             true => unreachable!("not possible until producers are added"),
         }
     }
