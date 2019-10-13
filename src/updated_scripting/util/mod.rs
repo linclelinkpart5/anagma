@@ -2,6 +2,7 @@
 pub mod iterable_like;
 pub mod iterator_like;
 pub mod step_by_emitter;
+pub mod producer;
 
 use crate::metadata::types::MetaVal;
 
