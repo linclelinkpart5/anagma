@@ -109,3 +109,78 @@ where
         }
     }
 }
+
+pub struct Dedup<I>(I, Option<MetaVal>)
+where I: Iterator<Item = Result<MetaVal, Error>>;
+
+impl<I> Dedup<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I) -> Self {
+        Self(iter, None)
+    }
+}
+
+impl<I> Iterator for Dedup<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = self.0.next()?;
+
+        match res {
+            Err(err) => Some(Err(err)),
+            Ok(curr_val) => {
+                if Some(&curr_val) != self.1.as_ref() {
+                    // A non-duplicate was found.
+                    self.1 = Some(curr_val.clone());
+                    Some(Ok(curr_val))
+                }
+                else {
+                    // Delegate to the next call.
+                    self.next()
+                }
+            },
+        }
+    }
+}
+
+pub struct Unique<I>(I, HashSet<MetaVal>)
+where I: Iterator<Item = Result<MetaVal, Error>>;
+
+impl<I> Unique<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I) -> Self {
+        Self(iter, HashSet::new())
+    }
+}
+
+impl<I> Iterator for Unique<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = self.0.next()?;
+
+        match res {
+            Err(err) => Some(Err(err)),
+            Ok(curr_val) => {
+                if self.1.contains(&curr_val) {
+                    // Skip and delegate to the next call.
+                    self.next()
+                }
+                else {
+                    self.1.insert(curr_val.clone());
+                    Some(Ok(curr_val))
+                }
+            },
+        }
+    }
+}
