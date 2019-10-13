@@ -69,3 +69,43 @@ impl From<Vec<Result<MetaVal, Error>>> for Raw {
         Raw::new(v)
     }
 }
+
+pub struct Flatten<I>(I, VecDeque<MetaVal>)
+where I: Iterator<Item = Result<MetaVal, Error>>;
+
+impl<I> Flatten<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I) -> Self {
+        Self(iter, VecDeque::new())
+    }
+}
+
+impl<I> Iterator for Flatten<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Try to pop from the holding queue first.
+        match self.1.pop_front() {
+            // If there is an item in the holding queue, return it and do not advance the original iterator.
+            Some(mv) => Some(Ok(mv)),
+
+            // Advance the underlying iterator, and process the item as appropriate.
+            None => {
+                // Try to get the next item from the stream.
+                match self.0.next()? {
+                    Ok(MetaVal::Seq(seq)) => {
+                        // Move all elements in the sequence into the queue.
+                        self.1.extend(seq);
+                        self.next()
+                    },
+                    o => Some(o),
+                }
+            },
+        }
+    }
+}
