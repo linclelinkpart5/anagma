@@ -297,4 +297,16 @@ impl<'a> IterableLike<'a> {
             true => unreachable!("not possible until producers are added"),
         }
     }
+
+    /// Produces a new iterable by concatenating ("chaining") together this iterable with another.
+    pub fn chain(self, iter: Self) -> Self {
+        match self.is_lazy() {
+            false => {
+                let mut v = self.collect();
+                v.extend(iter.collect());
+                Self::Vector(v)
+            },
+            true => unreachable!("not possible until producers are added"),
+        }
+    }
 }
