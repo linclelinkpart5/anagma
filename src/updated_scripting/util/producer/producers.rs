@@ -4,8 +4,8 @@ use std::collections::HashSet;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
-// use crate::updated_scripting::traits::Predicate;
-// use crate::updated_scripting::traits::Converter;
+use crate::updated_scripting::traits::Predicate;
+use crate::updated_scripting::traits::Converter;
 
 pub struct Source<'a>(MetaValueStream<'a>);
 
@@ -126,21 +126,23 @@ where
     type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let res = self.0.next()?;
+        loop {
+            let res = self.0.next()?;
 
-        match res {
-            Err(err) => Some(Err(err)),
-            Ok(curr_val) => {
-                if Some(&curr_val) != self.1.as_ref() {
-                    // A non-duplicate was found.
-                    self.1 = Some(curr_val.clone());
-                    Some(Ok(curr_val))
-                }
-                else {
-                    // Delegate to the next call.
-                    self.next()
-                }
-            },
+            return match res {
+                Err(err) => Some(Err(err)),
+                Ok(curr_val) => {
+                    if Some(&curr_val) == self.1.as_ref() {
+                        // Delegate to the next iteration.
+                        continue
+                    }
+                    else {
+                        // A non-duplicate was found.
+                        self.1 = Some(curr_val.clone());
+                        Some(Ok(curr_val))
+                    }
+                },
+            }
         }
     }
 }
@@ -164,20 +166,99 @@ where
     type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let res = self.0.next()?;
+        loop {
+            let res = self.0.next()?;
 
-        match res {
+            return match res {
+                Err(err) => Some(Err(err)),
+                Ok(curr_val) => {
+                    if self.1.contains(&curr_val) {
+                        // Delegate to the next iteration.
+                        continue
+                    }
+                    else {
+                        self.1.insert(curr_val.clone());
+                        Some(Ok(curr_val))
+                    }
+                },
+            }
+        }
+    }
+}
+
+pub struct Filter<I, P>(I, P)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+;
+
+impl<I, P> Filter<I, P>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+{
+    pub fn new(iter: I, pred: P) -> Self {
+        Self(iter, pred)
+    }
+}
+
+impl<I, P> Iterator for Filter<I, P>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let res = self.0.next()?;
+            return match res {
+                Ok(mv) => {
+                    match self.1.test(&mv) {
+                        true => Some(Ok(mv)),
+                        false => continue,
+
+                        // Err(err) => Some(Err(err)),
+                        // Ok(b) => {
+                        //     if b { Some(Ok(mv)) }
+                        //     else { continue }
+                        // },
+                    }
+                },
+                Err(err) => Some(Err(err)),
+            }
+        }
+    }
+}
+
+pub struct Map<I, C>(I, C)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    C: Converter,
+;
+
+impl<I, C> Map<I, C>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    C: Converter,
+{
+    pub fn new(iter: I, conv: C) -> Self {
+        Self(iter, conv)
+    }
+}
+
+impl<I, C> Iterator for Map<I, C>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    C: Converter,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0.next()? {
+            Ok(mv) => Some(Ok(self.1.convert(mv))),
+            // Ok(mv) => Some(self.1.convert(mv)),
             Err(err) => Some(Err(err)),
-            Ok(curr_val) => {
-                if self.1.contains(&curr_val) {
-                    // Skip and delegate to the next call.
-                    self.next()
-                }
-                else {
-                    self.1.insert(curr_val.clone());
-                    Some(Ok(curr_val))
-                }
-            },
         }
     }
 }
