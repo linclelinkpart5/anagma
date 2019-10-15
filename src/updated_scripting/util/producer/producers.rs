@@ -6,6 +6,7 @@ use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
+use crate::updated_scripting::util::StepByEmitter;
 
 pub struct Source<'a>(MetaValueStream<'a>);
 
@@ -68,7 +69,9 @@ impl From<Vec<Result<MetaVal, Error>>> for Raw {
 }
 
 pub struct Flatten<I>(I, VecDeque<MetaVal>)
-where I: Iterator<Item = Result<MetaVal, Error>>;
+where
+    I: Iterator<Item = Result<MetaVal, Error>>
+;
 
 impl<I> Flatten<I>
 where
@@ -108,7 +111,9 @@ where
 }
 
 pub struct Dedup<I>(I, Option<MetaVal>)
-where I: Iterator<Item = Result<MetaVal, Error>>;
+where
+    I: Iterator<Item = Result<MetaVal, Error>>
+;
 
 impl<I> Dedup<I>
 where
@@ -148,7 +153,9 @@ where
 }
 
 pub struct Unique<I>(I, HashSet<MetaVal>)
-where I: Iterator<Item = Result<MetaVal, Error>>;
+where
+    I: Iterator<Item = Result<MetaVal, Error>>
+;
 
 impl<I> Unique<I>
 where
@@ -255,6 +262,42 @@ where
         match self.0.next()? {
             Ok(mv) => Some(self.1.convert(mv)),
             Err(err) => Some(Err(err)),
+        }
+    }
+}
+
+pub struct StepBy<I>(I, StepByEmitter)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>
+;
+
+impl<I> StepBy<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I, skip_amount: usize) -> Self {
+        Self(iter, StepByEmitter::new(skip_amount))
+    }
+}
+
+impl<I> Iterator for StepBy<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            return match (self.0.next()?, self.1.step()) {
+                // Always report errors, even if they would not normally be emitted.
+                (Err(err), _) => Some(Err(err)),
+
+                // Output the item if currently at an emitting point.
+                (Ok(mv), true) => Some(Ok(mv)),
+
+                // Delegate to the next iteration.
+                (_, false) => continue,
+            }
         }
     }
 }
