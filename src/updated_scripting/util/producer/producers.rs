@@ -215,14 +215,11 @@ where
             return match res {
                 Ok(mv) => {
                     match self.1.test(&mv) {
-                        true => Some(Ok(mv)),
-                        false => continue,
-
-                        // Err(err) => Some(Err(err)),
-                        // Ok(b) => {
-                        //     if b { Some(Ok(mv)) }
-                        //     else { continue }
-                        // },
+                        Err(err) => Some(Err(err)),
+                        Ok(b) => {
+                            if b { Some(Ok(mv)) }
+                            else { continue }
+                        },
                     }
                 },
                 Err(err) => Some(Err(err)),
@@ -256,8 +253,7 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.0.next()? {
-            Ok(mv) => Some(Ok(self.1.convert(mv))),
-            // Ok(mv) => Some(self.1.convert(mv)),
+            Ok(mv) => Some(self.1.convert(mv)),
             Err(err) => Some(Err(err)),
         }
     }

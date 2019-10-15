@@ -220,67 +220,76 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Helper method for `all`/`any`.
-    fn all_any<P: Predicate>(self, pred: P, flag: AllAny) -> bool {
+    fn all_any<P: Predicate>(self, pred: P, flag: AllAny) -> Result<bool, Error> {
         let target = match flag {
             AllAny::All => false,
             AllAny::Any => true,
         };
 
-        for item in self { if pred.test(&item) == target { return target } }
+        for item in self { if pred.test(&item)? == target { return Ok(target) } }
 
-        !target
+        Ok(!target)
     }
 
     /// Applies a predicate to each item in the iterable.
     /// Returns false if the iterable contains an item for which the predicate returns false.
-    pub fn all<P: Predicate>(self, pred: P) -> bool {
+    pub fn all<P: Predicate>(self, pred: P) -> Result<bool, Error> {
         self.all_any(pred, AllAny::All)
     }
 
     /// Applies a predicate to each item in the iterable.
     /// Returns true if the iterable contains an item for which the predicate returns true.
-    pub fn any<P: Predicate>(self, pred: P) -> bool {
+    pub fn any<P: Predicate>(self, pred: P) -> Result<bool, Error> {
         self.all_any(pred, AllAny::Any)
     }
 
     /// Helper method for `find`/`position`.
-    fn find_position<P: Predicate>(self, pred: P) -> Option<(usize, Cow<'a, MetaVal>)> {
+    fn find_position<P: Predicate>(self, pred: P) -> Result<Option<(usize, Cow<'a, MetaVal>)>, Error> {
         for (n, item) in self.into_iter().enumerate() {
-            if pred.test(&item) { return Some((n, item)) }
+            if pred.test(&item)? { return Ok(Some((n, item))) }
         }
 
-        None
+        Ok(None)
     }
 
     /// Finds the first item in the iterable that passes a predicate, and returns the item.
     /// If no items pass the predicate, returns `None`.
-    pub fn find<P: Predicate>(self, pred: P) -> Option<Cow<'a, MetaVal>> {
-        self.find_position(pred).map(|(_, item)| item)
+    pub fn find<P: Predicate>(self, pred: P) -> Result<Option<Cow<'a, MetaVal>>, Error> {
+        Ok(self.find_position(pred)?.map(|(_, item)| item))
     }
 
     /// Finds the first item in the iterable that passes a predicate, and returns the index of the item.
     /// If no items pass the predicate, returns `None`.
-    pub fn position<P: Predicate>(self, pred: P) -> Option<usize> {
-        self.find_position(pred).map(|(index, _)| index)
+    pub fn position<P: Predicate>(self, pred: P) -> Result<Option<usize>, Error> {
+        Ok(self.find_position(pred)?.map(|(index, _)| index))
     }
 
     /// Produces a new iterable containing only items that pass a given predicate.
-    pub fn filter<P: Predicate>(self, pred: P) -> Self {
+    pub fn filter<P: Predicate>(self, pred: P) -> Result<Self, Error> {
         match self.is_lazy() {
             false => {
-                let mut v = self.collect();
-                v.retain(|i| pred.test(&i));
-                Self::Vector(v)
+                let mut t = Vec::new();
+
+                // NOTE: The `.into_owned()` call should be a no-op in the majority of cases.
+                for item in self { if pred.test(&item)? { t.push(item.into_owned()); } }
+
+                Ok(Self::Vector(t))
             },
             true => unreachable!("not possible until producers are added"),
         }
     }
 
     /// Produces a new iterable by applying a converter to each item in the original iterable.
-    pub fn map<C: Converter>(self, conv: C) -> Self {
+    pub fn map<C: Converter>(self, conv: C) -> Result<Self, Error> {
         match self.is_lazy() {
-            // NOTE: The last `.collect()` is the one on `Iterator`.
-            false => Self::Vector(self.collect().into_iter().map(|i| conv.convert(i)).collect()),
+            false => {
+                let mut t = Vec::new();
+
+                // NOTE: The `.into_owned()` call should be a no-op in the majority of cases.
+                for item in self { t.push(conv.convert(item.into_owned())?); }
+
+                Ok(Self::Vector(t))
+            },
             true => unreachable!("not possible until producers are added"),
         }
     }
