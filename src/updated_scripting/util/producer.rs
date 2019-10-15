@@ -7,39 +7,58 @@ use crate::updated_scripting::Error;
 
 pub use self::producers::*;
 
-pub enum Producer<'a> {
+pub enum Producer<'a, I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
     Source(Source<'a>),
     Fixed(Fixed),
     Raw(Raw),
+    Flatten(Flatten<I>),
 }
 
-impl<'a> From<Vec<MetaVal>> for Producer<'a> {
+impl<'a, I> From<Vec<MetaVal>> for Producer<'a, I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
     fn from(v: Vec<MetaVal>) -> Self {
         Self::Fixed(v.into())
     }
 }
 
-impl<'a> From<Vec<Result<MetaVal, Error>>> for Producer<'a> {
+impl<'a, I> From<Vec<Result<MetaVal, Error>>> for Producer<'a, I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
     fn from(v: Vec<Result<MetaVal, Error>>) -> Self {
         Self::Raw(v.into())
     }
 }
 
-impl<'a> TryFrom<Producer<'a>> for Vec<MetaVal> {
+impl<'a, I> TryFrom<Producer<'a, I>> for Vec<MetaVal>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
     type Error = Error;
 
-    fn try_from(vp: Producer<'a>) -> Result<Self, Self::Error> {
+    fn try_from(vp: Producer<'a, I>) -> Result<Self, Self::Error> {
         vp.collect::<Result<Vec<_>, _>>()
     }
 }
 
-impl<'a> From<Producer<'a>> for Vec<Result<MetaVal, Error>> {
-    fn from(vp: Producer<'a>) -> Self {
+impl<'a, I> From<Producer<'a, I>> for Vec<Result<MetaVal, Error>>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    fn from(vp: Producer<'a, I>) -> Self {
         vp.collect()
     }
 }
 
-impl<'a> Producer<'a> {
+impl<'a, I> Producer<'a, I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
     pub fn fixed(v: Vec<MetaVal>) -> Self {
         Self::Fixed(Fixed::new(v))
     }
@@ -49,7 +68,10 @@ impl<'a> Producer<'a> {
     }
 }
 
-impl<'a> Iterator for Producer<'a> {
+impl<'a, I> Iterator for Producer<'a, I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
     type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -57,6 +79,7 @@ impl<'a> Iterator for Producer<'a> {
             &mut Self::Source(ref mut s) => s.next(),
             &mut Self::Fixed(ref mut s) => s.next(),
             &mut Self::Raw(ref mut s) => s.next(),
+            &mut Self::Flatten(ref mut s) => s.next(),
         }
     }
 }
