@@ -70,7 +70,7 @@ impl From<Vec<Result<MetaVal, Error>>> for Raw {
 
 pub struct Flatten<I>(I, VecDeque<MetaVal>)
 where
-    I: Iterator<Item = Result<MetaVal, Error>>
+    I: Iterator<Item = Result<MetaVal, Error>>,
 ;
 
 impl<I> Flatten<I>
@@ -112,7 +112,7 @@ where
 
 pub struct Dedup<I>(I, Option<MetaVal>)
 where
-    I: Iterator<Item = Result<MetaVal, Error>>
+    I: Iterator<Item = Result<MetaVal, Error>>,
 ;
 
 impl<I> Dedup<I>
@@ -154,7 +154,7 @@ where
 
 pub struct Unique<I>(I, HashSet<MetaVal>)
 where
-    I: Iterator<Item = Result<MetaVal, Error>>
+    I: Iterator<Item = Result<MetaVal, Error>>,
 ;
 
 impl<I> Unique<I>
@@ -268,7 +268,7 @@ where
 
 pub struct StepBy<I>(I, StepByEmitter)
 where
-    I: Iterator<Item = Result<MetaVal, Error>>
+    I: Iterator<Item = Result<MetaVal, Error>>,
 ;
 
 impl<I> StepBy<I>
@@ -298,6 +298,82 @@ where
                 // Delegate to the next iteration.
                 (_, false) => continue,
             }
+        }
+    }
+}
+
+pub struct Chain<IA, IB>(IA, IB, bool)
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<IA, IB> Chain<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter_a: IA, iter_b: IB) -> Self {
+        Self(iter_a, iter_b, false)
+    }
+}
+
+impl<IA, IB> Iterator for Chain<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Advance the first iterator.
+        if !self.2 {
+            match self.0.next() {
+                None => {
+                    self.2 = true;
+                    self.next()
+                }
+                Some(item) => Some(item),
+            }
+        }
+        // Advance the second iterator.
+        else {
+            self.1.next()
+        }
+    }
+}
+
+pub struct Zip<IA, IB>(IA, IB)
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<IA, IB> Zip<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter_a: IA, iter_b: IB) -> Self {
+        Self(iter_a, iter_b)
+    }
+}
+
+impl<IA, IB> Iterator for Zip<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res_a = self.0.next()?;
+        let res_b = self.1.next()?;
+
+        match (res_a, res_b) {
+            (Err(e_a), _) => Some(Err(e_a)),
+            (_, Err(e_b)) => Some(Err(e_b)),
+            (Ok(a), Ok(b)) => Some(Ok(MetaVal::Seq(vec![a, b]))),
         }
     }
 }
