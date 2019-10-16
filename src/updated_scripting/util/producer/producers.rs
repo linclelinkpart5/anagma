@@ -377,3 +377,67 @@ where
         }
     }
 }
+
+pub struct Skip<I>(I, usize)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<I> Skip<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I, n: usize) -> Self {
+        Self(iter, n)
+    }
+}
+
+impl<I> Iterator for Skip<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Try and quickly skip the first N items.
+        while self.1 > 0 {
+            self.1 -= 1;
+            let res_mv = self.0.next()?;
+
+            // Emit errors, even if they would normally be skipped.
+            if let Err(e) = res_mv { return Some(Err(e)) }
+        }
+
+        self.0.next()
+    }
+}
+
+pub struct Take<I>(I, usize)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<I> Take<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I, n: usize) -> Self {
+        Self(iter, n)
+    }
+}
+
+impl<I> Iterator for Take<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Count the first N items.
+        if self.1 > 0 {
+            self.1 -= 1;
+            self.0.next()
+        }
+        else { None }
+    }
+}
