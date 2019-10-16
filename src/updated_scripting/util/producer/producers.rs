@@ -643,7 +643,7 @@ where
     IB: Iterator<Item = Result<MetaVal, Error>>,
 {}
 
-pub struct Pad<I>(I, MetaVal, usize)
+pub struct Pad<I>(Fuse<I>, MetaVal, usize)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
 ;
@@ -653,7 +653,7 @@ where
     I: Iterator<Item = Result<MetaVal, Error>>,
 {
     pub fn new(iter: I, mv: MetaVal, min_length: usize) -> Self {
-        Self(iter, mv, min_length)
+        Self(iter.fuse(), mv, min_length)
     }
 }
 
