@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 use std::collections::HashSet;
+use std::iter::FusedIterator;
+use std::iter::Fuse;
 
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
@@ -530,3 +532,111 @@ where
         else { None }
     }
 }
+
+pub struct InBetween<I>(I, MetaVal, bool)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<I> InBetween<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I, mv: MetaVal) -> Self {
+        Self(iter, mv, false)
+    }
+}
+
+impl<I> Iterator for InBetween<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Toggle the switch, and output either the iterable item or the stored item.
+        self.2 = !self.2;
+
+        if self.2 { self.0.next() }
+        else { Some(Ok(self.1.clone())) }
+    }
+}
+
+impl<I> FusedIterator for InBetween<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{}
+
+// pub struct Alternate<IA, IB>(IA, IB, bool)
+// where
+//     IA: Iterator<Item = Result<MetaVal, Error>>,
+//     IB: Iterator<Item = Result<MetaVal, Error>>,
+// ;
+
+// impl<IA, IB> Alternate<IA, IB>
+// where
+//     IA: Iterator<Item = Result<MetaVal, Error>>,
+//     IB: Iterator<Item = Result<MetaVal, Error>>,
+// {
+//     pub fn new(iter_a: IA, iter_b: IB) -> Self {
+//         Self(iter_a, iter_b, false)
+//     }
+// }
+
+// impl<IA, IB> Iterator for Alternate<IA, IB>
+// where
+//     IA: Iterator<Item = Result<MetaVal, Error>>,
+//     IB: Iterator<Item = Result<MetaVal, Error>>,
+// {
+//     type Item = Result<MetaVal, Error>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.2 = !self.2;
+
+//         if self.2 { self.0.next() }
+//         else { self.1.next() }
+//     }
+// }
+
+// impl<IA, IB> FusedIterator for Alternate<IA, IB>
+// where
+//     IA: Iterator<Item = Result<MetaVal, Error>>,
+//     IB: Iterator<Item = Result<MetaVal, Error>>,
+// {}
+
+pub struct Mix<IA, IB>(IA, IB, bool)
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<IA, IB> Mix<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter_a: IA, iter_b: IB) -> Self {
+        Self(iter_a, iter_b, false)
+    }
+}
+
+impl<IA, IB> Iterator for Mix<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.2 = !self.2;
+
+        if self.2 { self.0.next().or_else(|| self.1.next()) }
+        else { self.1.next().or_else(|| self.0.next()) }
+    }
+}
+
+impl<IA, IB> FusedIterator for Mix<IA, IB>
+where
+    IA: Iterator<Item = Result<MetaVal, Error>>,
+    IB: Iterator<Item = Result<MetaVal, Error>>,
+{}
