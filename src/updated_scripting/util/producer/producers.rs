@@ -642,3 +642,45 @@ where
     IA: Iterator<Item = Result<MetaVal, Error>>,
     IB: Iterator<Item = Result<MetaVal, Error>>,
 {}
+
+pub struct Pad<I>(I, MetaVal, usize)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+;
+
+impl<I> Pad<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    pub fn new(iter: I, mv: MetaVal, min_length: usize) -> Self {
+        Self(iter, mv, min_length)
+    }
+}
+
+impl<I> Iterator for Pad<I>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ret = match (self.0.next(), self.2 > 0) {
+            // The iterable is empty, and the minimum length has not been met.
+            // Clone the stored item and return it.
+            (None, true) => Some(Ok(self.1.clone())),
+
+            // The iterable is empty, and the minimum length has been met.
+            // Simply return `None`.
+            (None, false) => None,
+
+            // The iterable is not empty.
+            // Pass the item through.
+            (x, _) => x,
+        };
+
+        // Decrement the minimum length if it is greater than zero.
+        if self.2 > 0 { self.2 -= 1; }
+
+        ret
+    }
+}
