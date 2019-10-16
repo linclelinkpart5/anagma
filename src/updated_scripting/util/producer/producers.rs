@@ -533,7 +533,7 @@ where
     }
 }
 
-pub struct InBetween<I>(I, MetaVal, bool)
+pub struct InBetween<I>(Fuse<I>, MetaVal, bool)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
 ;
@@ -543,7 +543,7 @@ where
     I: Iterator<Item = Result<MetaVal, Error>>,
 {
     pub fn new(iter: I, mv: MetaVal) -> Self {
-        Self(iter, mv, false)
+        Self(iter.fuse(), mv, false)
     }
 }
 
@@ -554,7 +554,7 @@ where
     type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // Toggle the switch, and output either the iterable item or the stored item.
+        // Toggle the flag, and output either the iterable item or the stored item.
         self.2 = !self.2;
 
         if self.2 { self.0.next() }
@@ -567,7 +567,7 @@ where
     I: Iterator<Item = Result<MetaVal, Error>>,
 {}
 
-// pub struct Alternate<IA, IB>(IA, IB, bool)
+// pub struct Alternate<IA, IB>(Fuse<IA>, Fuse<IB>, bool)
 // where
 //     IA: Iterator<Item = Result<MetaVal, Error>>,
 //     IB: Iterator<Item = Result<MetaVal, Error>>,
@@ -579,7 +579,7 @@ where
 //     IB: Iterator<Item = Result<MetaVal, Error>>,
 // {
 //     pub fn new(iter_a: IA, iter_b: IB) -> Self {
-//         Self(iter_a, iter_b, false)
+//         Self(iter_a.fuse(), iter_b.fuse(), false)
 //     }
 // }
 
@@ -604,7 +604,7 @@ where
 //     IB: Iterator<Item = Result<MetaVal, Error>>,
 // {}
 
-pub struct Mix<IA, IB>(IA, IB, bool)
+pub struct Mix<IA, IB>(Fuse<IA>, Fuse<IB>, bool)
 where
     IA: Iterator<Item = Result<MetaVal, Error>>,
     IB: Iterator<Item = Result<MetaVal, Error>>,
@@ -616,7 +616,7 @@ where
     IB: Iterator<Item = Result<MetaVal, Error>>,
 {
     pub fn new(iter_a: IA, iter_b: IB) -> Self {
-        Self(iter_a, iter_b, false)
+        Self(iter_a.fuse(), iter_b.fuse(), false)
     }
 }
 
@@ -628,6 +628,8 @@ where
     type Item = Result<MetaVal, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // Toggle the flag, and consume from either the first or second iterable.
+        // If the desired iterable is empty, try from the other one.
         self.2 = !self.2;
 
         if self.2 { self.0.next().or_else(|| self.1.next()) }
