@@ -441,3 +441,92 @@ where
         else { None }
     }
 }
+
+pub struct SkipWhile<I, P>(I, P, bool)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+;
+
+impl<I, P> SkipWhile<I, P>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+{
+    pub fn new(iter: I, pred: P) -> Self {
+        Self(iter, pred, true)
+    }
+}
+
+impl<I, P> Iterator for SkipWhile<I, P>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.2 {
+            loop {
+                match self.0.next()? {
+                    Err(e) => return Some(Err(e)),
+                    Ok(mv) => {
+                        match self.1.test(&mv) {
+                            Ok(true) => continue,
+                            Ok(false) => {
+                                self.2 = false;
+                                return Some(Ok(mv))
+                            },
+                            Err(e) => return Some(Err(e)),
+                        }
+                    },
+                }
+            }
+        }
+
+        self.0.next()
+    }
+}
+
+pub struct TakeWhile<I, P>(I, P, bool)
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+;
+
+impl<I, P> TakeWhile<I, P>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+{
+    pub fn new(iter: I, pred: P) -> Self {
+        Self(iter, pred, true)
+    }
+}
+
+impl<I, P> Iterator for TakeWhile<I, P>
+where
+    I: Iterator<Item = Result<MetaVal, Error>>,
+    P: Predicate,
+{
+    type Item = Result<MetaVal, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.2 {
+            match self.0.next()? {
+                Ok(mv) => {
+                    match self.1.test(&mv) {
+                        Ok(true) => Some(Ok(mv)),
+                        Ok(false) => {
+                            self.2 = false;
+                            return None
+                        },
+                        Err(e) => Some(Err(e)),
+                    }
+                },
+                Err(e) => Some(Err(e)),
+            }
+        }
+        else { None }
+    }
+}
