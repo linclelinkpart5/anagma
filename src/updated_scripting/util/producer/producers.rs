@@ -726,19 +726,21 @@ mod tests {
         let expected = vec![Err(ErrorKind::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))];
         let produced = Raw::new(vec![Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))]).err_conv();
         assert_eq!(expected, produced);
-
     }
 
     #[test]
     fn flatten() {
+        // An already-flattened list is a no-op.
         let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))];
         let produced = Flatten::new(Fixed::new(vec![TU::i(1), TU::i(2), TU::i(3)])).err_conv();
         assert_eq!(expected, produced);
 
+        // Errors are passed through as normal.
         let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(ErrorKind::Sentinel)];
         let produced = Flatten::new(Raw::new(vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(Error::Sentinel)])).err_conv();
         assert_eq!(expected, produced);
 
+        // Top-level sequences are flattened.
         let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))];
         let produced = Flatten::new(
             Fixed::new(vec![
@@ -747,5 +749,13 @@ mod tests {
         ).err_conv();
         assert_eq!(expected, produced);
 
+        // Nested sequences have one level of nesting removed.
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::v(vec![TU::i(4), TU::i(5)]))];
+        let produced = Flatten::new(
+            Fixed::new(vec![
+                TU::v(vec![TU::i(1), TU::i(2)]), TU::v(vec![TU::i(3), TU::v(vec![TU::i(4), TU::i(5)])]),
+            ])
+        ).err_conv();
+        assert_eq!(expected, produced);
     }
 }
