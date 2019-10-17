@@ -684,3 +684,68 @@ where
         ret
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::metadata::types::MetaVal;
+    use crate::updated_scripting::Error;
+    use crate::updated_scripting::ErrorKind;
+
+    use crate::test_util::TestUtil as TU;
+
+    use super::*;
+
+    trait ErrConv: Iterator<Item = Result<MetaVal, Error>>
+    where
+        Self: Sized,
+    {
+        fn err_conv(self) -> Vec<Result<MetaVal, ErrorKind>> {
+            self.into_iter().map(|res| res.map_err(ErrorKind::from)).collect()
+        }
+    }
+
+    impl<I> ErrConv for I where I: Iterator<Item = Result<MetaVal, Error>> {}
+
+    #[test]
+    fn fixed() {
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))];
+        let produced = Fixed::new(vec![TU::i(1), TU::i(2), TU::i(3)]).err_conv();
+        assert_eq!(expected, produced);
+    }
+
+    #[test]
+    fn raw() {
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))];
+        let produced = Raw::new(vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))]).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(ErrorKind::Sentinel)];
+        let produced = Raw::new(vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(Error::Sentinel)]).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Err(ErrorKind::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))];
+        let produced = Raw::new(vec![Err(Error::Sentinel), Ok(TU::i(2)), Ok(TU::i(3))]).err_conv();
+        assert_eq!(expected, produced);
+
+    }
+
+    #[test]
+    fn flatten() {
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))];
+        let produced = Flatten::new(Fixed::new(vec![TU::i(1), TU::i(2), TU::i(3)])).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(ErrorKind::Sentinel)];
+        let produced = Flatten::new(Raw::new(vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(Error::Sentinel)])).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(4)), Ok(TU::i(5))];
+        let produced = Flatten::new(
+            Fixed::new(vec![
+                TU::v(vec![TU::i(1), TU::i(2)]), TU::i(3), TU::v(vec![TU::i(4), TU::i(5)]),
+            ])
+        ).err_conv();
+        assert_eq!(expected, produced);
+
+    }
+}

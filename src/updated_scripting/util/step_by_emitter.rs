@@ -30,7 +30,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn step_by_emitter_step() {
+    fn step() {
         for skip_amount in 0usize..100 {
             let mut emitter = StepByEmitter::new(skip_amount);
             for i in 0..1000 {

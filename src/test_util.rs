@@ -628,6 +628,10 @@ impl TestUtil {
     pub fn b(b: bool) -> MetaVal {
         MetaVal::Bul(b)
     }
+
+    pub fn v(v: Vec<MetaVal>) -> MetaVal {
+        MetaVal::Seq(v)
+    }
 }
 
 #[cfg(test)]
