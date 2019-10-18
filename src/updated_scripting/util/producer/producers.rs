@@ -758,4 +758,23 @@ mod tests {
         ).err_conv();
         assert_eq!(expected, produced);
     }
+
+    #[test]
+    fn dedup() {
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3))];
+        let produced = Dedup::new(Fixed::new(vec![TU::i(1), TU::i(2), TU::i(3)])).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(ErrorKind::Sentinel)];
+        let produced = Dedup::new(Raw::new(vec![Ok(TU::i(1)), Ok(TU::i(2)), Err(Error::Sentinel)])).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Ok(TU::i(1))];
+        let produced = Dedup::new(Fixed::new(vec![TU::i(1), TU::i(1), TU::i(1)])).err_conv();
+        assert_eq!(expected, produced);
+
+        let expected = vec![Ok(TU::i(1)), Ok(TU::i(2)), Ok(TU::i(3)), Ok(TU::i(1)), Ok(TU::i(2))];
+        let produced = Dedup::new(Fixed::new(vec![TU::i(1), TU::i(2), TU::i(3), TU::i(1), TU::i(2)])).err_conv();
+        assert_eq!(expected, produced);
+    }
 }
