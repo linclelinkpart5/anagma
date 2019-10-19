@@ -10,6 +10,7 @@ pub enum Op1 {
     Sum,
     Prod,
     AllEqual,
+    IsEmpty,
     Flatten,
     Dedup,
     Unique,
@@ -17,4 +18,5 @@ pub enum Op1 {
 
 pub enum Pred1 {
     AllEqual,
+    IsEmpty,
 }

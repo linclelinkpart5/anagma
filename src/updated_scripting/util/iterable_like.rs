@@ -190,6 +190,15 @@ impl<'a> IterableLike<'a> {
         }
     }
 
+    /// Checks if the iterable has no items.
+    /// If empty, returns true.
+    pub fn is_empty(self) -> bool {
+        match self {
+            Self::Slice(s) => s.is_empty(),
+            Self::Vector(s) => s.is_empty(),
+        }
+    }
+
     // pub fn flatten(self) -> Result<Self, Error> {
     //     Ok(match self {
     //         Self::Sequence(s) => Self::Sequence(Flatten::new(s.into()).collect::<Result<Vec<_>, _>>()?),
