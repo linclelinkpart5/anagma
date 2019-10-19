@@ -42,3 +42,39 @@ impl Iterator for Producer {
         self.0.next()
     }
 }
+
+impl Producer {
+    pub fn collect(self) -> Result<Vec<MetaVal>, Error> {
+        // NOTE: Need to define this weirdly since `.collect()` also exists on this struct.
+        Iterator::collect::<Result<Vec<_>, _>>(self.into_iter())
+    }
+
+    pub fn len(self) -> Result<usize, Error> {
+        let mut n = 0;
+        for res_item in self { res_item?; n += 1; }
+        Ok(n)
+    }
+
+    pub fn first(self) -> Result<Option<MetaVal>, Error> {
+        self.into_iter().next().transpose()
+    }
+
+    pub fn last(self) -> Result<Option<MetaVal>, Error> {
+        let mut last_seen = None;
+        for res_item in self {
+            let item = res_item?;
+            last_seen.replace(item);
+        }
+        Ok(last_seen)
+    }
+
+    pub fn nth(self, n: usize) -> Result<Option<MetaVal>, Error> {
+        let mut iter = self;
+        let mut i = 0;
+        while i < n {
+            iter.next().transpose()?;
+            i += 1;
+        }
+        iter.next().transpose()
+    }
+}

@@ -8,6 +8,7 @@ use crate::updated_scripting::Error;
 use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
 use crate::updated_scripting::util::StepByEmitter;
+use crate::updated_scripting::util::Producer;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -27,17 +28,18 @@ enum AllAny { All, Any, }
 pub enum IterableLike<'a> {
     Slice(&'a [MetaVal]),
     Vector(Vec<MetaVal>),
-    // Producer(ValueProducer<'a>),
+    Producer(Producer),
 }
 
 impl<'a> IntoIterator for IterableLike<'a> {
-    type Item = Cow<'a, MetaVal>;
+    type Item = Result<Cow<'a, MetaVal>, Error>;
     type IntoIter = IteratorLike<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
             Self::Slice(s) => IteratorLike::Slice(s.into_iter()),
             Self::Vector(v) => IteratorLike::Vector(v.into_iter()),
+            Self::Producer(p) => IteratorLike::Producer(p),
         }
     }
 }
@@ -47,22 +49,23 @@ impl<'a> IterableLike<'a> {
         match self {
             &Self::Slice(..) => false,
             &Self::Vector(..) => false,
-            // &Self::Producer(..) => true,
+            &Self::Producer(..) => true,
         }
     }
 
     /// Collects the contained items eagerly.
     /// This is a no-op if this iterable is already collected.
-    pub fn collect(self) -> Vec<MetaVal> {
+    pub fn collect(self) -> Result<Vec<MetaVal>, Error> {
         match self {
-            Self::Slice(s) => s.to_vec(),
-            Self::Vector(s) => s,
+            Self::Slice(s) => Ok(s.to_vec()),
+            Self::Vector(v) => Ok(v),
+            Self::Producer(p) => p.collect(),
         }
     }
 
     /// Helper method for `rev`/`sort`.
-    fn rev_sort(self, flag: RevSort) -> Vec<MetaVal> {
-        let mut seq = self.collect();
+    fn rev_sort(self, flag: RevSort) -> Result<Vec<MetaVal>, Error> {
+        let mut seq = self.collect()?;
 
         match flag {
             // Reverse the slice mutably in-place.
@@ -72,42 +75,45 @@ impl<'a> IterableLike<'a> {
             RevSort::Sort => seq.sort_by(Util::default_sort_by),
         };
 
-        seq
+        Ok(seq)
     }
 
     /// Reverses the order of the items in this iterable.
     /// Eagerly collects the items beforehand if not already collected.
-    pub fn rev(self) -> Vec<MetaVal> {
+    pub fn rev(self) -> Result<Vec<MetaVal>, Error> {
         self.rev_sort(RevSort::Rev)
     }
 
     /// Sorts the items in this iterable using the default sort comparison.
     /// Eagerly collects the items beforehand if not already collected.
-    pub fn sort(self) -> Vec<MetaVal> {
+    pub fn sort(self) -> Result<Vec<MetaVal>, Error> {
         self.rev_sort(RevSort::Sort)
     }
 
     /// Counts the number of items contained in this iterable.
-    pub fn count(self) -> usize {
+    pub fn count(self) -> Result<usize, Error> {
         match self {
-            Self::Slice(s) => s.len(),
-            Self::Vector(s) => s.len(),
+            Self::Slice(s) => Ok(s.len()),
+            Self::Vector(v) => Ok(v.len()),
+            Self::Producer(p) => p.len(),
         }
     }
 
     /// Returns the first item in this iterable, if there is one.
-    pub fn first(self) -> Option<Cow<'a, MetaVal>> {
+    pub fn first(self) -> Result<Option<Cow<'a, MetaVal>>, Error> {
         match self {
-            Self::Slice(s) => s.first().map(Cow::Borrowed),
-            Self::Vector(s) => s.into_iter().next().map(Cow::Owned),
+            Self::Slice(s) => Ok(s.first().map(Cow::Borrowed)),
+            Self::Vector(v) => Ok(v.into_iter().next().map(Cow::Owned)),
+            Self::Producer(p) => p.first().map(|opt| opt.map(Cow::Owned)),
         }
     }
 
     /// Returns the last item in this iterable, if there is one.
-    pub fn last(self) -> Option<Cow<'a, MetaVal>> {
+    pub fn last(self) -> Result<Option<Cow<'a, MetaVal>>, Error> {
         match self {
-            Self::Slice(s) => s.last().map(Cow::Borrowed),
-            Self::Vector(s) => s.into_iter().last().map(Cow::Owned),
+            Self::Slice(s) => Ok(s.last().map(Cow::Borrowed)),
+            Self::Vector(v) => Ok(v.into_iter().last().map(Cow::Owned)),
+            Self::Producer(p) => p.last().map(|opt| opt.map(Cow::Owned)),
         }
     }
 
@@ -118,10 +124,12 @@ impl<'a> IterableLike<'a> {
             // No items, so no min or max.
             None => Ok(None),
 
-            Some(first_item) => {
+            Some(res_first_item) => {
+                let first_item = res_first_item?;
                 let mut target_num: Number = first_item.as_ref().try_into().map_err(|_| Error::NotNumeric)?;
 
-                for item in it {
+                for res_item in it {
+                    let item = res_item?;
                     let num: Number = item.as_ref().try_into().map_err(|_| Error::NotNumeric)?;
                     target_num = match flag {
                         MinMax::Min => target_num.val_min(num),
@@ -153,7 +161,8 @@ impl<'a> IterableLike<'a> {
             SumProd::Prod => Number::Integer(1),
         };
 
-        for item in self {
+        for res_item in self {
+            let item = res_item?;
             let num: Number = item.as_ref().try_into().map_err(|_| Error::NotNumeric)?;
 
             match flag {
@@ -179,23 +188,31 @@ impl<'a> IterableLike<'a> {
 
     /// Checks if all items are equal to each other.
     /// If empty, returns true.
-    pub fn all_equal(self) -> bool {
+    pub fn all_equal(self) -> Result<bool, Error> {
         let mut it = self.into_iter();
         match it.next() {
-            None => true,
-            Some(first_item) => {
-                for item in it { if item != first_item { return false } }
-                true
+            None => Ok(true),
+            Some(res_first_item) => {
+                let first_item = res_first_item?;
+                for res_item in it { if res_item? != first_item { return Ok(false) } }
+                Ok(true)
             },
         }
     }
 
     /// Checks if the iterable has no items.
     /// If empty, returns true.
-    pub fn is_empty(self) -> bool {
+    pub fn is_empty(self) -> Result<bool, Error> {
         match self {
-            Self::Slice(s) => s.is_empty(),
-            Self::Vector(s) => s.is_empty(),
+            Self::Slice(s) => Ok(s.is_empty()),
+            Self::Vector(v) => Ok(v.is_empty()),
+            Self::Producer(mut p) => {
+                match p.next() {
+                    None => Ok(true),
+                    Some(Ok(_)) => Ok(false),
+                    Some(Err(err)) => Err(err),
+                }
+            },
         }
     }
 
@@ -221,10 +238,11 @@ impl<'a> IterableLike<'a> {
     // }
 
     /// Returns the item at a specific index position in the iterable, if present.
-    pub fn nth(self, n: usize) -> Option<Cow<'a, MetaVal>> {
+    pub fn nth(self, n: usize) -> Result<Option<Cow<'a, MetaVal>>, Error> {
         match self {
-            Self::Slice(s) => s.get(n).map(Cow::Borrowed),
-            Self::Vector(v) => v.into_iter().nth(n).map(Cow::Owned),
+            Self::Slice(s) => Ok(s.get(n).map(Cow::Borrowed)),
+            Self::Vector(v) => Ok(v.into_iter().nth(n).map(Cow::Owned)),
+            Self::Producer(p) => p.nth(n).map(|opt| opt.map(Cow::Owned)),
         }
     }
 
@@ -235,7 +253,10 @@ impl<'a> IterableLike<'a> {
             AllAny::Any => true,
         };
 
-        for item in self { if pred.test(&item)? == target { return Ok(target) } }
+        for res_item in self {
+            let item = res_item?;
+            if pred.test(&item)? == target { return Ok(target) }
+        }
 
         Ok(!target)
     }
@@ -254,7 +275,8 @@ impl<'a> IterableLike<'a> {
 
     /// Helper method for `find`/`position`.
     fn find_position<P: Predicate>(self, pred: P) -> Result<Option<(usize, Cow<'a, MetaVal>)>, Error> {
-        for (n, item) in self.into_iter().enumerate() {
+        for (n, res_item) in self.into_iter().enumerate() {
+            let item = res_item?;
             if pred.test(&item)? { return Ok(Some((n, item))) }
         }
 
@@ -280,7 +302,10 @@ impl<'a> IterableLike<'a> {
                 let mut t = Vec::new();
 
                 // NOTE: The `.into_owned()` call should be a no-op in the majority of cases.
-                for item in self { if pred.test(&item)? { t.push(item.into_owned()); } }
+                for res_item in self {
+                    let item = res_item?;
+                    if pred.test(&item)? { t.push(item.into_owned()); }
+                }
 
                 Ok(Self::Vector(t))
             },
@@ -295,7 +320,10 @@ impl<'a> IterableLike<'a> {
                 let mut t = Vec::new();
 
                 // NOTE: The `.into_owned()` call should be a no-op in the majority of cases.
-                for item in self { t.push(conv.convert(item.into_owned())?); }
+                for res_item in self {
+                    let item = res_item?;
+                    t.push(conv.convert(item.into_owned())?);
+                }
 
                 Ok(Self::Vector(t))
             },
@@ -304,25 +332,25 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Produces a new iterable by skipping a fixed number of items from the original iterable after each item.
-    pub fn step_by(self, step: usize) -> Self {
+    pub fn step_by(self, step: usize) -> Result<Self, Error> {
         match self.is_lazy() {
             false => {
-                let mut v = self.collect();
+                let mut v = self.collect()?;
                 let mut step_by_emitter = StepByEmitter::new(step);
                 v.retain(|_| step_by_emitter.step());
-                Self::Vector(v)
+                Ok(Self::Vector(v))
             },
             true => unreachable!("not possible until producers are added"),
         }
     }
 
     /// Produces a new iterable by concatenating ("chaining") together this iterable with another.
-    pub fn chain(self, iter: Self) -> Self {
+    pub fn chain(self, iter: Self) -> Result<Self, Error> {
         match self.is_lazy() {
             false => {
-                let mut v = self.collect();
-                v.extend(iter.collect());
-                Self::Vector(v)
+                let mut v = self.collect()?;
+                v.extend(iter.collect()?);
+                Ok(Self::Vector(v))
             },
             true => unreachable!("not possible until producers are added"),
         }

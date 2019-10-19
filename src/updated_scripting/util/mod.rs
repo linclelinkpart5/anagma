@@ -9,6 +9,7 @@ use crate::metadata::types::MetaVal;
 pub use self::iterable_like::IterableLike;
 pub use self::iterator_like::IteratorLike;
 pub use self::step_by_emitter::StepByEmitter;
+pub use self::producer::Producer;
 
 pub struct Util;
 
