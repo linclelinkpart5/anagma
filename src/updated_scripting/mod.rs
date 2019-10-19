@@ -1,5 +1,6 @@
 pub mod util;
 pub mod traits;
+pub mod ops;
 
 use crate::metadata::stream::value::Error as MetaValueStreamError;
 
