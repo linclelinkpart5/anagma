@@ -9,6 +9,9 @@ use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
 use crate::updated_scripting::util::StepByEmitter;
 use crate::updated_scripting::util::Producer;
+use crate::updated_scripting::util::producer::Fixed;
+use crate::updated_scripting::util::producer::Filter;
+use crate::updated_scripting::util::producer::Map;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -45,12 +48,24 @@ impl<'a> IntoIterator for IterableLike<'a> {
 }
 
 impl<'a> IterableLike<'a> {
-    pub fn is_lazy(&self) -> bool {
+    fn is_lazy(&self) -> bool {
         match self {
             &Self::Slice(..) => false,
             &Self::Vector(..) => false,
             &Self::Producer(..) => true,
         }
+    }
+
+    fn into_producer(self) -> (Producer, bool) {
+        let is_lazy = self.is_lazy();
+
+        let producer = match self {
+            Self::Slice(s) => Producer::new(Fixed::new(s.to_vec())),
+            Self::Vector(v) => Producer::new(Fixed::new(v)),
+            Self::Producer(p) => p,
+        };
+
+        (producer, is_lazy)
     }
 
     /// Collects the contained items eagerly.
@@ -296,39 +311,23 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Produces a new iterable containing only items that pass a given predicate.
-    pub fn filter<P: Predicate>(self, pred: P) -> Result<Self, Error> {
-        match self.is_lazy() {
-            false => {
-                let mut t = Vec::new();
+    pub fn filter<P: Predicate + 'static>(self, pred: P) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
 
-                // NOTE: The `.into_owned()` call should be a no-op in the majority of cases.
-                for res_item in self {
-                    let item = res_item?;
-                    if pred.test(&item)? { t.push(item.into_owned()); }
-                }
+        let producer = Filter::new(inner, pred);
 
-                Ok(Self::Vector(t))
-            },
-            true => unreachable!("not possible until producers are added"),
-        }
+        if is_lazy { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+        else { Ok(Self::Producer(Producer::new(producer))) }
     }
 
     /// Produces a new iterable by applying a converter to each item in the original iterable.
-    pub fn map<C: Converter>(self, conv: C) -> Result<Self, Error> {
-        match self.is_lazy() {
-            false => {
-                let mut t = Vec::new();
+    pub fn map<C: Converter + 'static>(self, conv: C) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
 
-                // NOTE: The `.into_owned()` call should be a no-op in the majority of cases.
-                for res_item in self {
-                    let item = res_item?;
-                    t.push(conv.convert(item.into_owned())?);
-                }
+        let producer = Map::new(inner, conv);
 
-                Ok(Self::Vector(t))
-            },
-            true => unreachable!("not possible until producers are added"),
-        }
+        if is_lazy { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+        else { Ok(Self::Producer(Producer::new(producer))) }
     }
 
     /// Produces a new iterable by skipping a fixed number of items from the original iterable after each item.
@@ -353,6 +352,64 @@ impl<'a> IterableLike<'a> {
                 Ok(Self::Vector(v))
             },
             true => unreachable!("not possible until producers are added"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use rand::Rng;
+
+    use crate::test_util::TestUtil as TU;
+
+    struct TestPredicate(String);
+
+    impl Predicate for TestPredicate {
+        fn test(&self, mv: &MetaVal) -> Result<bool, Error> {
+            Ok(!match mv {
+                &MetaVal::Str(ref s) => &self.0 == s,
+                _ => false,
+            })
+        }
+    }
+
+    const CHARS: &[u8] = b"abcde";
+    const STR_LEN: usize = 6;
+
+    fn random_string() -> String {
+        let mut rng = rand::thread_rng();
+        let idx = rng.gen_range(0, CHARS.len());
+
+        (0..STR_LEN).map(|_| CHARS[idx] as char).collect()
+    }
+
+    #[test]
+    fn test_filter() {
+        let mvs = (0..10).map(|_| TU::s(random_string())).collect::<Vec<_>>();
+
+        let target = random_string();
+
+        println!("String to filter out: {}", target);
+
+        println!("Initial:");
+        for x in mvs.clone() {
+            println!("{:?}", x);
+        }
+
+        let il = IterableLike::Producer(Producer::from(mvs.clone()));
+
+        println!("Producer:");
+        for x in il.filter(TestPredicate(String::from(target.clone()))).unwrap() {
+            println!("{:?}", x);
+        }
+
+        let il = IterableLike::Vector(mvs.clone());
+
+        println!("Vector:");
+        for x in il.filter(TestPredicate(String::from(target.clone()))).unwrap() {
+            println!("{:?}", x);
         }
     }
 }

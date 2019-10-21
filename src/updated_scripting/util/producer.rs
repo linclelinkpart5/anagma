@@ -44,6 +44,10 @@ impl Iterator for Producer {
 }
 
 impl Producer {
+    pub fn new(iter: impl Iterator<Item = Result<MetaVal, Error>> + 'static) -> Self {
+        Self(Box::new(iter))
+    }
+
     pub fn collect(self) -> Result<Vec<MetaVal>, Error> {
         // NOTE: Need to define this weirdly since `.collect()` also exists on this struct.
         Iterator::collect::<Result<Vec<_>, _>>(self.into_iter())
