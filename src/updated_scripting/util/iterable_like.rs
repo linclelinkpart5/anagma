@@ -9,6 +9,9 @@ use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
 use crate::updated_scripting::util::Producer;
 use crate::updated_scripting::util::producer::Fixed;
+use crate::updated_scripting::util::producer::Flatten;
+use crate::updated_scripting::util::producer::Dedup;
+use crate::updated_scripting::util::producer::Unique;
 use crate::updated_scripting::util::producer::Filter;
 use crate::updated_scripting::util::producer::Map;
 use crate::updated_scripting::util::producer::StepBy;
@@ -232,26 +235,35 @@ impl<'a> IterableLike<'a> {
         }
     }
 
-    // pub fn flatten(self) -> Result<Self, Error> {
-    //     Ok(match self {
-    //         Self::Sequence(s) => Self::Sequence(Flatten::new(s.into()).collect::<Result<Vec<_>, _>>()?),
-    //         Self::Producer(p) => Self::Producer(ValueProducer::Flatten(Flatten::new(p))),
-    //     })
-    // }
+    /// Produces a new iterable with one level of nested sub-sequences flattened out.
+    pub fn flatten(self) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
 
-    // pub fn dedup(self) -> Result<Self, Error> {
-    //     Ok(match self {
-    //         Self::Sequence(s) => Self::Sequence(Dedup::new(s.into()).collect::<Result<Vec<_>, _>>()?),
-    //         Self::Producer(p) => Self::Producer(ValueProducer::Dedup(Dedup::new(p))),
-    //     })
-    // }
+        let producer = Flatten::new(inner);
 
-    // pub fn unique(self) -> Result<Self, Error> {
-    //     Ok(match self {
-    //         Self::Sequence(s) => Self::Sequence(Unique::new(s.into()).collect::<Result<Vec<_>, _>>()?),
-    //         Self::Producer(p) => Self::Producer(ValueProducer::Unique(Unique::new(p))),
-    //     })
-    // }
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable with consecutive duplicated items removed.
+    pub fn dedup(self) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = Dedup::new(inner);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable with only unique items.
+    pub fn unique(self) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = Unique::new(inner);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
 
     /// Returns the item at a specific index position in the iterable, if present.
     pub fn nth(self, n: usize) -> Result<Option<Cow<'a, MetaVal>>, Error> {
