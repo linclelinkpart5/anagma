@@ -7,11 +7,12 @@ use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
 use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
-use crate::updated_scripting::util::StepByEmitter;
 use crate::updated_scripting::util::Producer;
 use crate::updated_scripting::util::producer::Fixed;
 use crate::updated_scripting::util::producer::Filter;
 use crate::updated_scripting::util::producer::Map;
+use crate::updated_scripting::util::producer::StepBy;
+use crate::updated_scripting::util::producer::Chain;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -316,8 +317,8 @@ impl<'a> IterableLike<'a> {
 
         let producer = Filter::new(inner, pred);
 
-        if is_lazy { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
-        else { Ok(Self::Producer(Producer::new(producer))) }
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
     }
 
     /// Produces a new iterable by applying a converter to each item in the original iterable.
@@ -326,33 +327,30 @@ impl<'a> IterableLike<'a> {
 
         let producer = Map::new(inner, conv);
 
-        if is_lazy { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
-        else { Ok(Self::Producer(Producer::new(producer))) }
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
     }
 
     /// Produces a new iterable by skipping a fixed number of items from the original iterable after each item.
     pub fn step_by(self, step: usize) -> Result<Self, Error> {
-        match self.is_lazy() {
-            false => {
-                let mut v = self.collect()?;
-                let mut step_by_emitter = StepByEmitter::new(step);
-                v.retain(|_| step_by_emitter.step());
-                Ok(Self::Vector(v))
-            },
-            true => unreachable!("not possible until producers are added"),
-        }
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = StepBy::new(inner, step);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
     }
 
     /// Produces a new iterable by concatenating ("chaining") together this iterable with another.
     pub fn chain(self, iter: Self) -> Result<Self, Error> {
-        match self.is_lazy() {
-            false => {
-                let mut v = self.collect()?;
-                v.extend(iter.collect()?);
-                Ok(Self::Vector(v))
-            },
-            true => unreachable!("not possible until producers are added"),
-        }
+        let (inner_a, is_lazy_a) = self.into_producer();
+        let (inner_b, is_lazy_b) = iter.into_producer();
+        let is_lazy = is_lazy_a || is_lazy_b;
+
+        let producer = Chain::new(inner_a, inner_b);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
     }
 }
 
