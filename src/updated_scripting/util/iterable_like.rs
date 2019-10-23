@@ -17,6 +17,8 @@ use crate::updated_scripting::util::producer::Map;
 use crate::updated_scripting::util::producer::StepBy;
 use crate::updated_scripting::util::producer::Chain;
 use crate::updated_scripting::util::producer::Zip;
+use crate::updated_scripting::util::producer::Skip;
+use crate::updated_scripting::util::producer::Take;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -369,6 +371,26 @@ impl<'a> IterableLike<'a> {
         let is_lazy = is_lazy_a || is_lazy_b;
 
         let producer = Zip::new(inner_a, inner_b);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that skips a fixed number of items from the start.
+    pub fn skip(self, n: usize) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = Skip::new(inner, n);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that takes a fixed number of items from the start.
+    pub fn take(self, n: usize) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = Take::new(inner, n);
 
         if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
         else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
