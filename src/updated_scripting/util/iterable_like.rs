@@ -16,6 +16,7 @@ use crate::updated_scripting::util::producer::Filter;
 use crate::updated_scripting::util::producer::Map;
 use crate::updated_scripting::util::producer::StepBy;
 use crate::updated_scripting::util::producer::Chain;
+use crate::updated_scripting::util::producer::Zip;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -355,6 +356,19 @@ impl<'a> IterableLike<'a> {
         let is_lazy = is_lazy_a || is_lazy_b;
 
         let producer = Chain::new(inner_a, inner_b);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that yields pairs of items from this and another iterable.
+    /// Stops when the shorter of the two iterables is exhausted.
+    pub fn zip(self, iter: Self) -> Result<Self, Error> {
+        let (inner_a, is_lazy_a) = self.into_producer();
+        let (inner_b, is_lazy_b) = iter.into_producer();
+        let is_lazy = is_lazy_a || is_lazy_b;
+
+        let producer = Zip::new(inner_a, inner_b);
 
         if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
         else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
