@@ -114,7 +114,7 @@ impl<'a> IterableLike<'a> {
         match self {
             Self::Slice(s) => Ok(s.len()),
             Self::Vector(v) => Ok(v.len()),
-            Self::Producer(p) => p.len(),
+            Self::Producer(p) => p.count(),
         }
     }
 
@@ -123,7 +123,7 @@ impl<'a> IterableLike<'a> {
         match self {
             Self::Slice(s) => Ok(s.first().map(Cow::Borrowed)),
             Self::Vector(v) => Ok(v.into_iter().next().map(Cow::Owned)),
-            Self::Producer(p) => p.first().map(|opt| opt.map(Cow::Owned)),
+            Self::Producer(p) => Ok(p.first()?.map(Cow::Owned)),
         }
     }
 
@@ -132,7 +132,7 @@ impl<'a> IterableLike<'a> {
         match self {
             Self::Slice(s) => Ok(s.last().map(Cow::Borrowed)),
             Self::Vector(v) => Ok(v.into_iter().last().map(Cow::Owned)),
-            Self::Producer(p) => p.last().map(|opt| opt.map(Cow::Owned)),
+            Self::Producer(p) => Ok(p.last()?.map(Cow::Owned)),
         }
     }
 
@@ -175,6 +175,7 @@ impl<'a> IterableLike<'a> {
 
     /// Helper method for `sum`/`prod`.
     fn sum_prod(self, flag: SumProd) -> Result<Number, Error> {
+        // Additive/multiplicative identites.
         let mut total = match flag {
             SumProd::Sum => Number::Integer(0),
             SumProd::Prod => Number::Integer(1),
@@ -225,13 +226,7 @@ impl<'a> IterableLike<'a> {
         match self {
             Self::Slice(s) => Ok(s.is_empty()),
             Self::Vector(v) => Ok(v.is_empty()),
-            Self::Producer(mut p) => {
-                match p.next() {
-                    None => Ok(true),
-                    Some(Ok(_)) => Ok(false),
-                    Some(Err(err)) => Err(err),
-                }
-            },
+            Self::Producer(p) => p.is_empty(),
         }
     }
 
@@ -270,7 +265,7 @@ impl<'a> IterableLike<'a> {
         match self {
             Self::Slice(s) => Ok(s.get(n).map(Cow::Borrowed)),
             Self::Vector(v) => Ok(v.into_iter().nth(n).map(Cow::Owned)),
-            Self::Producer(p) => p.nth(n).map(|opt| opt.map(Cow::Owned)),
+            Self::Producer(p) => Ok(p.nth(n)?.map(Cow::Owned)),
         }
     }
 

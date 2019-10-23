@@ -53,7 +53,7 @@ impl Producer {
         Iterator::collect::<Result<Vec<_>, _>>(self.into_iter())
     }
 
-    pub fn len(self) -> Result<usize, Error> {
+    pub fn count(self) -> Result<usize, Error> {
         let mut n = 0;
         for res_item in self { res_item?; n += 1; }
         Ok(n)
@@ -70,6 +70,11 @@ impl Producer {
             last_seen.replace(item);
         }
         Ok(last_seen)
+    }
+
+    pub fn is_empty(self) -> Result<bool, Error> {
+        // Try and get the first item.
+        Ok(self.first()?.is_some())
     }
 
     pub fn nth(self, n: usize) -> Result<Option<MetaVal>, Error> {
