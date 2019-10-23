@@ -533,12 +533,12 @@ where
     }
 }
 
-pub struct InBetween<I>(Fuse<I>, MetaVal, bool)
+pub struct Intersperse<I>(Fuse<I>, MetaVal, bool)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
 ;
 
-impl<I> InBetween<I>
+impl<I> Intersperse<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
 {
@@ -547,7 +547,7 @@ where
     }
 }
 
-impl<I> Iterator for InBetween<I>
+impl<I> Iterator for Intersperse<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
 {
@@ -562,7 +562,7 @@ where
     }
 }
 
-impl<I> FusedIterator for InBetween<I>
+impl<I> FusedIterator for Intersperse<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
 {}
@@ -604,13 +604,13 @@ where
 //     IB: Iterator<Item = Result<MetaVal, Error>>,
 // {}
 
-pub struct Mix<IA, IB>(Fuse<IA>, Fuse<IB>, bool)
+pub struct RoundRobin<IA, IB>(Fuse<IA>, Fuse<IB>, bool)
 where
     IA: Iterator<Item = Result<MetaVal, Error>>,
     IB: Iterator<Item = Result<MetaVal, Error>>,
 ;
 
-impl<IA, IB> Mix<IA, IB>
+impl<IA, IB> RoundRobin<IA, IB>
 where
     IA: Iterator<Item = Result<MetaVal, Error>>,
     IB: Iterator<Item = Result<MetaVal, Error>>,
@@ -620,7 +620,7 @@ where
     }
 }
 
-impl<IA, IB> Iterator for Mix<IA, IB>
+impl<IA, IB> Iterator for RoundRobin<IA, IB>
 where
     IA: Iterator<Item = Result<MetaVal, Error>>,
     IB: Iterator<Item = Result<MetaVal, Error>>,
@@ -637,7 +637,7 @@ where
     }
 }
 
-impl<IA, IB> FusedIterator for Mix<IA, IB>
+impl<IA, IB> FusedIterator for RoundRobin<IA, IB>
 where
     IA: Iterator<Item = Result<MetaVal, Error>>,
     IB: Iterator<Item = Result<MetaVal, Error>>,

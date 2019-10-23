@@ -19,6 +19,10 @@ use crate::updated_scripting::util::producer::Chain;
 use crate::updated_scripting::util::producer::Zip;
 use crate::updated_scripting::util::producer::Skip;
 use crate::updated_scripting::util::producer::Take;
+use crate::updated_scripting::util::producer::SkipWhile;
+use crate::updated_scripting::util::producer::TakeWhile;
+use crate::updated_scripting::util::producer::Intersperse;
+use crate::updated_scripting::util::producer::RoundRobin;
 use crate::updated_scripting::traits::Predicate;
 use crate::updated_scripting::traits::Converter;
 
@@ -391,6 +395,49 @@ impl<'a> IterableLike<'a> {
         let (inner, is_lazy) = self.into_producer();
 
         let producer = Take::new(inner, n);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that skips items from the start while a predicate returns true.
+    pub fn skip_while<P: Predicate + 'static>(self, pred: P) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = SkipWhile::new(inner, pred);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that takes items from the start while a predicate returns true.
+    pub fn take_while<P: Predicate + 'static>(self, pred: P) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = TakeWhile::new(inner, pred);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that alternates between items from this iterable and a constant item.
+    pub fn intersperse(self, item: MetaVal) -> Result<Self, Error> {
+        let (inner, is_lazy) = self.into_producer();
+
+        let producer = Intersperse::new(inner, item);
+
+        if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
+        else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
+    }
+
+    /// Produces a new iterable that alternates between items from this iterable and another.
+    /// If one iterable runs out before the other, the items from the remaining iterable are yielded.
+    pub fn round_robin(self, iter: Self) -> Result<Self, Error> {
+        let (inner_a, is_lazy_a) = self.into_producer();
+        let (inner_b, is_lazy_b) = iter.into_producer();
+        let is_lazy = is_lazy_a || is_lazy_b;
+
+        let producer = RoundRobin::new(inner_a, inner_b);
 
         if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
         else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
