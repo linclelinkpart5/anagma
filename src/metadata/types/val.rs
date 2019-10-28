@@ -125,6 +125,28 @@ impl<'k> TryFrom<&'k MetaVal> for Number {
     }
 }
 
+impl TryFrom<MetaVal> for bool {
+    type Error = ();
+
+    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Bul(b) => Ok(b),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k MetaVal> for bool {
+    type Error = ();
+
+    fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            &MetaVal::Bul(b) => Ok(b),
+            _ => Err(()),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::MetaVal;

@@ -10,6 +10,8 @@ use crate::metadata::stream::value::Error as MetaValueStreamError;
 pub enum Error {
     ValueStream(MetaValueStreamError),
     NotNumeric,
+    NotSequence,
+    NotBoolean,
     #[cfg(test)] Sentinel,
 }
 
@@ -18,6 +20,8 @@ impl std::fmt::Display for Error {
         match *self {
             Self::ValueStream(ref err) => write!(f, "value stream error: {}", err),
             Self::NotNumeric => write!(f, "value is not a number"),
+            Self::NotSequence => write!(f, "value is not a sequence"),
+            Self::NotBoolean => write!(f, "value is not a boolean"),
             #[cfg(test)] Self::Sentinel => write!(f, "sentinel error, only for testing"),
         }
     }

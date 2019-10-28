@@ -1,6 +1,7 @@
 
 use std::borrow::Cow;
 use std::convert::TryInto;
+use std::convert::TryFrom;
 
 use crate::util::Number;
 use crate::metadata::types::MetaVal;
@@ -54,6 +55,28 @@ impl<'a> IntoIterator for IterableLike<'a> {
             Self::Slice(s) => IteratorLike::Slice(s.into_iter()),
             Self::Vector(v) => IteratorLike::Vector(v.into_iter()),
             Self::Producer(p) => IteratorLike::Producer(p),
+        }
+    }
+}
+
+impl<'a> TryFrom<MetaVal> for IterableLike<'a> {
+    type Error = Error;
+
+    fn try_from(mv: MetaVal) -> Result<Self, Self::Error> {
+        match mv {
+            MetaVal::Seq(v) => Ok(Self::Vector(v)),
+            _ => Err(Error::NotSequence),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a MetaVal> for IterableLike<'a> {
+    type Error = Error;
+
+    fn try_from(mv: &'a MetaVal) -> Result<Self, Self::Error> {
+        match mv {
+            &MetaVal::Seq(ref v) => Ok(Self::Slice(v.as_ref())),
+            _ => Err(Error::NotSequence),
         }
     }
 }
