@@ -1,4 +1,6 @@
 
 pub mod predicate;
 pub mod converter;
-pub mod op1;
+
+pub use self::predicate::Predicate;
+pub use self::converter::Converter;
