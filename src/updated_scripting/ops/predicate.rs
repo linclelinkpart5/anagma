@@ -1,6 +1,5 @@
 
 use std::convert::TryFrom;
-use std::convert::TryInto;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
@@ -25,8 +24,8 @@ pub enum Predicate {
     Le(Number),
     Gt(Number),
     Ge(Number),
-    HasKey_A(MetaKey),
-    HasKey_B(BTreeMap<MetaKey, MetaVal>),
+    HasKeyA(MetaKey),
+    HasKeyB(BTreeMap<MetaKey, MetaVal>),
 }
 
 impl Predicate {
@@ -60,7 +59,7 @@ impl Predicate {
             &Self::Le(ref n) => Ok(Number::try_from(mv).map_err(|_| Error::NotNumeric)?.val_cmp(&n) != Ordering::Greater),
             &Self::Gt(ref n) => Ok(Number::try_from(mv).map_err(|_| Error::NotNumeric)?.val_cmp(&n) == Ordering::Greater),
             &Self::Ge(ref n) => Ok(Number::try_from(mv).map_err(|_| Error::NotNumeric)?.val_cmp(&n) != Ordering::Less),
-            &Self::HasKey_A(ref k) => {
+            &Self::HasKeyA(ref k) => {
                 match mv {
                     &MetaVal::Map(ref m) => Ok(m.contains_key(k)),
                     _ => Err(Error::NotMapping),
