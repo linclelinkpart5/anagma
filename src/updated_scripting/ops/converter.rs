@@ -1,9 +1,7 @@
 
-use crate::metadata::types::MetaVal;
-use crate::updated_scripting::ops::predicate::Predicate1;
+use crate::updated_scripting::ops::predicate::Predicate;
 
-#[derive(Clone, Debug)]
-pub enum Converter1 {
+pub enum Converter {
     Collect,
     Sort,
     Rev,
@@ -24,10 +22,5 @@ pub enum Converter1 {
     Vals,
     Pick,
     Load,
-    Predicate(Predicate1),
-    Partial(MetaVal, Converter2),
-}
-
-#[derive(Clone, Debug)]
-pub enum Converter2 {
+    Predicate(Predicate),
 }

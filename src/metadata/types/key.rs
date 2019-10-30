@@ -1,28 +1,30 @@
 use std::borrow::Cow;
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Deserialize, Serialize)]
-#[serde(transparent)]
-pub struct MetaKey(String);
+pub type MetaKey = String;
 
-impl From<String> for MetaKey {
-    fn from(s: String) -> Self {
-        Self(s)
-    }
-}
+// #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Deserialize, Serialize)]
+// #[serde(transparent)]
+// pub struct MetaKey(String);
 
-impl<'a> From<&'a str> for MetaKey {
-    fn from(s: &'a str) -> Self {
-        String::from(s).into()
-    }
-}
+// impl From<String> for MetaKey {
+//     fn from(s: String) -> Self {
+//         Self(s)
+//     }
+// }
 
-impl std::fmt::Display for MetaKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self(ref s) => s.fmt(f),
-        }
-    }
-}
+// impl<'a> From<&'a str> for MetaKey {
+//     fn from(s: &'a str) -> Self {
+//         String::from(s).into()
+//     }
+// }
+
+// impl std::fmt::Display for MetaKey {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         match *self {
+//             Self(ref s) => s.fmt(f),
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct MetaKeyPath<'k>(Cow<'k, [MetaKey]>);
@@ -74,12 +76,12 @@ impl<'k> From<&'k [MetaKey]> for MetaKeyPath<'k> {
     }
 }
 
-impl<'k> From<String> for MetaKeyPath<'k> {
-    fn from(s: String) -> Self {
-        let mk: MetaKey = s.into();
-        mk.into()
-    }
-}
+// impl<'k> From<String> for MetaKeyPath<'k> {
+//     fn from(s: String) -> Self {
+//         let mk: MetaKey = s.into();
+//         mk.into()
+//     }
+// }
 
 impl<'k> From<&'k str> for MetaKeyPath<'k> {
     fn from(s: &'k str) -> Self {

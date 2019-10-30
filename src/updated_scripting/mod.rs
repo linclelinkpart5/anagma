@@ -12,6 +12,7 @@ pub enum Error {
     NotNumeric,
     NotSequence,
     NotBoolean,
+    NotMapping,
     #[cfg(test)] Sentinel,
 }
 
@@ -22,6 +23,7 @@ impl std::fmt::Display for Error {
             Self::NotNumeric => write!(f, "value is not a number"),
             Self::NotSequence => write!(f, "value is not a sequence"),
             Self::NotBoolean => write!(f, "value is not a boolean"),
+            Self::NotMapping => write!(f, "value is not a mapping"),
             #[cfg(test)] Self::Sentinel => write!(f, "sentinel error, only for testing"),
         }
     }
