@@ -34,20 +34,16 @@ impl MetaVal {
                 MetaVal::Map(map) => {
                     // See if the current key in the key path is found in this mapping.
                     match map.get(key) {
-                        None => {
-                            // Unable to proceed on the key path, short circuit.
-                            return None;
-                        }
-                        Some(val) => {
-                            // The current key was found, set the new current value.
-                            curr_val = val;
-                        }
+                        // Unable to proceed on the key path, short circuit.
+                        None => return None,
+
+                        // The current key was found, set the new current value.
+                        Some(val) => { curr_val = val; }
                     }
                 },
-                _ => {
-                    // An attempt was made to get the key of a non-mapping, short circuit.
-                    return None;
-                },
+
+                // An attempt was made to get the key of a non-mapping, short circuit.
+                _ => return None,
             }
         }
 
@@ -62,6 +58,7 @@ impl From<String> for MetaVal {
     }
 }
 
+// TODO: Remove this impl, feels non-Rustic.
 impl From<&str> for MetaVal {
     fn from(s: &str) -> Self {
         Self::Str(s.to_string())
@@ -142,6 +139,17 @@ impl<'k> TryFrom<&'k MetaVal> for bool {
     fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
         match value {
             &MetaVal::Bul(b) => Ok(b),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<MetaVal> for Vec<MetaVal> {
+    type Error = ();
+
+    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+        match value {
+            MetaVal::Seq(s) => Ok(s),
             _ => Err(()),
         }
     }

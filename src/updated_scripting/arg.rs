@@ -33,3 +33,19 @@ impl TryFrom<Arg> for MetaVal {
         }
     }
 }
+
+impl TryFrom<Arg> for bool {
+    type Error = ();
+
+    fn try_from(a: Arg) -> Result<Self, Self::Error> {
+        MetaVal::try_from(a).and_then(bool::try_from)
+    }
+}
+
+impl TryFrom<Arg> for Vec<MetaVal> {
+    type Error = ();
+
+    fn try_from(a: Arg) -> Result<Self, Self::Error> {
+        MetaVal::try_from(a).and_then(Vec::<MetaVal>::try_from)
+    }
+}
