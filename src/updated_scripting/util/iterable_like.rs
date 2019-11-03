@@ -6,6 +6,7 @@ use std::convert::TryFrom;
 use crate::util::Number;
 use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
+use crate::updated_scripting::arg::Arg;
 use crate::updated_scripting::util::Util;
 use crate::updated_scripting::util::IteratorLike;
 use crate::updated_scripting::util::Producer;
@@ -76,6 +77,28 @@ impl<'a> TryFrom<&'a MetaVal> for IterableLike<'a> {
     fn try_from(mv: &'a MetaVal) -> Result<Self, Self::Error> {
         match mv {
             &MetaVal::Seq(ref v) => Ok(Self::Slice(v.as_ref())),
+            _ => Err(Error::NotSequence),
+        }
+    }
+}
+
+impl<'a> TryFrom<Arg> for IterableLike<'a> {
+    type Error = Error;
+
+    fn try_from(arg: Arg) -> Result<Self, Self::Error> {
+        match arg {
+            Arg::Value(mv) => mv.try_into(),
+            _ => Err(Error::NotSequence),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a Arg> for IterableLike<'a> {
+    type Error = Error;
+
+    fn try_from(arg: &'a Arg) -> Result<Self, Self::Error> {
+        match arg {
+            &Arg::Value(ref mv) => mv.try_into(),
             _ => Err(Error::NotSequence),
         }
     }

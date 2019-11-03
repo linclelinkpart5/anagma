@@ -2,7 +2,9 @@
 //! These values need to be stable over time, as they can be used in partialled operators.
 
 use std::convert::TryFrom;
+use std::convert::TryInto;
 
+use crate::util::Number;
 use crate::metadata::types::MetaVal;
 use crate::updated_scripting::ops::Predicate;
 use crate::updated_scripting::ops::Converter;
@@ -38,7 +40,43 @@ impl TryFrom<Arg> for bool {
     type Error = ();
 
     fn try_from(a: Arg) -> Result<Self, Self::Error> {
-        MetaVal::try_from(a).and_then(bool::try_from)
+        match a {
+            Arg::Value(MetaVal::Bul(b)) => Ok(b),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&Arg> for bool {
+    type Error = ();
+
+    fn try_from(a: &Arg) -> Result<Self, Self::Error> {
+        match a {
+            &Arg::Value(MetaVal::Bul(ref b)) => Ok(*b),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<Arg> for Number {
+    type Error = ();
+
+    fn try_from(a: Arg) -> Result<Self, Self::Error> {
+        match a {
+            Arg::Value(mv) => mv.try_into(),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&Arg> for Number {
+    type Error = ();
+
+    fn try_from(a: &Arg) -> Result<Self, Self::Error> {
+        match a {
+            &Arg::Value(ref mv) => mv.try_into(),
+            _ => Err(()),
+        }
     }
 }
 
