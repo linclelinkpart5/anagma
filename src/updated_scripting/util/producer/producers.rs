@@ -6,8 +6,8 @@ use std::iter::Fuse;
 use crate::metadata::stream::value::MetaValueStream;
 use crate::metadata::types::MetaVal;
 use crate::updated_scripting::Error;
-use crate::updated_scripting::traits::Predicate;
-use crate::updated_scripting::traits::Converter;
+use crate::updated_scripting::ops::Predicate;
+use crate::updated_scripting::ops::Converter;
 use crate::updated_scripting::util::StepByEmitter;
 
 pub struct Source<'a>(MetaValueStream<'a>);
@@ -195,26 +195,23 @@ where
     }
 }
 
-pub struct Filter<I, P>(I, P)
+pub struct Filter<I>(I, Predicate)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 ;
 
-impl<I, P> Filter<I, P>
+impl<I> Filter<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 {
-    pub fn new(iter: I, pred: P) -> Self {
+    pub fn new(iter: I, pred: Predicate) -> Self {
         Self(iter, pred)
     }
 }
 
-impl<I, P> Iterator for Filter<I, P>
+impl<I> Iterator for Filter<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 {
     type Item = Result<MetaVal, Error>;
 
@@ -237,26 +234,23 @@ where
     }
 }
 
-pub struct Map<I, C>(I, C)
+pub struct Map<I>(I, Converter)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    C: Converter,
 ;
 
-impl<I, C> Map<I, C>
+impl<I> Map<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    C: Converter,
 {
-    pub fn new(iter: I, conv: C) -> Self {
+    pub fn new(iter: I, conv: Converter) -> Self {
         Self(iter, conv)
     }
 }
 
-impl<I, C> Iterator for Map<I, C>
+impl<I> Iterator for Map<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    C: Converter,
 {
     type Item = Result<MetaVal, Error>;
 
@@ -444,26 +438,23 @@ where
     }
 }
 
-pub struct SkipWhile<I, P>(I, P, bool)
+pub struct SkipWhile<I>(I, Predicate, bool)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 ;
 
-impl<I, P> SkipWhile<I, P>
+impl<I> SkipWhile<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 {
-    pub fn new(iter: I, pred: P) -> Self {
+    pub fn new(iter: I, pred: Predicate) -> Self {
         Self(iter, pred, true)
     }
 }
 
-impl<I, P> Iterator for SkipWhile<I, P>
+impl<I> Iterator for SkipWhile<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 {
     type Item = Result<MetaVal, Error>;
 
@@ -490,26 +481,23 @@ where
     }
 }
 
-pub struct TakeWhile<I, P>(I, P, bool)
+pub struct TakeWhile<I>(I, Predicate, bool)
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 ;
 
-impl<I, P> TakeWhile<I, P>
+impl<I> TakeWhile<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 {
-    pub fn new(iter: I, pred: P) -> Self {
+    pub fn new(iter: I, pred: Predicate) -> Self {
         Self(iter, pred, true)
     }
 }
 
-impl<I, P> Iterator for TakeWhile<I, P>
+impl<I> Iterator for TakeWhile<I>
 where
     I: Iterator<Item = Result<MetaVal, Error>>,
-    P: Predicate,
 {
     type Item = Result<MetaVal, Error>;
 

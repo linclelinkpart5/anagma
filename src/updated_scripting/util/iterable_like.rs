@@ -25,8 +25,8 @@ use crate::updated_scripting::util::producer::SkipWhile;
 use crate::updated_scripting::util::producer::TakeWhile;
 use crate::updated_scripting::util::producer::Intersperse;
 use crate::updated_scripting::util::producer::RoundRobin;
-use crate::updated_scripting::traits::Predicate;
-use crate::updated_scripting::traits::Converter;
+use crate::updated_scripting::ops::Predicate;
+use crate::updated_scripting::ops::Converter;
 
 #[derive(Copy, Clone)]
 enum RevSort { Rev, Sort, }
@@ -323,7 +323,7 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Helper method for `all`/`any`.
-    fn all_any<P: Predicate>(self, pred: P, flag: AllAny) -> Result<bool, Error> {
+    fn all_any(self, pred: Predicate, flag: AllAny) -> Result<bool, Error> {
         let target = match flag {
             AllAny::All => false,
             AllAny::Any => true,
@@ -339,18 +339,18 @@ impl<'a> IterableLike<'a> {
 
     /// Applies a predicate to each item in the iterable.
     /// Returns false if the iterable contains an item for which the predicate returns false.
-    pub fn all<P: Predicate>(self, pred: P) -> Result<bool, Error> {
+    pub fn all(self, pred: Predicate) -> Result<bool, Error> {
         self.all_any(pred, AllAny::All)
     }
 
     /// Applies a predicate to each item in the iterable.
     /// Returns true if the iterable contains an item for which the predicate returns true.
-    pub fn any<P: Predicate>(self, pred: P) -> Result<bool, Error> {
+    pub fn any(self, pred: Predicate) -> Result<bool, Error> {
         self.all_any(pred, AllAny::Any)
     }
 
     /// Helper method for `find`/`position`.
-    fn find_position<P: Predicate>(self, pred: P) -> Result<Option<(usize, Cow<'a, MetaVal>)>, Error> {
+    fn find_position(self, pred: Predicate) -> Result<Option<(usize, Cow<'a, MetaVal>)>, Error> {
         for (n, res_item) in self.into_iter().enumerate() {
             let item = res_item?;
             if pred.test(&item)? { return Ok(Some((n, item))) }
@@ -361,18 +361,18 @@ impl<'a> IterableLike<'a> {
 
     /// Finds the first item in the iterable that passes a predicate, and returns the item.
     /// If no items pass the predicate, returns `None`.
-    pub fn find<P: Predicate>(self, pred: P) -> Result<Option<Cow<'a, MetaVal>>, Error> {
+    pub fn find(self, pred: Predicate) -> Result<Option<Cow<'a, MetaVal>>, Error> {
         Ok(self.find_position(pred)?.map(|(_, item)| item))
     }
 
     /// Finds the first item in the iterable that passes a predicate, and returns the index of the item.
     /// If no items pass the predicate, returns `None`.
-    pub fn position<P: Predicate>(self, pred: P) -> Result<Option<usize>, Error> {
+    pub fn position(self, pred: Predicate) -> Result<Option<usize>, Error> {
         Ok(self.find_position(pred)?.map(|(index, _)| index))
     }
 
     /// Produces a new iterable containing only items that pass a given predicate.
-    pub fn filter<P: Predicate + 'static>(self, pred: P) -> Result<Self, Error> {
+    pub fn filter(self, pred: Predicate) -> Result<Self, Error> {
         let (inner, is_lazy) = self.into_producer();
 
         let producer = Filter::new(inner, pred);
@@ -382,7 +382,7 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Produces a new iterable by applying a converter to each item in the original iterable.
-    pub fn map<C: Converter + 'static>(self, conv: C) -> Result<Self, Error> {
+    pub fn map(self, conv: Converter) -> Result<Self, Error> {
         let (inner, is_lazy) = self.into_producer();
 
         let producer = Map::new(inner, conv);
@@ -447,7 +447,7 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Produces a new iterable that skips items from the start while a predicate returns true.
-    pub fn skip_while<P: Predicate + 'static>(self, pred: P) -> Result<Self, Error> {
+    pub fn skip_while(self, pred: Predicate) -> Result<Self, Error> {
         let (inner, is_lazy) = self.into_producer();
 
         let producer = SkipWhile::new(inner, pred);
@@ -457,7 +457,7 @@ impl<'a> IterableLike<'a> {
     }
 
     /// Produces a new iterable that takes items from the start while a predicate returns true.
-    pub fn take_while<P: Predicate + 'static>(self, pred: P) -> Result<Self, Error> {
+    pub fn take_while(self, pred: Predicate) -> Result<Self, Error> {
         let (inner, is_lazy) = self.into_producer();
 
         let producer = TakeWhile::new(inner, pred);
@@ -487,63 +487,5 @@ impl<'a> IterableLike<'a> {
 
         if is_lazy { Ok(Self::Producer(Producer::new(producer))) }
         else { Ok(Self::Vector(producer.collect::<Result<Vec<_>, _>>()?)) }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use rand::Rng;
-
-    use crate::test_util::TestUtil as TU;
-
-    struct TestPredicate(String);
-
-    impl Predicate for TestPredicate {
-        fn test(&self, mv: &MetaVal) -> Result<bool, Error> {
-            Ok(!match mv {
-                &MetaVal::Str(ref s) => &self.0 == s,
-                _ => false,
-            })
-        }
-    }
-
-    const CHARS: &[u8] = b"abcde";
-    const STR_LEN: usize = 6;
-
-    fn random_string() -> String {
-        let mut rng = rand::thread_rng();
-        let idx = rng.gen_range(0, CHARS.len());
-
-        (0..STR_LEN).map(|_| CHARS[idx] as char).collect()
-    }
-
-    #[test]
-    fn test_filter() {
-        let mvs = (0..10).map(|_| TU::s(random_string())).collect::<Vec<_>>();
-
-        let target = random_string();
-
-        println!("String to filter out: {}", target);
-
-        println!("Initial:");
-        for x in mvs.clone() {
-            println!("{:?}", x);
-        }
-
-        let il = IterableLike::Producer(Producer::from(mvs.clone()));
-
-        println!("Producer:");
-        for x in il.filter(TestPredicate(String::from(target.clone()))).unwrap() {
-            println!("{:?}", x);
-        }
-
-        let il = IterableLike::Vector(mvs.clone());
-
-        println!("Vector:");
-        for x in il.filter(TestPredicate(String::from(target.clone()))).unwrap() {
-            println!("{:?}", x);
-        }
     }
 }
