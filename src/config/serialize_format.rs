@@ -2,29 +2,29 @@
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum MetaFormat {
+pub enum SerializeFormat {
     Yaml,
     Json,
 }
 
-impl Default for MetaFormat {
+impl Default for SerializeFormat {
     fn default() -> Self {
-        MetaFormat::Yaml
+        SerializeFormat::Yaml
     }
 }
 
-impl MetaFormat {
+impl SerializeFormat {
     pub fn default_file_extension(&self) -> &'static str {
         match *self {
-            MetaFormat::Yaml => "yml",
-            MetaFormat::Json => "json",
+            SerializeFormat::Yaml => "yml",
+            SerializeFormat::Json => "json",
         }
     }
 
     pub fn extra_file_extensions(&self) -> &'static[&'static str] {
         match *self {
-            MetaFormat::Yaml => &["yaml"],
-            MetaFormat::Json => &[],
+            SerializeFormat::Yaml => &["yaml"],
+            SerializeFormat::Json => &[],
         }
     }
 }

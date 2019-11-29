@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use crate::config::selection::Selection;
 use crate::config::sort_order::SortOrder;
-use crate::config::meta_format::MetaFormat;
+use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::location::Error as LocationError;
@@ -50,14 +50,14 @@ impl MetaProcessor {
     pub fn process_meta_file<P>(
         meta_path: P,
         meta_location: MetaLocation,
-        meta_format: MetaFormat,
+        serialize_format: SerializeFormat,
         selection: &Selection,
         sort_order: SortOrder,
     ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
         P: AsRef<Path>,
     {
-        let meta_structure = meta_format.from_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
+        let meta_structure = serialize_format.from_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
 
         let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, selection).map_err(Error::CannotFindItemPaths)?;
 
@@ -80,7 +80,7 @@ impl MetaProcessor {
     // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
     pub fn process_item_file<P>(
         item_path: P,
-        meta_format: MetaFormat,
+        serialize_format: SerializeFormat,
         selection: &Selection,
         sort_order: SortOrder,
     ) -> Result<MetaBlock, Error>
@@ -90,7 +90,7 @@ impl MetaProcessor {
         let mut comp_mb = MetaBlock::new();
 
         for meta_location in META_LOCATION_ORDER.into_iter() {
-            let meta_path = match meta_location.get_meta_path(&item_path, meta_format) {
+            let meta_path = match meta_location.get_meta_path(&item_path, serialize_format) {
                 Err(e) => {
                     match e {
                         LocationError::NonexistentMetaPath(..) |
@@ -105,7 +105,7 @@ impl MetaProcessor {
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
                 *meta_location,
-                meta_format,
+                serialize_format,
                 selection,
                 sort_order,
             )?;
@@ -128,7 +128,7 @@ mod tests {
     use super::MetaProcessor;
 
     use crate::config::Config;
-    use crate::config::meta_format::MetaFormat;
+    use crate::config::serialize_format::SerializeFormat;
     use crate::metadata::location::MetaLocation;
     use crate::metadata::types::MetaVal;
     use crate::metadata::types::MetaKey;
@@ -231,7 +231,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::process_meta_file(meta_path, meta_location, MetaFormat::Yaml, selection, sort_order).unwrap();
+            let produced = MetaProcessor::process_meta_file(meta_path, meta_location, SerializeFormat::Yaml, selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -281,7 +281,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::process_item_file(item_path, MetaFormat::Yaml, selection, sort_order).unwrap();
+            let produced = MetaProcessor::process_item_file(item_path, SerializeFormat::Yaml, selection, sort_order).unwrap();
             assert_eq!(expected, produced);
         }
     }

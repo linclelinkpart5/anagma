@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 
 use crate::config::selection::Selection;
 use crate::config::sort_order::SortOrder;
-use crate::config::meta_format::MetaFormat;
+use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::processor::MetaProcessor;
 use crate::metadata::processor::Error as ProcessorError;
@@ -102,7 +102,7 @@ impl<'p> Iterator for FixedMetaBlockStream<'p> {
 #[derive(Debug)]
 pub struct FileMetaBlockStream<'p> {
     file_walker: FileWalker<'p>,
-    meta_format: MetaFormat,
+    serialize_format: SerializeFormat,
     selection: &'p Selection,
     sort_order: SortOrder,
 }
@@ -110,7 +110,7 @@ pub struct FileMetaBlockStream<'p> {
 impl<'p> FileMetaBlockStream<'p> {
     pub fn new<FW>(
         file_walker: FW,
-        meta_format: MetaFormat,
+        serialize_format: SerializeFormat,
         selection: &'p Selection,
         sort_order: SortOrder,
     ) -> Self
@@ -119,7 +119,7 @@ impl<'p> FileMetaBlockStream<'p> {
     {
         FileMetaBlockStream {
             file_walker: file_walker.into(),
-            meta_format,
+            serialize_format,
             selection,
             sort_order,
         }
@@ -137,7 +137,7 @@ impl<'p> Iterator for FileMetaBlockStream<'p> {
                         Some(
                             MetaProcessor::process_item_file(
                                 &path,
-                                self.meta_format,
+                                self.serialize_format,
                                 self.selection,
                                 self.sort_order,
                             )
@@ -173,7 +173,7 @@ mod tests {
     use crate::metadata::types::MetaVal;
     use crate::config::selection::Selection;
     use crate::config::sort_order::SortOrder;
-    use crate::config::meta_format::MetaFormat;
+    use crate::config::serialize_format::SerializeFormat;
     use crate::util::file_walkers::FileWalker;
     use crate::util::file_walkers::ParentFileWalker;
     use crate::util::file_walkers::ChildFileWalker;
@@ -215,7 +215,7 @@ mod tests {
 
         let mut stream = FileMetaBlockStream {
             file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
-            meta_format: MetaFormat::Json,
+            serialize_format: SerializeFormat::Json,
             selection: &Selection::default(),
             sort_order: SortOrder::Name,
         };
@@ -229,7 +229,7 @@ mod tests {
 
         let mut stream = FileMetaBlockStream {
             file_walker: FileWalker::Child(ChildFileWalker::new(&test_path)),
-            meta_format: MetaFormat::Json,
+            serialize_format: SerializeFormat::Json,
             selection: &Selection::default(),
             sort_order: SortOrder::Name,
         };

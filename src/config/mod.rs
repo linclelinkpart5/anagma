@@ -1,10 +1,10 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
-pub mod meta_format;
+pub mod serialize_format;
 pub mod selection;
 pub mod sort_order;
 
-use crate::config::meta_format::MetaFormat;
+use crate::config::serialize_format::SerializeFormat;
 use crate::config::selection::Selection;
 use crate::config::sort_order::SortOrder;
 
@@ -15,7 +15,7 @@ pub struct Config {
     pub sort_order: SortOrder,
     pub item_fn: String,
     pub self_fn: String,
-    pub meta_format: MetaFormat,
+    pub serialize_format: SerializeFormat,
 }
 
 impl Default for Config {
@@ -25,16 +25,16 @@ impl Default for Config {
         // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
         let selection = Selection::default();
         let sort_order = SortOrder::default();
-        let meta_format = MetaFormat::default();
-        let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), meta_format.default_file_extension());
-        let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), meta_format.default_file_extension());
+        let serialize_format = SerializeFormat::default();
+        let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), serialize_format.default_file_extension());
+        let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), serialize_format.default_file_extension());
 
         Config {
             selection,
             sort_order,
             item_fn,
             self_fn,
-            meta_format,
+            serialize_format,
         }
     }
 }
@@ -45,7 +45,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::config::sort_order::SortOrder;
-    use crate::config::meta_format::MetaFormat;
+    use crate::config::serialize_format::SerializeFormat;
 
     #[test]
     fn test_deserialization() {
@@ -65,7 +65,7 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.meta_format, MetaFormat::Yaml);
+        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
 
         let text_config = r#"
             selection:
@@ -83,7 +83,7 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.meta_format, MetaFormat::Yaml);
+        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
 
         let text_config = r#"
             selection:
@@ -99,7 +99,7 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.meta_format, MetaFormat::Yaml);
+        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
 
         let text_config = r#"
             selection:
@@ -107,7 +107,7 @@ mod tests {
                 exclude: '*.mp3'
             sort_order: name
             item_fn: item_meta.yml
-            meta_format: yaml
+            serialize_format: yaml
         "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
@@ -118,6 +118,6 @@ mod tests {
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item_meta.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.meta_format, MetaFormat::Yaml);
+        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
     }
 }

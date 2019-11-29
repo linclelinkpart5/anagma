@@ -12,7 +12,7 @@ use tempfile::TempDir;
 use rust_decimal::Decimal;
 use rand::seq::SliceRandom;
 
-use crate::config::meta_format::MetaFormat;
+use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::types::MetaVal;
 use crate::metadata::types::MetaKey;
@@ -204,20 +204,20 @@ trait TestSerialize {
         to_join.join("\n")
     }
 
-    fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String;
+    fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String;
 }
 
 impl TestSerialize for MetaStructure {
-    fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
+    fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String {
         match self {
-            &MetaStructure::One(ref mb) => MetaVal::Map(mb.clone()).to_serialized_chunk(meta_format),
+            &MetaStructure::One(ref mb) => MetaVal::Map(mb.clone()).to_serialized_chunk(serialize_format),
             &MetaStructure::Seq(ref mb_seq) => {
                 MetaVal::Seq(
                     mb_seq
                         .into_iter()
                         .map(|v| MetaVal::Map(v.clone()))
                         .collect()
-                ).to_serialized_chunk(meta_format)
+                ).to_serialized_chunk(serialize_format)
             },
             &MetaStructure::Map(ref mb_map) => {
                 MetaVal::Map(
@@ -225,27 +225,27 @@ impl TestSerialize for MetaStructure {
                         .into_iter()
                         .map(|(k, v)| (MetaKey::from(k.clone()), MetaVal::Map(v.clone())))
                         .collect()
-                ).to_serialized_chunk(meta_format)
+                ).to_serialized_chunk(serialize_format)
             },
         }
     }
 }
 
 impl TestSerialize for MetaVal {
-    fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
-        match (meta_format, self) {
-            (MetaFormat::Json, &Self::Nil) => "null".into(),
-            (MetaFormat::Yaml, &Self::Nil) => "~".into(),
-            (MetaFormat::Json, &Self::Str(ref s)) => format!(r#""{}""#, s),
-            (MetaFormat::Yaml, &Self::Str(ref s)) => s.clone(),
+    fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String {
+        match (serialize_format, self) {
+            (SerializeFormat::Json, &Self::Nil) => "null".into(),
+            (SerializeFormat::Yaml, &Self::Nil) => "~".into(),
+            (SerializeFormat::Json, &Self::Str(ref s)) => format!(r#""{}""#, s),
+            (SerializeFormat::Yaml, &Self::Str(ref s)) => s.clone(),
             (_, &Self::Int(i)) => format!("{}", i),
             (_, &Self::Dec(ref d)) => format!("{}", d),
             (_, &Self::Bul(b)) => format!("{}", b),
-            (MetaFormat::Json, &Self::Seq(ref seq)) => {
+            (SerializeFormat::Json, &Self::Seq(ref seq)) => {
                 let mut val_chunks = vec![];
 
                 for val in seq {
-                    let val_chunk = val.to_serialized_chunk(meta_format);
+                    let val_chunk = val.to_serialized_chunk(serialize_format);
 
                     let val_chunk = Self::indent_chunk(val_chunk);
 
@@ -259,11 +259,11 @@ impl TestSerialize for MetaVal {
                     String::from("[]")
                 }
             },
-            (MetaFormat::Yaml, &Self::Seq(ref seq)) => {
+            (SerializeFormat::Yaml, &Self::Seq(ref seq)) => {
                 let mut val_chunks = vec![];
 
                 for val in seq {
-                    let val_chunk = val.to_serialized_chunk(meta_format);
+                    let val_chunk = val.to_serialized_chunk(serialize_format);
 
                     let val_chunk = Self::indent_yaml_list_chunk(val_chunk);
 
@@ -277,11 +277,11 @@ impl TestSerialize for MetaVal {
                     String::from("[]")
                 }
             },
-            (MetaFormat::Json, &Self::Map(ref map)) => {
+            (SerializeFormat::Json, &Self::Map(ref map)) => {
                 let mut kv_pair_chunks = vec![];
 
                 for (key, val) in map {
-                    let val_chunk = val.to_serialized_chunk(meta_format);
+                    let val_chunk = val.to_serialized_chunk(serialize_format);
 
                     let kv_pair_chunk = format!(r#""{}": {}"#, key, val_chunk);
 
@@ -297,12 +297,12 @@ impl TestSerialize for MetaVal {
                     String::from("{}")
                 }
             },
-            (MetaFormat::Yaml, &Self::Map(ref map)) => {
+            (SerializeFormat::Yaml, &Self::Map(ref map)) => {
                 let mut kv_pair_chunks = vec![];
 
                 for (key, val) in map {
                     let val_chunk = {
-                        let val_chunk = val.to_serialized_chunk(meta_format);
+                        let val_chunk = val.to_serialized_chunk(serialize_format);
 
                         match val {
                             Self::Seq(..) | Self::Map(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
@@ -550,7 +550,7 @@ impl TestUtil {
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
             let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(MetaLocation::Contains, &parent_name, false));
-            let self_lines = self_meta_struct.to_serialized_chunk(MetaFormat::Json);
+            let self_lines = self_meta_struct.to_serialized_chunk(SerializeFormat::Json);
             writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
 
             let mut item_meta_blocks = vec![];
@@ -588,7 +588,7 @@ impl TestUtil {
             let mut item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
 
             let item_meta_struct = MetaStructure::Seq(item_meta_blocks);
-            let item_lines = item_meta_struct.to_serialized_chunk(MetaFormat::Json);
+            let item_lines = item_meta_struct.to_serialized_chunk(SerializeFormat::Json);
             writeln!(item_meta_file, "{}", item_lines).expect("unable to write to item meta file");
         }
 
@@ -620,7 +620,7 @@ mod tests {
 
     use rust_decimal::Decimal;
 
-    use crate::config::meta_format::MetaFormat;
+    use crate::config::serialize_format::SerializeFormat;
     use crate::metadata::types::MetaVal;
 
     #[test]
@@ -674,35 +674,35 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (seq_a.clone(), MetaFormat::Json),
+                (seq_a.clone(), SerializeFormat::Json),
                 "[\n  27,\n  \"string\"\n]",
             ),
             (
-                (seq_a.clone(), MetaFormat::Yaml),
+                (seq_a.clone(), SerializeFormat::Yaml),
                 "- 27\n- string",
             ),
             (
-                (seq_seq.clone(), MetaFormat::Json),
+                (seq_seq.clone(), SerializeFormat::Json),
                 "[\n  [\n    27,\n    \"string\"\n  ],\n  [\n    false,\n    null,\n    3.1415\n  ]\n]",
             ),
             (
-                (seq_seq.clone(), MetaFormat::Yaml),
+                (seq_seq.clone(), SerializeFormat::Yaml),
                 "- - 27\n  - string\n- - false\n  - ~\n  - 3.1415",
             ),
             (
-                (map.clone(), MetaFormat::Json),
+                (map.clone(), SerializeFormat::Json),
                 "{\n  \"key_a\": [\n    27,\n    \"string\"\n  ],\n  \"key_b\": [\n    false,\n    null,\n    3.1415\n  ],\n  \"key_c\": [\n    [\n      27,\n      \"string\"\n    ],\n    [\n      false,\n      null,\n      3.1415\n    ]\n  ]\n}",
             ),
             (
-                (map.clone(), MetaFormat::Yaml),
+                (map.clone(), SerializeFormat::Yaml),
                 "key_a:\n  - 27\n  - string\nkey_b:\n  - false\n  - ~\n  - 3.1415\nkey_c:\n  - - 27\n    - string\n  - - false\n    - ~\n    - 3.1415",
             ),
         ];
 
         for (inputs, expected) in inputs_and_expected {
-            let (mv, meta_format) = inputs;
+            let (mv, serialize_format) = inputs;
 
-            let produced = mv.to_serialized_chunk(meta_format);
+            let produced = mv.to_serialized_chunk(serialize_format);
 
             assert_eq!(expected, produced);
         }

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::fs;
 
 use crate::config::selection::Selection;
-use crate::config::meta_format::MetaFormat;
+use crate::config::serialize_format::SerializeFormat;
 
 #[derive(Debug)]
 pub enum Error {
@@ -61,7 +61,7 @@ pub enum MetaLocation {
 }
 
 impl MetaLocation {
-    pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P, meta_format: MetaFormat) -> Result<PathBuf, Error> {
+    pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P, serialize_format: SerializeFormat) -> Result<PathBuf, Error> {
         let item_path = item_path.as_ref();
 
         if !item_path.exists() {
@@ -85,7 +85,7 @@ impl MetaLocation {
         };
 
         // Start with the default extension of the meta format.
-        let exts = std::iter::once(meta_format.default_file_extension()).chain(meta_format.extra_file_extensions().into_iter().cloned());
+        let exts = std::iter::once(serialize_format.default_file_extension()).chain(serialize_format.extra_file_extensions().into_iter().cloned());
 
         let mut attempted_paths = vec![];
 

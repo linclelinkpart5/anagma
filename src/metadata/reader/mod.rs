@@ -7,7 +7,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
-use crate::config::meta_format::MetaFormat;
+use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::types::MetaStructure;
 
@@ -67,11 +67,11 @@ pub trait MetaReader {
     }
 }
 
-impl MetaReader for MetaFormat {
+impl MetaReader for SerializeFormat {
     fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
         Ok(match *self {
-            MetaFormat::Yaml => yaml::read_str(s, mt)?,
-            MetaFormat::Json => json::read_str(s, mt)?,
+            SerializeFormat::Yaml => yaml::read_str(s, mt)?,
+            SerializeFormat::Json => json::read_str(s, mt)?,
         })
     }
 }
