@@ -55,7 +55,7 @@ impl OneOrManyPatterns {
 
 /// A filter for file paths, used to determine if a path is to be considered a metadata-containing item.
 #[derive(Debug)]
-pub struct Matcher(GlobSet, Vec<Glob>);
+pub struct Matcher(GlobSet);
 
 impl<'de> Deserialize<'de> for Matcher {
     fn deserialize<D>(deserializer: D) -> Result<Matcher, D::Error>
@@ -74,28 +74,21 @@ impl Matcher {
         S: AsRef<str>,
     {
         let mut builder = GlobSetBuilder::new();
-        let mut cached_patterns = vec![];
 
         for pattern_str in pattern_strs.into_iter() {
             let pattern_str = pattern_str.as_ref();
             let pattern = Glob::new(&pattern_str).map_err(Error::InvalidPattern)?;
-            builder.add(pattern.clone());
-            cached_patterns.push(pattern);
+            builder.add(pattern);
         }
 
         let matcher = builder.build().map_err(Error::BuildFailure)?;
 
-        // Sort and dedupe the patterns.
-        cached_patterns.sort_by(|pa, pb| pa.glob().cmp(pb.glob()));
-        cached_patterns.dedup();
-
-        Ok(Matcher(matcher, cached_patterns))
+        Ok(Matcher(matcher))
     }
 
     pub fn is_match<P: AsRef<Path>>(&self, path: P) -> bool {
         // LEARN: Matching on the file name explicitly is needed for patterns such as "self*".
         path.as_ref().file_name().map(|f| self.0.is_match(f)).unwrap_or(false)
-        // self.0.is_match(path.as_ref())
     }
 
     pub fn any() -> Self {
@@ -104,16 +97,13 @@ impl Matcher {
     }
 
     pub fn empty() -> Self {
-        Matcher(GlobSet::empty(), vec![])
+        Matcher(GlobSet::empty())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Matcher;
-    // use super::Error;
-
-    use std::path::Path;
 
     #[test]
     fn test_deserialization() {
@@ -169,55 +159,52 @@ mod tests {
 
     #[test]
     fn test_is_match() {
-        let matcher_a = Matcher::from_patterns(&["*.a", "*.b"]).unwrap();
-        let matcher_b = Matcher::from_patterns(&["*.b"]).unwrap();
-        let matcher_c = Matcher::from_patterns(&["*.a", "*.c"]).unwrap();
-        let matcher_d = Matcher::from_patterns(&["*"]).unwrap();
+        let matcher = Matcher::from_patterns(&["*.a", "*.b"]).unwrap();
+        assert_eq!(matcher.is_match("path.a"), true);
+        assert_eq!(matcher.is_match("path.b"), true);
+        assert_eq!(matcher.is_match("path.c"), false);
+        assert_eq!(matcher.is_match("path.ab"), false);
+        assert_eq!(matcher.is_match("path"), false);
 
-        assert_eq!(matcher_a.is_match(Path::new("path.a")), true);
-        assert_eq!(matcher_a.is_match(Path::new("path.b")), true);
-        assert_eq!(matcher_a.is_match(Path::new("path.c")), false);
-        assert_eq!(matcher_a.is_match(Path::new("path.ab")), false);
-        assert_eq!(matcher_a.is_match(Path::new("path")), false);
+        let matcher = Matcher::from_patterns(&["*.b"]).unwrap();
+        assert_eq!(matcher.is_match("path.a"), false);
+        assert_eq!(matcher.is_match("path.b"), true);
+        assert_eq!(matcher.is_match("path.c"), false);
+        assert_eq!(matcher.is_match("path.ab"), false);
+        assert_eq!(matcher.is_match("path"), false);
 
-        assert_eq!(matcher_b.is_match(Path::new("path.a")), false);
-        assert_eq!(matcher_b.is_match(Path::new("path.b")), true);
-        assert_eq!(matcher_b.is_match(Path::new("path.c")), false);
-        assert_eq!(matcher_b.is_match(Path::new("path.ab")), false);
-        assert_eq!(matcher_b.is_match(Path::new("path")), false);
+        let matcher = Matcher::from_patterns(&["*.a", "*.c"]).unwrap();
+        assert_eq!(matcher.is_match("path.a"), true);
+        assert_eq!(matcher.is_match("path.b"), false);
+        assert_eq!(matcher.is_match("path.c"), true);
+        assert_eq!(matcher.is_match("path.ab"), false);
+        assert_eq!(matcher.is_match("path"), false);
 
-        assert_eq!(matcher_c.is_match(Path::new("path.a")), true);
-        assert_eq!(matcher_c.is_match(Path::new("path.b")), false);
-        assert_eq!(matcher_c.is_match(Path::new("path.c")), true);
-        assert_eq!(matcher_c.is_match(Path::new("path.ab")), false);
-        assert_eq!(matcher_c.is_match(Path::new("path")), false);
-
-        assert_eq!(matcher_d.is_match(Path::new("path.a")), true);
-        assert_eq!(matcher_d.is_match(Path::new("path.b")), true);
-        assert_eq!(matcher_d.is_match(Path::new("path.c")), true);
-        assert_eq!(matcher_d.is_match(Path::new("path.ab")), true);
-        assert_eq!(matcher_d.is_match(Path::new("path")), true);
+        let matcher = Matcher::from_patterns(&["*"]).unwrap();
+        assert_eq!(matcher.is_match("path.a"), true);
+        assert_eq!(matcher.is_match("path.b"), true);
+        assert_eq!(matcher.is_match("path.c"), true);
+        assert_eq!(matcher.is_match("path.ab"), true);
+        assert_eq!(matcher.is_match("path"), true);
     }
 
     #[test]
     fn test_any() {
         let matcher = Matcher::any();
-
-        assert_eq!(matcher.is_match(Path::new("path")), true);
-        assert_eq!(matcher.is_match(Path::new("path.a")), true);
-        assert_eq!(matcher.is_match(Path::new("path.a.b.c")), true);
-        assert_eq!(matcher.is_match(Path::new("path.ab")), true);
-        assert_eq!(matcher.is_match(Path::new("")), false);
+        assert_eq!(matcher.is_match("path"), true);
+        assert_eq!(matcher.is_match("path.a"), true);
+        assert_eq!(matcher.is_match("path.a.b.c"), true);
+        assert_eq!(matcher.is_match("path.ab"), true);
+        assert_eq!(matcher.is_match(""), false);
     }
 
     #[test]
     fn test_empty() {
         let matcher = Matcher::empty();
-
-        assert_eq!(matcher.is_match(Path::new("path")), false);
-        assert_eq!(matcher.is_match(Path::new("path.a")), false);
-        assert_eq!(matcher.is_match(Path::new("path.a.b.c")), false);
-        assert_eq!(matcher.is_match(Path::new("path.ab")), false);
-        assert_eq!(matcher.is_match(Path::new("")), false);
+        assert_eq!(matcher.is_match("path"), false);
+        assert_eq!(matcher.is_match("path.a"), false);
+        assert_eq!(matcher.is_match("path.a.b.c"), false);
+        assert_eq!(matcher.is_match("path.ab"), false);
+        assert_eq!(matcher.is_match(""), false);
     }
 }
