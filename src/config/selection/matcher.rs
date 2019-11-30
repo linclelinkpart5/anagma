@@ -1,8 +1,6 @@
 //! Represents a method of determining whether a potential item path is to be included in metadata lookup.
 
 use std::path::Path;
-use std::hash::Hash;
-use std::hash::Hasher;
 
 use globset::Glob;
 use globset::GlobSet;
@@ -14,14 +12,14 @@ use serde::de::Deserializer;
 #[derive(Debug)]
 pub enum Error {
     InvalidPattern(GlobError),
-    CannotBuildSelector(GlobError),
+    BuildFailure(GlobError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
-            Error::CannotBuildSelector(ref err) => write!(f, "cannot build selector: {}", err),
+            Error::BuildFailure(ref err) => write!(f, "cannot build matcher: {}", err),
         }
     }
 }
@@ -30,7 +28,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::InvalidPattern(ref err) => Some(err),
-            Error::CannotBuildSelector(ref err) => Some(err),
+            Error::BuildFailure(ref err) => Some(err),
         }
     }
 }
@@ -85,7 +83,7 @@ impl Matcher {
             cached_patterns.push(pattern);
         }
 
-        let matcher = builder.build().map_err(Error::CannotBuildSelector)?;
+        let matcher = builder.build().map_err(Error::BuildFailure)?;
 
         // Sort and dedupe the patterns.
         cached_patterns.sort_by(|pa, pb| pa.glob().cmp(pb.glob()));
@@ -110,28 +108,12 @@ impl Matcher {
     }
 }
 
-impl Hash for Matcher {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.1.hash(state)
-    }
-}
-
-impl PartialEq for Matcher {
-    fn eq(&self, other: &Self) -> bool {
-        self.1 == other.1
-    }
-}
-
-impl Eq for Matcher {}
-
 #[cfg(test)]
 mod tests {
     use super::Matcher;
     // use super::Error;
 
     use std::path::Path;
-
-    use serde_yaml;
 
     #[test]
     fn test_deserialization() {
@@ -182,14 +164,7 @@ mod tests {
         // Nested alternates.
         assert!(Matcher::from_patterns(&["{*.a,{*.b,*.c}}"]).is_err());
         // Dangling escape.
-        // assert!(Matcher::from_patterns(&["*.a\""]).is_err());
-
-        // for input in failing_inputs {
-        //     match input.unwrap_err() {
-        //         Error::InvalidPattern(_) => {},
-        //         _ => { panic!(); },
-        //     }
-        // }
+        assert!(Matcher::from_patterns(&["*.a\\"]).is_err());
     }
 
     #[test]
