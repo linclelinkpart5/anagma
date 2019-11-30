@@ -1,6 +1,8 @@
 //! Represents a method of determining whether a potential item path is to be included in metadata lookup.
 
 use std::path::Path;
+use std::convert::TryFrom;
+use std::convert::TryInto;
 
 use globset::Glob;
 use globset::GlobSet;
@@ -40,15 +42,13 @@ enum OneOrManyPatterns {
     Many(Vec<String>),
 }
 
-impl OneOrManyPatterns {
-    fn into_matcher(self) -> Result<Matcher, Error> {
-        match self {
-            OneOrManyPatterns::One(p) => {
-                Matcher::from_patterns(&[p])
-            },
-            OneOrManyPatterns::Many(ps) => {
-                Matcher::from_patterns(&ps)
-            },
+impl TryFrom<OneOrManyPatterns> for Matcher {
+    type Error = Error;
+
+    fn try_from(oom: OneOrManyPatterns) -> Result<Self, Self::Error> {
+        match oom {
+            OneOrManyPatterns::One(p) => Matcher::from_patterns(&[p]),
+            OneOrManyPatterns::Many(ps) => Matcher::from_patterns(&ps),
         }
     }
 }
@@ -62,7 +62,7 @@ impl<'de> Deserialize<'de> for Matcher {
     where D: Deserializer<'de> {
         use serde::de::Error;
         let oom_patterns = OneOrManyPatterns::deserialize(deserializer).map_err(Error::custom)?;
-        let matcher = oom_patterns.into_matcher().map_err(Error::custom)?;
+        let matcher = oom_patterns.try_into().map_err(Error::custom)?;
         Ok(matcher)
     }
 }
