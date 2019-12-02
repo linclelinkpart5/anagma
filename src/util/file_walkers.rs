@@ -184,8 +184,7 @@ mod tests {
         let start_path = root_dir.path();
 
         // Skip the first file of each leaf directory.
-        // NOTE: Recall that directories are always selected.
-        let selection = Selection::from_patterns(vec!["*_*"], vec!["*_0"]).unwrap();
+        let selection = Selection::from_patterns(&["*_*"], &["*_0"], &["*"], &[] as &[&str]).unwrap();
         let sort_order = SortOrder::Name;
         let mut walker = ChildFileWalker::new(&start_path);
 

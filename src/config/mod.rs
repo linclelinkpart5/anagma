@@ -51,17 +51,17 @@ mod tests {
     fn test_deserialization() {
         let text_config = r#"
             selection:
-                include: '*.flac'
+                include_files: '*.flac'
             sort_order: name
         "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
-        assert_eq!(config.selection.is_pattern_match("music.mp3"), false);
-        assert_eq!(config.selection.is_pattern_match("photo.png"), false);
-        assert_eq!(config.selection.is_pattern_match("self.yml"), false);
-        assert_eq!(config.selection.is_pattern_match("item.yml"), false);
+        assert_eq!(config.selection.is_pattern_match("music.flac", true), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3", true), false);
+        assert_eq!(config.selection.is_pattern_match("photo.png", true), false);
+        assert_eq!(config.selection.is_pattern_match("self.yml", true), false);
+        assert_eq!(config.selection.is_pattern_match("item.yml", true), false);
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
@@ -69,7 +69,7 @@ mod tests {
 
         let text_config = r#"
             selection:
-                include:
+                include_files:
                     - '*.flac'
                     - '*.mp3'
             sort_order: mod_time
@@ -77,9 +77,9 @@ mod tests {
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
-        assert_eq!(config.selection.is_pattern_match("music.mp3"), true);
-        assert_eq!(config.selection.is_pattern_match("photo.png"), false);
+        assert_eq!(config.selection.is_pattern_match("music.flac", true), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3", true), true);
+        assert_eq!(config.selection.is_pattern_match("photo.png", true), false);
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
@@ -87,15 +87,15 @@ mod tests {
 
         let text_config = r#"
             selection:
-                include: '*'
+                include_files: '*'
             sort_order: mod_time
         "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
-        assert_eq!(config.selection.is_pattern_match("music.mp3"), true);
-        assert_eq!(config.selection.is_pattern_match("photo.png"), true);
+        assert_eq!(config.selection.is_pattern_match("music.flac", true), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3", true), true);
+        assert_eq!(config.selection.is_pattern_match("photo.png", true), true);
         assert_eq!(config.sort_order, SortOrder::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
@@ -103,8 +103,8 @@ mod tests {
 
         let text_config = r#"
             selection:
-                include: '*'
-                exclude: '*.mp3'
+                include_files: '*'
+                exclude_files: '*.mp3'
             sort_order: name
             item_fn: item_meta.yml
             serialize_format: yaml
@@ -112,9 +112,9 @@ mod tests {
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
 
-        assert_eq!(config.selection.is_pattern_match("music.flac"), true);
-        assert_eq!(config.selection.is_pattern_match("music.mp3"), false);
-        assert_eq!(config.selection.is_pattern_match("photo.png"), true);
+        assert_eq!(config.selection.is_pattern_match("music.flac", true), true);
+        assert_eq!(config.selection.is_pattern_match("music.mp3", true), false);
+        assert_eq!(config.selection.is_pattern_match("photo.png", true), true);
         assert_eq!(config.sort_order, SortOrder::Name);
         assert_eq!(config.item_fn, "item_meta.yml");
         assert_eq!(config.self_fn, "self.yml");

@@ -39,50 +39,82 @@ impl std::error::Error for Error {
 
 #[derive(Deserialize, Debug)]
 #[serde(default)]
+#[serde(deny_unknown_fields)]
 pub struct Selection {
-    include: Matcher,
-    exclude: Matcher,
+    include_files: Matcher,
+    exclude_files: Matcher,
+    include_dirs: Matcher,
+    exclude_dirs: Matcher,
 }
 
 impl Default for Selection {
     fn default() -> Self {
         Selection {
-            include: Matcher::any(),
-            exclude: Matcher::from_patterns(&["item*", "self*"]).unwrap(),
+            include_files: Matcher::any(),
+            exclude_files: Matcher::from_patterns(&["item*", "self*"]).unwrap(),
+            include_dirs: Matcher::any(),
+            exclude_dirs: Matcher::empty(),
         }
     }
 }
 
 impl Selection {
-    pub fn from_patterns<III, SI, IIE, SE>(include_pattern_strs: III, exclude_pattern_strs: IIE) -> Result<Self, Error>
-    where
-        III: IntoIterator<Item = SI>,
-        SI: AsRef<str>,
-        IIE: IntoIterator<Item = SE>,
-        SE: AsRef<str>,
-    {
-        let include_selection = Matcher::from_patterns(include_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let exclude_selection = Matcher::from_patterns(exclude_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-
-        Ok(Self::from_matchers(include_selection, exclude_selection))
+    pub fn new(
+        include_files: Matcher,
+        exclude_files: Matcher,
+        include_dirs: Matcher,
+        exclude_dirs: Matcher,
+    ) -> Self {
+        Selection {
+            include_files,
+            exclude_files,
+            include_dirs,
+            exclude_dirs,
+        }
     }
 
-    pub fn from_matchers(include: Matcher, exclude: Matcher) -> Self {
-        Selection { include, exclude }
+    pub fn from_patterns<FI, FIS, FE, FES, DI, DIS, DE, DES>(
+        include_files_pattern_strs: FI,
+        exclude_files_pattern_strs: FE,
+        include_dirs_pattern_strs: DI,
+        exclude_dirs_pattern_strs: DE,
+    ) -> Result<Self, Error>
+    where
+        FI: IntoIterator<Item = FIS>,
+        FIS: AsRef<str>,
+        FE: IntoIterator<Item = FES>,
+        FES: AsRef<str>,
+        DI: IntoIterator<Item = DIS>,
+        DIS: AsRef<str>,
+        DE: IntoIterator<Item = DES>,
+        DES: AsRef<str>,
+    {
+        let include_files = Matcher::from_patterns(include_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_files = Matcher::from_patterns(exclude_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let include_dirs = Matcher::from_patterns(include_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_dirs = Matcher::from_patterns(exclude_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+
+        Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
     }
 
     /// Returns true if the path is a pattern match.
     /// In order to be a pattern match, the path must match the include filter, and must NOT match the exclude filter.
     /// This uses only the lexical content of the path, and does not access the filesystem.
-    pub fn is_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
-        self.include.is_match(&path) && !self.exclude.is_match(&path)
+    /// However, a flag is needed in order to determine whether this is matched as a file or as a directory.
+    pub fn is_pattern_match<P: AsRef<Path>>(&self, path: P, is_file: bool) -> bool {
+        let (inc, exc) =
+            if is_file { (&self.include_files, &self.exclude_files) }
+            else { (&self.include_dirs, &self.exclude_dirs) }
+        ;
+
+        inc.is_match(&path) && !exc.is_match(&path)
     }
 
     /// Returns true if a path is selected.
     /// Directories are always marked as selected.
     /// Files are selected if they are also a pattern match.
     pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
-        path.as_ref().is_dir() || (path.as_ref().is_file() && self.is_pattern_match(path))
+        self.is_pattern_match(path.as_ref(), path.as_ref().is_file())
     }
 
     /// Returns items from the input iterable that are selected.
@@ -132,11 +164,9 @@ impl Selection {
 #[cfg(test)]
 mod tests {
     use super::Selection;
-    // use super::Error;
 
     use std::fs::File;
 
-    use serde_yaml;
     use tempfile::Builder;
     use tempfile::TempDir;
 
@@ -172,127 +202,145 @@ mod tests {
     }
 
     #[test]
+    fn test_default() {
+        let selection = Selection::default();
+
+        assert!(selection.is_pattern_match("all", true));
+        assert!(selection.is_pattern_match("files", true));
+        assert!(selection.is_pattern_match("should", true));
+        assert!(selection.is_pattern_match("pass", true));
+        assert!(selection.is_pattern_match("except", true));
+        assert!(selection.is_pattern_match("for", true));
+        assert!(selection.is_pattern_match("these", true));
+
+        assert!(!selection.is_pattern_match("item", true));
+        assert!(!selection.is_pattern_match("self", true));
+
+        assert!(selection.is_pattern_match("all", false));
+        assert!(selection.is_pattern_match("dirs", false));
+        assert!(selection.is_pattern_match("should", false));
+        assert!(selection.is_pattern_match("pass", false));
+        assert!(selection.is_pattern_match("even", false));
+        assert!(selection.is_pattern_match("including", false));
+        assert!(selection.is_pattern_match("item", false));
+        assert!(selection.is_pattern_match("self", false));
+    }
+
+    #[test]
     fn test_deserialization() {
         // A single pattern for each of include and exclude.
-        let text = "include: '*.flac'\nexclude: '*.mp3'";
+        let text = "include_files: '*.flac'\nexclude_files: '*.mp3'";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), false);
 
         // Multiple patterns for each of include and exclude.
-        let text = "include:\n  - '*.flac'\n  - '*.wav'\nexclude:\n  - '*.mp3'\n  - '*.ogg'";
+        let text = "include_files:\n  - '*.flac'\n  - '*.wav'\nexclude_files:\n  - '*.mp3'\n  - '*.ogg'";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.ogg"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.aac"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.ogg", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.aac", true), false);
 
         // Using a default value for missing include patterns.
-        let text = "exclude:\n  - '*.mp3'\n  - '*.ogg'";
+        let text = "exclude_files:\n  - '*.mp3'\n  - '*.ogg'";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.aac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mpc"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.aac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mpc", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.ogg", true), false);
 
         // Using a default value for missing exclude patterns.
-        let text = "include:\n  - '*.flac'\n  - '*.wav'";
+        let text = "include_files:\n  - '*.flac'\n  - '*.wav'";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_pattern_match("path/to/item.flac"), false);
-        assert_eq!(selection.is_pattern_match("path/to/self.flac"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.aac"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.mpc"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/item.flac", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/self.flac", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.aac", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.mpc", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.ogg", true), false);
     }
 
     #[test]
     fn test_from_patterns() {
         // Positive test cases.
-        assert!(Selection::from_patterns(&["*"], &["*"]).is_ok());
-        assert!(Selection::from_patterns(&["*.a", "*.b"], &["*.a", "*.b"]).is_ok());
-        assert!(Selection::from_patterns(&["?.a", "?.b"], &["?.a", "?.b"]).is_ok());
-        assert!(Selection::from_patterns(&["*.a"], &["*.a"]).is_ok());
-        assert!(Selection::from_patterns(&["**"], &["**"]).is_ok());
-        assert!(Selection::from_patterns(&["a/**/b"], &["a/**/b"]).is_ok());
-        assert!(Selection::from_patterns(&[""; 0], &[""; 0]).is_ok());
-        assert!(Selection::from_patterns(&[""], &[""]).is_ok());
-        assert!(Selection::from_patterns(&["[a-z]*.a"], &["[a-z]*.a"]).is_ok());
-        assert!(Selection::from_patterns(&["**", "[a-z]*.a"], &["**", "[a-z]*.a"]).is_ok());
-        assert!(Selection::from_patterns(&["[!abc]"], &["[!abc]"]).is_ok());
-        assert!(Selection::from_patterns(&["[*]"], &["[*]"]).is_ok());
-        assert!(Selection::from_patterns(&["[?]"], &["[?]"]).is_ok());
-        assert!(Selection::from_patterns(&["{*.a,*.b,*.c}"], &["{*.a,*.b,*.c}"]).is_ok());
+        assert!(Selection::from_patterns(&["*"], &["*"], &["*"], &["*"]).is_ok());
+        assert!(Selection::from_patterns(&["*.a", "*.b"], &["*.a", "*.b"], &["*.a", "*.b"], &["*.a", "*.b"]).is_ok());
+        assert!(Selection::from_patterns(&["?.a", "?.b"], &["?.a", "?.b"], &["?.a", "?.b"], &["?.a", "?.b"]).is_ok());
+        assert!(Selection::from_patterns(&["*.a"], &["*.a"], &["*.a"], &["*.a"]).is_ok());
+        assert!(Selection::from_patterns(&["**"], &["**"], &["**"], &["**"]).is_ok());
+        assert!(Selection::from_patterns(&["a/**/b"], &["a/**/b"], &["a/**/b"], &["a/**/b"]).is_ok());
+        assert!(Selection::from_patterns(&[""; 0], &[""; 0], &[""; 0], &[""; 0]).is_ok());
+        assert!(Selection::from_patterns(&[""], &[""], &[""], &[""]).is_ok());
+        assert!(Selection::from_patterns(&["[a-z]*.a"], &["[a-z]*.a"], &["[a-z]*.a"], &["[a-z]*.a"]).is_ok());
+        assert!(Selection::from_patterns(&["**", "[a-z]*.a"], &["**", "[a-z]*.a"], &["**", "[a-z]*.a"], &["**", "[a-z]*.a"]).is_ok());
+        assert!(Selection::from_patterns(&["[!abc]"], &["[!abc]"], &["[!abc]"], &["[!abc]"]).is_ok());
+        assert!(Selection::from_patterns(&["[*]"], &["[*]"], &["[*]"], &["[*]"]).is_ok());
+        assert!(Selection::from_patterns(&["[?]"], &["[?]"], &["[?]"], &["[?]"]).is_ok());
+        assert!(Selection::from_patterns(&["{*.a,*.b,*.c}"], &["{*.a,*.b,*.c}"], &["{*.a,*.b,*.c}"], &["{*.a,*.b,*.c}"]).is_ok());
 
         // Negative test cases.
         // Invalid double star.
-        // assert!(Selection::from_patterns(&["a**b"], &["a**b"]).is_err());
+        // assert!(Selection::from_patterns(&["a**b"], &["a**b"], &["a**b"], &["a**b"]).is_err());
         // Unclosed character class.
-        assert!(Selection::from_patterns(&["[abc"], &["[abc"]).is_err());
+        assert!(Selection::from_patterns(&["[abc"], &["[abc"], &["[abc"], &["[abc"]).is_err());
         // Malformed character range.
-        assert!(Selection::from_patterns(&["[z-a]"], &["[z-a]"]).is_err());
+        assert!(Selection::from_patterns(&["[z-a]"], &["[z-a]"], &["[z-a]"], &["[z-a]"]).is_err());
         // Unclosed alternates.
-        assert!(Selection::from_patterns(&["{*.a,*.b,*.c"], &["{*.a,*.b,*.c"]).is_err());
+        assert!(Selection::from_patterns(&["{*.a,*.b,*.c"], &["{*.a,*.b,*.c"], &["{*.a,*.b,*.c"], &["{*.a,*.b,*.c"]).is_err());
         // Unopened alternates.
-        // assert!(Selection::from_patterns(&["*.a,*.b,*.c}"], &["*.a,*.b,*.c}"]).is_err());
+        // assert!(Selection::from_patterns(&["*.a,*.b,*.c}"], &["*.a,*.b,*.c}"], &["*.a,*.b,*.c}"], &["*.a,*.b,*.c}"]).is_err());
         // Nested alternates.
-        assert!(Selection::from_patterns(&["{*.a,{*.b,*.c}}"], &["{*.a,{*.b,*.c}}"]).is_err());
+        assert!(Selection::from_patterns(&["{*.a,{*.b,*.c}}"], &["{*.a,{*.b,*.c}}"], &["{*.a,{*.b,*.c}}"], &["{*.a,{*.b,*.c}}"]).is_err());
         // Dangling escape.
-        // assert!(Selection::from_patterns(&["*.a\""], &["*.a\""]).is_err());
-
-        // for input in failing_inputs {
-        //     match input.unwrap_err() {
-        //         Error::CannotBuildMatcher(_) => {},
-        //         _ => { panic!(); },
-        //     }
-        // }
+        assert!(Selection::from_patterns(&["*.a\\"], &["*.a\\"], &["*.a\\"], &["*.a\\"]).is_err());
     }
 
     #[test]
     fn test_is_pattern_match() {
-        let selection = Selection::from_patterns(&["*.flac"], &["*.mp3"]).unwrap();
+        let selection = Selection::from_patterns(&["*.flac"], &["*.mp3"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), false);
 
-        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["*.mp3", "*.ogg"]).unwrap();
+        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["*.mp3", "*.ogg"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.ogg"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.aac"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.ogg", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.aac", true), false);
 
-        let selection = Selection::from_patterns(&["*"], &["*.mp3", "*.ogg"]).unwrap();
+        let selection = Selection::from_patterns(&["*"], &["*.mp3", "*.ogg"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.aac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mpc"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.aac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mpc", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.ogg", true), false);
 
-        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["item*", "self*"]).unwrap();
+        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["item*", "self*"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_pattern_match("path/to/item.flac"), false);
-        assert_eq!(selection.is_pattern_match("path/to/self.flac"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.aac"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.mpc"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.flac", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/music.wav", true), true);
+        assert_eq!(selection.is_pattern_match("path/to/item.flac", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/self.flac", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.aac", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.mpc", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.mp3", true), false);
+        assert_eq!(selection.is_pattern_match("path/to/music.ogg", true), false);
     }
 
     #[test]
@@ -302,14 +350,14 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"]),
+                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], vec!["*"], Vec::<&str>::new()),
                 hashset![
                     path.join("music.flac"),
                     path.join("music.wav"),
                 ],
             ),
             (
-                (vec!["*.flac"], vec![]),
+                (vec!["*.flac"], vec![], vec!["*"], Vec::<&str>::new()),
                 hashset![
                     path.join("music.flac"),
                     path.join("item.flac"),
@@ -317,7 +365,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["music*"], vec![]),
+                (vec!["music*"], vec![], vec!["*"], Vec::<&str>::new()),
                 hashset![
                     path.join("music.flac"),
                     path.join("music.wav"),
@@ -327,7 +375,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["item.*", "self.*"], vec!["*.flac"]),
+                (vec!["item.*", "self.*"], vec!["*.flac"], vec!["*"], Vec::<&str>::new()),
                 hashset![
                     path.join("item.yml"),
                     path.join("self.yml"),
@@ -336,10 +384,15 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (include_patterns, exclude_patterns) = input;
+            let (include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns) = input;
 
-            let selection = Selection::from_patterns(include_patterns, exclude_patterns).expect("unable to create selection");
-            let produced = selection.select_in_dir(&path).expect("unable to select in dir").collect();
+            let selection = Selection::from_patterns(
+                include_file_patterns,
+                exclude_file_patterns,
+                include_dir_patterns,
+                exclude_dir_patterns,
+            ).unwrap();
+            let produced = selection.select_in_dir(&path).unwrap().collect();
             assert_eq!(expected, produced);
         }
     }
@@ -351,14 +404,14 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], SortOrder::Name),
+                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], vec!["*"], Vec::<&str>::new(), SortOrder::Name),
                 vec![
                     path.join("music.flac"),
                     path.join("music.wav"),
                 ],
             ),
             (
-                (vec!["*.flac"], vec![], SortOrder::Name),
+                (vec!["*.flac"], vec![], vec!["*"], Vec::<&str>::new(), SortOrder::Name),
                 vec![
                     path.join("item.flac"),
                     path.join("music.flac"),
@@ -366,7 +419,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["music*"], vec![], SortOrder::Name),
+                (vec!["music*"], vec![], vec!["*"], Vec::<&str>::new(), SortOrder::Name),
                 vec![
                     path.join("music.aac"),
                     path.join("music.flac"),
@@ -376,7 +429,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["item.*", "self.*"], vec!["*.flac"], SortOrder::Name),
+                (vec!["item.*", "self.*"], vec!["*.flac"], vec!["*"], Vec::<&str>::new(), SortOrder::Name),
                 vec![
                     path.join("item.yml"),
                     path.join("self.yml"),
@@ -385,9 +438,14 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (include_patterns, exclude_patterns, sort_order) = input;
+            let (include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns, sort_order) = input;
 
-            let selection = Selection::from_patterns(include_patterns, exclude_patterns).expect("unable to create selection");
+            let selection = Selection::from_patterns(
+                include_file_patterns,
+                exclude_file_patterns,
+                include_dir_patterns,
+                exclude_dir_patterns,
+            ).unwrap();
             let produced = selection.select_in_dir_sorted(&path, sort_order).expect("unable to select in dir");
             assert_eq!(expected, produced);
         }
