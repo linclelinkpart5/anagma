@@ -52,7 +52,7 @@ impl Default for Selection {
     fn default() -> Self {
         Selection {
             include_files: Matcher::any(),
-            exclude_files: Matcher::from_patterns(&["item*", "self*"]).unwrap(),
+            exclude_files: Matcher::build(&["item*", "self*"]).unwrap(),
             include_dirs: Matcher::any(),
             exclude_dirs: Matcher::empty(),
         }
@@ -90,10 +90,10 @@ impl Selection {
         DE: IntoIterator<Item = DES>,
         DES: AsRef<str>,
     {
-        let include_files = Matcher::from_patterns(include_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let exclude_files = Matcher::from_patterns(exclude_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let include_dirs = Matcher::from_patterns(include_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let exclude_dirs = Matcher::from_patterns(exclude_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let include_files = Matcher::build(include_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_files = Matcher::build(exclude_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let include_dirs = Matcher::build(include_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_dirs = Matcher::build(exclude_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
 
         Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
     }

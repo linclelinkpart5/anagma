@@ -47,8 +47,8 @@ impl TryFrom<OneOrManyPatterns> for Matcher {
 
     fn try_from(oom: OneOrManyPatterns) -> Result<Self, Self::Error> {
         match oom {
-            OneOrManyPatterns::One(p) => Matcher::from_patterns(&[p]),
-            OneOrManyPatterns::Many(ps) => Matcher::from_patterns(&ps),
+            OneOrManyPatterns::One(p) => Matcher::build(&[p]),
+            OneOrManyPatterns::Many(ps) => Matcher::build(&ps),
         }
     }
 }
@@ -68,7 +68,7 @@ impl<'de> Deserialize<'de> for Matcher {
 }
 
 impl Matcher {
-    pub fn from_patterns<II, S>(pattern_strs: II) -> Result<Self, Error>
+    pub fn build<II, S>(pattern_strs: II) -> Result<Self, Error>
     where
         II: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -93,7 +93,7 @@ impl Matcher {
 
     pub fn any() -> Self {
         // NOTE: We assume that this is a universal pattern, and will not fail.
-        Matcher::from_patterns(&["*"]).unwrap()
+        Matcher::build(&["*"]).unwrap()
     }
 
     pub fn empty() -> Self {
@@ -123,64 +123,64 @@ mod tests {
     }
 
     #[test]
-    fn test_from_patterns() {
+    fn test_build() {
         // Positive test cases.
-        assert!(Matcher::from_patterns(&["*"]).is_ok());
-        assert!(Matcher::from_patterns(&["*.a", "*.b"]).is_ok());
-        assert!(Matcher::from_patterns(&["?.a", "?.b"]).is_ok());
-        assert!(Matcher::from_patterns(&["*.a"]).is_ok());
-        assert!(Matcher::from_patterns(&["**"]).is_ok());
-        assert!(Matcher::from_patterns(&["a/**/b"]).is_ok());
-        assert!(Matcher::from_patterns(&[""; 0]).is_ok());
-        assert!(Matcher::from_patterns(&[""]).is_ok());
-        assert!(Matcher::from_patterns(&["[a-z]*.a"]).is_ok());
-        assert!(Matcher::from_patterns(&["**", "[a-z]*.a"]).is_ok());
-        assert!(Matcher::from_patterns(&["[!abc]"]).is_ok());
-        assert!(Matcher::from_patterns(&["[*]"]).is_ok());
-        assert!(Matcher::from_patterns(&["[?]"]).is_ok());
-        assert!(Matcher::from_patterns(&["{*.a,*.b,*.c}"]).is_ok());
+        assert!(Matcher::build(&["*"]).is_ok());
+        assert!(Matcher::build(&["*.a", "*.b"]).is_ok());
+        assert!(Matcher::build(&["?.a", "?.b"]).is_ok());
+        assert!(Matcher::build(&["*.a"]).is_ok());
+        assert!(Matcher::build(&["**"]).is_ok());
+        assert!(Matcher::build(&["a/**/b"]).is_ok());
+        assert!(Matcher::build(&[""; 0]).is_ok());
+        assert!(Matcher::build(&[""]).is_ok());
+        assert!(Matcher::build(&["[a-z]*.a"]).is_ok());
+        assert!(Matcher::build(&["**", "[a-z]*.a"]).is_ok());
+        assert!(Matcher::build(&["[!abc]"]).is_ok());
+        assert!(Matcher::build(&["[*]"]).is_ok());
+        assert!(Matcher::build(&["[?]"]).is_ok());
+        assert!(Matcher::build(&["{*.a,*.b,*.c}"]).is_ok());
 
         // Negative test cases.
         // Invalid double star.
-        // assert!(Matcher::from_patterns(&["a**b"]).is_err());
+        // assert!(Matcher::build(&["a**b"]).is_err());
         // Unclosed character class.
-        assert!(Matcher::from_patterns(&["[abc"]).is_err());
+        assert!(Matcher::build(&["[abc"]).is_err());
         // Malformed character range.
-        assert!(Matcher::from_patterns(&["[z-a]"]).is_err());
+        assert!(Matcher::build(&["[z-a]"]).is_err());
         // Unclosed alternates.
-        assert!(Matcher::from_patterns(&["{*.a,*.b,*.c"]).is_err());
+        assert!(Matcher::build(&["{*.a,*.b,*.c"]).is_err());
         // Unopened alternates.
-        // assert!(Matcher::from_patterns(&["*.a,*.b,*.c}"]).is_err());
+        // assert!(Matcher::build(&["*.a,*.b,*.c}"]).is_err());
         // Nested alternates.
-        assert!(Matcher::from_patterns(&["{*.a,{*.b,*.c}}"]).is_err());
+        assert!(Matcher::build(&["{*.a,{*.b,*.c}}"]).is_err());
         // Dangling escape.
-        assert!(Matcher::from_patterns(&["*.a\\"]).is_err());
+        assert!(Matcher::build(&["*.a\\"]).is_err());
     }
 
     #[test]
     fn test_is_match() {
-        let matcher = Matcher::from_patterns(&["*.a", "*.b"]).unwrap();
+        let matcher = Matcher::build(&["*.a", "*.b"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), true);
         assert_eq!(matcher.is_match("path.b"), true);
         assert_eq!(matcher.is_match("path.c"), false);
         assert_eq!(matcher.is_match("path.ab"), false);
         assert_eq!(matcher.is_match("path"), false);
 
-        let matcher = Matcher::from_patterns(&["*.b"]).unwrap();
+        let matcher = Matcher::build(&["*.b"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), false);
         assert_eq!(matcher.is_match("path.b"), true);
         assert_eq!(matcher.is_match("path.c"), false);
         assert_eq!(matcher.is_match("path.ab"), false);
         assert_eq!(matcher.is_match("path"), false);
 
-        let matcher = Matcher::from_patterns(&["*.a", "*.c"]).unwrap();
+        let matcher = Matcher::build(&["*.a", "*.c"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), true);
         assert_eq!(matcher.is_match("path.b"), false);
         assert_eq!(matcher.is_match("path.c"), true);
         assert_eq!(matcher.is_match("path.ab"), false);
         assert_eq!(matcher.is_match("path"), false);
 
-        let matcher = Matcher::from_patterns(&["*"]).unwrap();
+        let matcher = Matcher::build(&["*"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), true);
         assert_eq!(matcher.is_match("path.b"), true);
         assert_eq!(matcher.is_match("path.c"), true);

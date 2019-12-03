@@ -56,8 +56,8 @@ impl Selector {
         IE: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let include = Matcher::from_patterns(include_patterns).map_err(Error::CannotBuildMatcher)?;
-        let exclude = Matcher::from_patterns(exclude_patterns).map_err(Error::CannotBuildMatcher)?;
+        let include = Matcher::build(include_patterns).map_err(Error::CannotBuildMatcher)?;
+        let exclude = Matcher::build(exclude_patterns).map_err(Error::CannotBuildMatcher)?;
 
         Ok(Self::new(include, exclude))
     }
