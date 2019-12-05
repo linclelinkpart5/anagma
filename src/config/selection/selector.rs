@@ -1,4 +1,8 @@
+
 use std::path::Path;
+
+use serde::Deserialize;
+use serde::de::Deserializer;
 
 use crate::config::selection::matcher::Matcher;
 use crate::config::selection::matcher::Error as MatcherError;
@@ -24,20 +28,68 @@ impl std::error::Error for Error {
     }
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum MatcherOrIncExc {
+    Matcher(Matcher),
+    IncExc(IncludeExclude),
+}
+
+impl From<MatcherOrIncExc> for Selector {
+    fn from(x: MatcherOrIncExc) -> Self {
+        match x {
+            MatcherOrIncExc::Matcher(m) => Self::from(m),
+            MatcherOrIncExc::IncExc(inex) => Self::new(inex.include, inex.exclude),
+        }
+    }
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(default)]
 #[serde(deny_unknown_fields)]
+pub struct IncludeExclude {
+    include: Matcher,
+    exclude: Matcher,
+}
+
+impl Default for IncludeExclude {
+    fn default() -> Self {
+        Self {
+            include: Matcher::any(),
+            exclude: Matcher::empty(),
+        }
+    }
+}
+
+impl From<IncludeExclude> for Selector {
+    fn from(ie: IncludeExclude) -> Self {
+        Self::new(ie.include, ie.exclude)
+    }
+}
+
+#[derive(Debug)]
 pub struct Selector {
     include: Matcher,
     exclude: Matcher,
 }
 
+impl<'de> Deserialize<'de> for Selector {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where D: Deserializer<'de> {
+        use serde::de::Error;
+        Ok(MatcherOrIncExc::deserialize(deserializer).map_err(Error::custom)?.into())
+    }
+}
+
+impl From<Matcher> for Selector {
+    fn from(m: Matcher) -> Self {
+        Self { include: m, ..Default::default() }
+    }
+}
+
 impl Default for Selector {
     fn default() -> Self {
-        Selector {
-            include: Matcher::any(),
-            exclude: Matcher::empty(),
-        }
+        IncludeExclude::default().into()
     }
 }
 
@@ -89,21 +141,59 @@ mod tests {
 
     #[test]
     fn test_deserialization() {
-        // A single pattern for each of include and exclude.
-        let text = "include: '*.flac'\nexclude: '*.mp3'";
-        serde_yaml::from_str::<Selector>(&text).unwrap();
+        // Bare single pattern.
+        let text = "'*.ogg'";
+        let sel = serde_yaml::from_str::<Selector>(&text).unwrap();
+        assert_eq!(sel.is_pattern_match("path/to/music.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/music.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/audio.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/other.abc"), false);
+
+        // Bare multiple patterns.
+        let text = "['*.ogg', 'music*']";
+        let sel = serde_yaml::from_str::<Selector>(&text).unwrap();
+        assert_eq!(sel.is_pattern_match("path/to/music.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/music.mp3"), true);
+        assert_eq!(sel.is_pattern_match("path/to/audio.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/audio.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/other.abc"), false);
+
+        // Single pattern for each of include and exclude.
+        let text = "{ include: '*.ogg', exclude: 'audio*' }";
+        let sel = serde_yaml::from_str::<Selector>(&text).unwrap();
+        assert_eq!(sel.is_pattern_match("path/to/music.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/music.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.ogg"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/other.abc"), false);
 
         // Multiple patterns for each of include and exclude.
-        let text = "include:\n  - '*.flac'\n  - '*.wav'\nexclude:\n  - '*.mp3'\n  - '*.ogg'";
-        serde_yaml::from_str::<Selector>(&text).unwrap();
+        let text = "{ include: ['*.ogg', 'music*'], exclude: ['*.mp3', 'audio*'] }";
+        let sel = serde_yaml::from_str::<Selector>(&text).unwrap();
+        assert_eq!(sel.is_pattern_match("path/to/music.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/music.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.ogg"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/other.abc"), false);
 
-        // Using a default value for missing include patterns.
-        let text = "exclude:\n  - '*.mp3'\n  - '*.ogg'";
-        serde_yaml::from_str::<Selector>(&text).unwrap();
+        // Using default value for missing include patterns.
+        let text = "exclude: ['*.mp3', 'audio*']";
+        let sel = serde_yaml::from_str::<Selector>(&text).unwrap();
+        assert_eq!(sel.is_pattern_match("path/to/music.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/music.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.ogg"), false);
+        assert_eq!(sel.is_pattern_match("path/to/audio.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/other.abc"), true);
 
-        // Using a default value for missing exclude patterns.
-        let text = "include:\n  - '*.flac'\n  - '*.wav'";
-        serde_yaml::from_str::<Selector>(&text).unwrap();
+        // Using default value for missing exclude patterns.
+        let text = "include: ['*.ogg', 'music*']";
+        let sel = serde_yaml::from_str::<Selector>(&text).unwrap();
+        assert_eq!(sel.is_pattern_match("path/to/music.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/music.mp3"), true);
+        assert_eq!(sel.is_pattern_match("path/to/audio.ogg"), true);
+        assert_eq!(sel.is_pattern_match("path/to/audio.mp3"), false);
+        assert_eq!(sel.is_pattern_match("path/to/other.abc"), false);
     }
 
     #[test]
