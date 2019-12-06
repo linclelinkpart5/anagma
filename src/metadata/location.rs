@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::path::PathBuf;
-use std::fs;
+
+use strum::IntoEnumIterator;
 
 use crate::config::selection::Selection;
 use crate::config::serialize_format::SerializeFormat;
@@ -54,7 +55,7 @@ impl std::error::Error for Error {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy, EnumIter)]
 pub enum MetaLocation {
     Contains,
     Siblings,
@@ -140,7 +141,7 @@ impl MetaLocation {
                 },
                 MetaLocation::Siblings => {
                     // Return all children of this directory.
-                    for entry in fs::read_dir(&meta_parent_dir_path).map_err(Error::CannotReadItemDir)? {
+                    for entry in std::fs::read_dir(&meta_parent_dir_path).map_err(Error::CannotReadItemDir)? {
                         po_item_paths.push(entry.map_err(Error::CannotReadItemDirEntry)?.path());
                     }
                 },

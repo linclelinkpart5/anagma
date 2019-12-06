@@ -4,6 +4,8 @@ pub mod selector;
 use std::path::Path;
 use std::path::PathBuf;
 
+use crate::strum::IntoEnumIterator;
+
 use crate::config::selection::matcher::Matcher;
 use crate::config::sort_order::SortOrder;
 use crate::config::selection::matcher::Error as MatcherError;
@@ -50,9 +52,16 @@ pub struct Selection {
 
 impl Default for Selection {
     fn default() -> Self {
+        use crate::metadata::location::MetaLocation;
+
+        let excluded_patterns = MetaLocation::iter()
+            .map(|ml| format!("{}{}", ml.default_file_name(), "*"))
+            .collect::<Vec<_>>()
+        ;
+
         Selection {
             include_files: Matcher::any(),
-            exclude_files: Matcher::build(&["item*", "self*"]).unwrap(),
+            exclude_files: Matcher::build(&excluded_patterns).unwrap(),
             include_dirs: Matcher::any(),
             exclude_dirs: Matcher::empty(),
         }
