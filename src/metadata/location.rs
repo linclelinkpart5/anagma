@@ -1,8 +1,6 @@
 use std::path::Path;
 use std::path::PathBuf;
 
-use strum::IntoEnumIterator;
-
 use crate::config::selection::Selection;
 use crate::config::serialize_format::SerializeFormat;
 
