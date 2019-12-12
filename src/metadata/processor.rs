@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use crate::config::selection::Selection;
-use crate::config::sort_order::SortBy;
+use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::location::MetaLocation;
@@ -52,7 +52,7 @@ impl MetaProcessor {
         meta_location: MetaLocation,
         serialize_format: SerializeFormat,
         selection: &Selection,
-        sort_order: SortBy,
+        sorter: Sorter,
     ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
         P: AsRef<Path>,
@@ -63,7 +63,7 @@ impl MetaProcessor {
 
         let mut meta_plexed = hashmap![];
 
-        let meta_plexer = MetaPlexer::new(meta_structure, selected_item_paths.into_iter(), sort_order);
+        let meta_plexer = MetaPlexer::new(meta_structure, selected_item_paths.into_iter(), sorter);
 
         for meta_plex_res in meta_plexer {
             match meta_plex_res {
@@ -82,7 +82,7 @@ impl MetaProcessor {
         item_path: P,
         serialize_format: SerializeFormat,
         selection: &Selection,
-        sort_order: SortBy,
+        sorter: Sorter,
     ) -> Result<MetaBlock, Error>
     where
         P: AsRef<Path>,
@@ -107,7 +107,7 @@ impl MetaProcessor {
                 *meta_location,
                 serialize_format,
                 selection,
-                sort_order,
+                sorter,
             )?;
 
             // The remaining results can be thrown away.
@@ -142,7 +142,7 @@ mod tests {
 
         let config = Config::default();
         let selection = &config.selection;
-        let sort_order = config.sort_order;
+        let sorter = config.sorter;
 
         // Success cases
         let inputs_and_expected = vec![
@@ -231,7 +231,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_location) = input;
 
-            let produced = MetaProcessor::process_meta_file(meta_path, meta_location, SerializeFormat::Yaml, selection, sort_order).unwrap();
+            let produced = MetaProcessor::process_meta_file(meta_path, meta_location, SerializeFormat::Yaml, selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -243,7 +243,7 @@ mod tests {
 
         let config = Config::default();
         let selection = &config.selection;
-        let sort_order = config.sort_order;
+        let sorter = config.sorter;
 
         // Success cases
         let inputs_and_expected = vec![
@@ -281,7 +281,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::process_item_file(item_path, SerializeFormat::Yaml, selection, sort_order).unwrap();
+            let produced = MetaProcessor::process_item_file(item_path, SerializeFormat::Yaml, selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }

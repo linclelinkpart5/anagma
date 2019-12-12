@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use crate::config::selection::Selection;
 use crate::config::selection::Error as SelectionError;
-use crate::config::sort_order::SortBy;
+use crate::config::sorter::Sorter;
 
 #[derive(Debug)]
 pub enum Error {
@@ -47,11 +47,11 @@ impl<'p> Iterator for FileWalker<'p> {
 }
 
 impl<'p> FileWalker<'p> {
-    pub fn delve(&mut self, selection: &Selection, sort_order: SortBy) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
         match self {
             // Parent walkers do not have to delve, just no-op.
             &mut Self::Parent(..) => Ok(()),
-            &mut Self::Child(ref mut fw) => fw.delve(selection, sort_order),
+            &mut Self::Child(ref mut fw) => fw.delve(selection, sorter),
         }
     }
 }
@@ -113,12 +113,12 @@ impl<'p> ChildFileWalker<'p> {
         }
     }
 
-    pub fn delve(&mut self, selection: &Selection, sort_order: SortBy) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
         // Manually delves into a directory, and adds its subitems to the frontier.
         if let Some(lpp) = self.last_processed_path.take() {
             // If the last processed path is a directory, add its children to the frontier.
             if lpp.is_dir() {
-                match selection.select_in_dir_sorted(&lpp, sort_order) {
+                match selection.select_in_dir_sorted(&lpp, sorter) {
                     Err(err) => {
                         return Err(Error::Selection(err));
                     },
@@ -160,7 +160,7 @@ mod tests {
     use super::ChildFileWalker;
 
     use crate::config::selection::Selection;
-    use crate::config::sort_order::SortBy;
+    use crate::config::sorter::Sorter;
 
     use crate::test_util::TestUtil;
 
@@ -185,7 +185,7 @@ mod tests {
 
         // Skip the first file of each leaf directory.
         let selection = Selection::from_patterns(&["*_*"], &["*_0"], &["*"], &[] as &[&str]).unwrap();
-        let sort_order = SortBy::Name;
+        let sorter = Sorter::default();
         let mut walker = ChildFileWalker::new(&start_path);
 
         // We should get just the root value, since no delving has happened.
@@ -194,27 +194,27 @@ mod tests {
 
         // std::thread::sleep_ms(100000);
 
-        walker.delve(&selection, sort_order).unwrap();
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2"));
         assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
-        walker.delve(&selection, sort_order).unwrap();
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1"));
 
-        walker.delve(&selection, sort_order).unwrap();
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0"));
 
         // Once files are found, observe the results of the selection.
-        walker.delve(&selection, sort_order).unwrap();
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_2"));
 
         // Delving on a file does nothing.
-        walker.delve(&selection, sort_order).unwrap();
+        walker.delve(&selection, sorter).unwrap();
 
         // Right back to where we were before delving into depth 3.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_1"));

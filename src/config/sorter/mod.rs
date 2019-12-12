@@ -7,9 +7,11 @@ use std::cmp::Ordering;
 use self::sort_by::SortBy;
 use self::sort_order::SortOrder;
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[serde(default)]
 pub struct Sorter {
-    sort_by: SortBy,
-    sort_order: SortOrder,
+    pub sort_by: SortBy,
+    pub sort_order: SortOrder,
 }
 
 impl Sorter {

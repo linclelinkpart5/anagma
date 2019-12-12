@@ -8,7 +8,7 @@ use crate::strum::IntoEnumIterator;
 
 use crate::config::selection::matcher::Matcher;
 use crate::config::selection::matcher::Error as MatcherError;
-use crate::config::sort_order::SortBy;
+use crate::config::sorter::Sorter;
 
 #[derive(Debug)]
 pub enum Error {
@@ -178,12 +178,12 @@ impl Selection {
         Ok(sel_item_paths)
     }
 
-    pub fn select_in_dir_sorted<P>(&self, dir_path: P, sort_order: SortBy) -> Result<Vec<PathBuf>, Error>
+    pub fn select_in_dir_sorted<P>(&self, dir_path: P, sorter: Sorter) -> Result<Vec<PathBuf>, Error>
     where
         P: AsRef<Path>,
     {
         let mut sel_item_paths: Vec<_> = self.select_in_dir(dir_path)?.collect();
-        sel_item_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
+        sel_item_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
 
         Ok(sel_item_paths)
     }
@@ -198,7 +198,7 @@ mod tests {
     use tempfile::Builder;
     use tempfile::TempDir;
 
-    use crate::config::sort_order::SortBy;
+    use crate::config::sorter::Sorter;
 
     fn create_test_dir(name: &str) -> TempDir {
         let temp = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
@@ -391,14 +391,14 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], vec!["*"], Vec::<&str>::new(), SortBy::Name),
+                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], vec!["*"], Vec::<&str>::new(), Sorter::default()),
                 vec![
                     path.join("music.flac"),
                     path.join("music.wav"),
                 ],
             ),
             (
-                (vec!["*.flac"], vec![], vec!["*"], Vec::<&str>::new(), SortBy::Name),
+                (vec!["*.flac"], vec![], vec!["*"], Vec::<&str>::new(), Sorter::default()),
                 vec![
                     path.join("item.flac"),
                     path.join("music.flac"),
@@ -406,7 +406,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["music*"], vec![], vec!["*"], Vec::<&str>::new(), SortBy::Name),
+                (vec!["music*"], vec![], vec!["*"], Vec::<&str>::new(), Sorter::default()),
                 vec![
                     path.join("music.aac"),
                     path.join("music.flac"),
@@ -416,7 +416,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["item.*", "self.*"], vec!["*.flac"], vec!["*"], Vec::<&str>::new(), SortBy::Name),
+                (vec!["item.*", "self.*"], vec!["*.flac"], vec!["*"], Vec::<&str>::new(), Sorter::default()),
                 vec![
                     path.join("item.yml"),
                     path.join("self.yml"),

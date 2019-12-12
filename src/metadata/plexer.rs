@@ -1,7 +1,7 @@
 
 use std::path::PathBuf;
 
-use crate::config::sort_order::SortBy;
+use crate::config::sorter::Sorter;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaBlockMap;
 use crate::metadata::types::MetaStructure;
@@ -122,13 +122,13 @@ where
 impl<I: Iterator<Item = PathBuf>> std::iter::FusedIterator for MetaPlexer<I> {}
 
 impl<I: Iterator<Item = PathBuf>> MetaPlexer<I> {
-    pub fn new(meta_structure: MetaStructure, file_path_iter: I, sort_order: SortBy) -> Self {
+    pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
             MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
             MetaStructure::Seq(mb_seq) => {
                 // Need to pre-sort the file paths.
                 let mut file_paths = file_path_iter.collect::<Vec<_>>();
-                file_paths.sort_by(|a, b| sort_order.path_sort_cmp(a, b));
+                file_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
 
                 Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
             },
@@ -145,7 +145,7 @@ mod tests {
     use std::path::PathBuf;
     use std::collections::HashSet;
 
-    use crate::config::sort_order::SortBy;
+    use crate::config::sorter::Sorter;
     use crate::metadata::types::MetaStructure;
     use crate::metadata::types::MetaVal;
     use crate::metadata::types::MetaKey;
@@ -226,7 +226,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortBy::Name).collect::<Vec<_>>();
+            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
 
@@ -270,7 +270,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortBy::Name).collect::<HashSet<_>>();
+            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<HashSet<_>>();
             assert_eq!(expected, produced);
         }
     }
