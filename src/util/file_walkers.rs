@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use crate::config::selection::Selection;
 use crate::config::selection::Error as SelectionError;
-use crate::config::sort_order::SortOrder;
+use crate::config::sort_order::SortBy;
 
 #[derive(Debug)]
 pub enum Error {
@@ -47,7 +47,7 @@ impl<'p> Iterator for FileWalker<'p> {
 }
 
 impl<'p> FileWalker<'p> {
-    pub fn delve(&mut self, selection: &Selection, sort_order: SortOrder) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sort_order: SortBy) -> Result<(), Error> {
         match self {
             // Parent walkers do not have to delve, just no-op.
             &mut Self::Parent(..) => Ok(()),
@@ -113,7 +113,7 @@ impl<'p> ChildFileWalker<'p> {
         }
     }
 
-    pub fn delve(&mut self, selection: &Selection, sort_order: SortOrder) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sort_order: SortBy) -> Result<(), Error> {
         // Manually delves into a directory, and adds its subitems to the frontier.
         if let Some(lpp) = self.last_processed_path.take() {
             // If the last processed path is a directory, add its children to the frontier.
@@ -160,7 +160,7 @@ mod tests {
     use super::ChildFileWalker;
 
     use crate::config::selection::Selection;
-    use crate::config::sort_order::SortOrder;
+    use crate::config::sort_order::SortBy;
 
     use crate::test_util::TestUtil;
 
@@ -185,7 +185,7 @@ mod tests {
 
         // Skip the first file of each leaf directory.
         let selection = Selection::from_patterns(&["*_*"], &["*_0"], &["*"], &[] as &[&str]).unwrap();
-        let sort_order = SortOrder::Name;
+        let sort_order = SortBy::Name;
         let mut walker = ChildFileWalker::new(&start_path);
 
         // We should get just the root value, since no delving has happened.

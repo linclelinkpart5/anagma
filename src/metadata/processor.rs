@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::collections::HashMap;
 
 use crate::config::selection::Selection;
-use crate::config::sort_order::SortOrder;
+use crate::config::sort_order::SortBy;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::location::MetaLocation;
@@ -52,7 +52,7 @@ impl MetaProcessor {
         meta_location: MetaLocation,
         serialize_format: SerializeFormat,
         selection: &Selection,
-        sort_order: SortOrder,
+        sort_order: SortBy,
     ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
     where
         P: AsRef<Path>,
@@ -82,7 +82,7 @@ impl MetaProcessor {
         item_path: P,
         serialize_format: SerializeFormat,
         selection: &Selection,
-        sort_order: SortOrder,
+        sort_order: SortBy,
     ) -> Result<MetaBlock, Error>
     where
         P: AsRef<Path>,

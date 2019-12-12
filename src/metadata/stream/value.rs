@@ -139,7 +139,7 @@ mod tests {
     use crate::metadata::types::MetaKeyPath;
     use crate::metadata::types::MetaVal;
     use crate::config::selection::Selection;
-    use crate::config::sort_order::SortOrder;
+    use crate::config::sort_order::SortBy;
     use crate::config::serialize_format::SerializeFormat;
     use crate::util::file_walkers::FileWalker;
     use crate::util::file_walkers::ParentFileWalker;
@@ -160,7 +160,7 @@ mod tests {
             file_walker,
             SerializeFormat::Json,
             &selection,
-            SortOrder::Name,
+            SortBy::Name,
         ));
 
         let expected = vec![
@@ -194,7 +194,7 @@ mod tests {
             file_walker,
             SerializeFormat::Json,
             &selection,
-            SortOrder::Name,
+            SortBy::Name,
         ));
 
         let expected = vec![
@@ -218,7 +218,7 @@ mod tests {
             file_walker,
             SerializeFormat::Json,
             &selection,
-            SortOrder::Name,
+            SortBy::Name,
         ));
 
         let expected = vec![
@@ -257,7 +257,7 @@ mod tests {
             file_walker,
             SerializeFormat::Json,
             &selection,
-            SortOrder::Name,
+            SortBy::Name,
         ));
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
@@ -279,7 +279,7 @@ mod tests {
             file_walker,
             SerializeFormat::Json,
             &selection,
-            SortOrder::Name,
+            SortBy::Name,
         ));
 
         let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];

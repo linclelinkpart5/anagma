@@ -6,7 +6,7 @@ use std::path::Path;
 use std::collections::VecDeque;
 
 use crate::config::selection::Selection;
-use crate::config::sort_order::SortOrder;
+use crate::config::sort_order::SortBy;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::processor::MetaProcessor;
@@ -104,7 +104,7 @@ pub struct FileMetaBlockStream<'p> {
     file_walker: FileWalker<'p>,
     serialize_format: SerializeFormat,
     selection: &'p Selection,
-    sort_order: SortOrder,
+    sort_order: SortBy,
 }
 
 impl<'p> FileMetaBlockStream<'p> {
@@ -112,7 +112,7 @@ impl<'p> FileMetaBlockStream<'p> {
         file_walker: FW,
         serialize_format: SerializeFormat,
         selection: &'p Selection,
-        sort_order: SortOrder,
+        sort_order: SortBy,
     ) -> Self
     where
         FW: Into<FileWalker<'p>>,
@@ -172,7 +172,7 @@ mod tests {
     use crate::metadata::types::MetaKey;
     use crate::metadata::types::MetaVal;
     use crate::config::selection::Selection;
-    use crate::config::sort_order::SortOrder;
+    use crate::config::sort_order::SortBy;
     use crate::config::serialize_format::SerializeFormat;
     use crate::util::file_walkers::FileWalker;
     use crate::util::file_walkers::ParentFileWalker;
@@ -217,7 +217,7 @@ mod tests {
             file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
             serialize_format: SerializeFormat::Json,
             selection: &Selection::default(),
-            sort_order: SortOrder::Name,
+            sort_order: SortBy::Name,
         };
 
         assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("0_1_2")));
@@ -231,7 +231,7 @@ mod tests {
             file_walker: FileWalker::Child(ChildFileWalker::new(&test_path)),
             serialize_format: SerializeFormat::Json,
             selection: &Selection::default(),
-            sort_order: SortOrder::Name,
+            sort_order: SortBy::Name,
         };
 
         assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&MetaKey::from("target_file_name")), Some(&MetaVal::from("ROOT")));

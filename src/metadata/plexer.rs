@@ -1,7 +1,7 @@
 
 use std::path::PathBuf;
 
-use crate::config::sort_order::SortOrder;
+use crate::config::sort_order::SortBy;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaBlockMap;
 use crate::metadata::types::MetaStructure;
@@ -122,7 +122,7 @@ where
 impl<I: Iterator<Item = PathBuf>> std::iter::FusedIterator for MetaPlexer<I> {}
 
 impl<I: Iterator<Item = PathBuf>> MetaPlexer<I> {
-    pub fn new(meta_structure: MetaStructure, file_path_iter: I, sort_order: SortOrder) -> Self {
+    pub fn new(meta_structure: MetaStructure, file_path_iter: I, sort_order: SortBy) -> Self {
         match meta_structure {
             MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
             MetaStructure::Seq(mb_seq) => {
@@ -145,7 +145,7 @@ mod tests {
     use std::path::PathBuf;
     use std::collections::HashSet;
 
-    use crate::config::sort_order::SortOrder;
+    use crate::config::sort_order::SortBy;
     use crate::metadata::types::MetaStructure;
     use crate::metadata::types::MetaVal;
     use crate::metadata::types::MetaKey;
@@ -226,7 +226,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortOrder::Name).collect::<Vec<_>>();
+            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortBy::Name).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
 
@@ -270,7 +270,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortOrder::Name).collect::<HashSet<_>>();
+            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), SortBy::Name).collect::<HashSet<_>>();
             assert_eq!(expected, produced);
         }
     }
