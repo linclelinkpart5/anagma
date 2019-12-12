@@ -4,11 +4,12 @@ pub mod sort_order;
 use std::path::Path;
 use std::cmp::Ordering;
 
-use self::sort_by::SortBy;
-use self::sort_order::SortOrder;
+pub use self::sort_by::SortBy;
+pub use self::sort_order::SortOrder;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 #[serde(default)]
+#[serde(deny_unknown_fields)]
 pub struct Sorter {
     pub sort_by: SortBy,
     pub sort_order: SortOrder,

@@ -11,10 +11,8 @@ use self::sorter::Sorter;
 #[derive(Deserialize)]
 #[serde(default)]
 pub struct Config {
-    pub selection: Selection,
-
-    #[serde(flatten)]
-    pub sorter: Sorter,
+    #[serde(flatten)] pub selection: Selection,
+    #[serde(flatten)] pub sorter: Sorter,
     pub item_fn: String,
     pub self_fn: String,
     pub serialize_format: SerializeFormat,
@@ -52,8 +50,7 @@ mod tests {
     #[test]
     fn test_deserialization() {
         let text_config = r#"
-            selection:
-                include_files: '*.flac'
+            include_files: '*.flac'
             sort_by: name
         "#;
 
@@ -70,10 +67,9 @@ mod tests {
         assert_eq!(config.serialize_format, SerializeFormat::Yaml);
 
         let text_config = r#"
-            selection:
-                include_files:
-                    - '*.flac'
-                    - '*.mp3'
+            include_files:
+                - '*.flac'
+                - '*.mp3'
             sort_by: mod_time
         "#;
 
@@ -88,8 +84,7 @@ mod tests {
         assert_eq!(config.serialize_format, SerializeFormat::Yaml);
 
         let text_config = r#"
-            selection:
-                include_files: '*'
+            include_files: '*'
             sort_by: mod_time
         "#;
 
@@ -104,9 +99,8 @@ mod tests {
         assert_eq!(config.serialize_format, SerializeFormat::Yaml);
 
         let text_config = r#"
-            selection:
-                include_files: '*'
-                exclude_files: '*.mp3'
+            include_files: '*'
+            exclude_files: '*.mp3'
             sort_by: name
             item_fn: item_meta.yml
             serialize_format: yaml

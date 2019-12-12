@@ -16,15 +16,15 @@ impl Default for SerializeFormat {
 impl SerializeFormat {
     pub fn default_file_extension(&self) -> &'static str {
         match *self {
-            SerializeFormat::Yaml => "yml",
-            SerializeFormat::Json => "json",
+            Self::Yaml => "yml",
+            Self::Json => "json",
         }
     }
 
     pub fn extra_file_extensions(&self) -> &'static[&'static str] {
         match *self {
-            SerializeFormat::Yaml => &["yaml"],
-            SerializeFormat::Json => &[],
+            Self::Yaml => &["yaml"],
+            Self::Json => &[],
         }
     }
 }
