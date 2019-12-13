@@ -234,13 +234,13 @@ impl TestSerialize for MetaStructure {
 impl TestSerialize for MetaVal {
     fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String {
         match (serialize_format, self) {
-            (SerializeFormat::Json, &Self::Nil) => "null".into(),
-            (SerializeFormat::Yaml, &Self::Nil) => "~".into(),
-            (SerializeFormat::Json, &Self::Str(ref s)) => format!(r#""{}""#, s),
-            (SerializeFormat::Yaml, &Self::Str(ref s)) => s.clone(),
+            (SerializeFormat::Json, &Self::Null) => "null".into(),
+            (SerializeFormat::Yaml, &Self::Null) => "~".into(),
+            (SerializeFormat::Json, &Self::String(ref s)) => format!(r#""{}""#, s),
+            (SerializeFormat::Yaml, &Self::String(ref s)) => s.clone(),
             (_, &Self::Int(i)) => format!("{}", i),
             (_, &Self::Dec(ref d)) => format!("{}", d),
-            (_, &Self::Bul(b)) => format!("{}", b),
+            (_, &Self::Boolean(b)) => format!("{}", b),
             (SerializeFormat::Json, &Self::Seq(ref seq)) => {
                 let mut val_chunks = vec![];
 
@@ -338,7 +338,7 @@ impl TestUtil {
     pub const MAPPING_KEY: &'static str = "mapping_key";
 
     pub fn sample_string() -> MetaVal {
-        MetaVal::Str(String::from("string"))
+        MetaVal::String(String::from("string"))
     }
 
     pub fn sample_integer() -> MetaVal {
@@ -350,11 +350,11 @@ impl TestUtil {
     }
 
     pub fn sample_boolean() -> MetaVal {
-        MetaVal::Bul(true)
+        MetaVal::Boolean(true)
     }
 
     pub fn sample_null() -> MetaVal {
-        MetaVal::Nil
+        MetaVal::Null
     }
 
     pub fn core_flat_sequence() -> Vec<MetaVal> {
@@ -442,23 +442,23 @@ impl TestUtil {
 
         map.insert(
             MetaKey::from(format!("{}_key", meta_location.default_file_name())),
-            MetaVal::Str(format!("{}_val", meta_location.default_file_name())),
+            MetaVal::String(format!("{}_val", meta_location.default_file_name())),
         );
 
         map.insert(
             MetaKey::from("meta_location"),
-            MetaVal::Str(String::from(meta_location.default_file_name())),
+            MetaVal::String(String::from(meta_location.default_file_name())),
         );
 
         map.insert(
             MetaKey::from("target_file_name"),
-            MetaVal::Str(String::from(target_name)),
+            MetaVal::String(String::from(target_name)),
         );
 
         if include_flag_key {
             map.insert(
                 MetaKey::from("flag_key"),
-                MetaVal::Str(String::from(target_name)),
+                MetaVal::String(String::from(target_name)),
             );
         }
 
@@ -471,13 +471,13 @@ impl TestUtil {
 
     //     map.insert(
     //         MetaKey::from("target_file_name"),
-    //         MetaVal::Str(String::from(target_name)),
+    //         MetaVal::String(String::from(target_name)),
     //     );
 
     //     if include_flag_key {
     //         map.insert(
     //             MetaKey::from("flag_key"),
-    //             MetaVal::Str(String::from(target_name)),
+    //             MetaVal::String(String::from(target_name)),
     //         );
     //     }
 
@@ -661,8 +661,8 @@ mod tests {
     fn test_to_serialized_chunk() {
         let dec = Decimal::new(31415.into(), 4);
 
-        let seq_a = MetaVal::Seq(vec![MetaVal::Int(27), MetaVal::Str("string".into())]);
-        let seq_b = MetaVal::Seq(vec![MetaVal::Bul(false), MetaVal::Nil, MetaVal::Dec(dec)]);
+        let seq_a = MetaVal::Seq(vec![MetaVal::Int(27), MetaVal::String("string".into())]);
+        let seq_b = MetaVal::Seq(vec![MetaVal::Boolean(false), MetaVal::Null, MetaVal::Dec(dec)]);
 
         let seq_seq = MetaVal::Seq(vec![seq_a.clone(), seq_b.clone()]);
 

@@ -181,12 +181,12 @@ mod tests {
     #[test]
     fn test_fixed_meta_block_stream() {
         let mb_a = btreemap![
-            MetaKey::from("key_a") => MetaVal::Bul(true),
+            MetaKey::from("key_a") => MetaVal::Boolean(true),
             MetaKey::from("key_b") => MetaVal::Dec(dec!(3.1415)),
         ];
         let mb_b = btreemap![
             MetaKey::from("key_a") => MetaVal::Int(-1),
-            MetaKey::from("key_b") => MetaVal::Nil,
+            MetaKey::from("key_b") => MetaVal::Null,
         ];
 
         let mut vd = VecDeque::new();

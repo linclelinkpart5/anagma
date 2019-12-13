@@ -153,19 +153,19 @@ mod tests {
     #[test]
     fn test_plex() {
         let mb_a = btreemap![
-            MetaKey::from("key_1a") => MetaVal::Str(String::from("val_1a")),
-            MetaKey::from("key_1b") => MetaVal::Str(String::from("val_1b")),
-            MetaKey::from("key_1c") => MetaVal::Str(String::from("val_1c")),
+            MetaKey::from("key_1a") => MetaVal::String(String::from("val_1a")),
+            MetaKey::from("key_1b") => MetaVal::String(String::from("val_1b")),
+            MetaKey::from("key_1c") => MetaVal::String(String::from("val_1c")),
         ];
         let mb_b = btreemap![
-            MetaKey::from("key_2a") => MetaVal::Str(String::from("val_2a")),
-            MetaKey::from("key_2b") => MetaVal::Str(String::from("val_2b")),
-            MetaKey::from("key_2c") => MetaVal::Str(String::from("val_2c")),
+            MetaKey::from("key_2a") => MetaVal::String(String::from("val_2a")),
+            MetaKey::from("key_2b") => MetaVal::String(String::from("val_2b")),
+            MetaKey::from("key_2c") => MetaVal::String(String::from("val_2c")),
         ];
         let mb_c = btreemap![
-            MetaKey::from("key_3a") => MetaVal::Str(String::from("val_3a")),
-            MetaKey::from("key_3b") => MetaVal::Str(String::from("val_3b")),
-            MetaKey::from("key_3c") => MetaVal::Str(String::from("val_3c")),
+            MetaKey::from("key_3a") => MetaVal::String(String::from("val_3a")),
+            MetaKey::from("key_3b") => MetaVal::String(String::from("val_3b")),
+            MetaKey::from("key_3c") => MetaVal::String(String::from("val_3c")),
         ];
 
         let ms_a = MetaStructure::One(mb_a.clone());

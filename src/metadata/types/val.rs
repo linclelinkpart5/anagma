@@ -13,12 +13,12 @@ use crate::util::Number;
 #[serde(untagged)]
 #[strum_discriminants(name(MetaValKind))]
 pub enum MetaVal {
-    Nil,
-    Str(String),
+    Null,
+    String(String),
     Seq(Vec<MetaVal>),
     Map(BTreeMap<MetaKey, MetaVal>),
     Int(i64),
-    Bul(bool),
+    Boolean(bool),
     Dec(Decimal),
 }
 
@@ -54,14 +54,14 @@ impl MetaVal {
 
 impl From<String> for MetaVal {
     fn from(s: String) -> Self {
-        Self::Str(s)
+        Self::String(s)
     }
 }
 
 // TODO: Remove this impl, feels non-Rustic.
 impl From<&str> for MetaVal {
     fn from(s: &str) -> Self {
-        Self::Str(s.to_string())
+        Self::String(s.to_string())
     }
 }
 
@@ -73,7 +73,7 @@ impl From<i64> for MetaVal {
 
 impl From<bool> for MetaVal {
     fn from(b: bool) -> Self {
-        Self::Bul(b)
+        Self::Boolean(b)
     }
 }
 
@@ -127,7 +127,7 @@ impl TryFrom<MetaVal> for bool {
 
     fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
         match value {
-            MetaVal::Bul(b) => Ok(b),
+            MetaVal::Boolean(b) => Ok(b),
             _ => Err(()),
         }
     }
@@ -138,7 +138,7 @@ impl<'k> TryFrom<&'k MetaVal> for bool {
 
     fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
         match value {
-            &MetaVal::Bul(b) => Ok(b),
+            &MetaVal::Boolean(b) => Ok(b),
             _ => Err(()),
         }
     }
@@ -167,29 +167,29 @@ mod tests {
     #[test]
     fn test_deserialize() {
         let inputs_and_expected = vec![
-            ("null", MetaVal::Nil),
-            (r#""string""#, MetaVal::Str(String::from("string"))),
+            ("null", MetaVal::Null),
+            (r#""string""#, MetaVal::String(String::from("string"))),
             ("27", MetaVal::Int(27)),
             ("-27", MetaVal::Int(-27)),
             ("3.1415", MetaVal::Dec(Decimal::new(31415.into(), 4))),
             ("-3.1415", MetaVal::Dec(-Decimal::new(31415.into(), 4))),
-            ("true", MetaVal::Bul(true)),
-            ("false", MetaVal::Bul(false)),
+            ("true", MetaVal::Boolean(true)),
+            ("false", MetaVal::Boolean(false)),
             (
                 r#"[null, "string", 27, true]"#,
                 MetaVal::Seq(vec![
-                    MetaVal::Nil,
-                    MetaVal::Str(String::from("string")),
+                    MetaVal::Null,
+                    MetaVal::String(String::from("string")),
                     MetaVal::Int(27),
-                    MetaVal::Bul(true),
+                    MetaVal::Boolean(true),
                 ]),
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
                 MetaVal::Map(btreemap![
-                    MetaKey::from("key_a") => MetaVal::Str(String::from("string")),
+                    MetaKey::from("key_a") => MetaVal::String(String::from("string")),
                     MetaKey::from("key_b") => MetaVal::Int(-27),
-                    MetaKey::from("key_c") => MetaVal::Bul(false),
+                    MetaKey::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
         ];
@@ -200,48 +200,48 @@ mod tests {
         }
 
         let inputs_and_expected = vec![
-            ("null", MetaVal::Nil),
-            ("~", MetaVal::Nil),
-            (r#""string""#, MetaVal::Str(String::from("string"))),
-            ("string", MetaVal::Str(String::from("string"))),
+            ("null", MetaVal::Null),
+            ("~", MetaVal::Null),
+            (r#""string""#, MetaVal::String(String::from("string"))),
+            ("string", MetaVal::String(String::from("string"))),
             ("27", MetaVal::Int(27)),
             ("-27", MetaVal::Int(-27)),
             ("3.1415", MetaVal::Dec(Decimal::new(31415.into(), 4))),
             ("-3.1415", MetaVal::Dec(-Decimal::new(31415.into(), 4))),
-            ("true", MetaVal::Bul(true)),
-            ("false", MetaVal::Bul(false)),
+            ("true", MetaVal::Boolean(true)),
+            ("false", MetaVal::Boolean(false)),
             (
                 r#"[null, "string", 27, true]"#,
                 MetaVal::Seq(vec![
-                    MetaVal::Nil,
-                    MetaVal::Str(String::from("string")),
+                    MetaVal::Null,
+                    MetaVal::String(String::from("string")),
                     MetaVal::Int(27),
-                    MetaVal::Bul(true),
+                    MetaVal::Boolean(true),
                 ]),
             ),
             (
                 "- null\n- string\n- 27\n- true",
                 MetaVal::Seq(vec![
-                    MetaVal::Nil,
-                    MetaVal::Str(String::from("string")),
+                    MetaVal::Null,
+                    MetaVal::String(String::from("string")),
                     MetaVal::Int(27),
-                    MetaVal::Bul(true),
+                    MetaVal::Boolean(true),
                 ]),
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
                 MetaVal::Map(btreemap![
-                    MetaKey::from("key_a") => MetaVal::Str(String::from("string")),
+                    MetaKey::from("key_a") => MetaVal::String(String::from("string")),
                     MetaKey::from("key_b") => MetaVal::Int(-27),
-                    MetaKey::from("key_c") => MetaVal::Bul(false),
+                    MetaKey::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
             (
                 "key_a: string\nkey_b: -27\nkey_c: false",
                 MetaVal::Map(btreemap![
-                    MetaKey::from("key_a") => MetaVal::Str(String::from("string")),
+                    MetaKey::from("key_a") => MetaVal::String(String::from("string")),
                     MetaKey::from("key_b") => MetaVal::Int(-27),
-                    MetaKey::from("key_c") => MetaVal::Bul(false),
+                    MetaKey::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
         ];
@@ -259,10 +259,10 @@ mod tests {
         let key_str_c = MetaKey::from("key_c");
         let key_str_x = MetaKey::from("key_x");
 
-        let val_nil = MetaVal::Nil;
-        let val_str_a = MetaVal::Str(String::from("val_a"));
-        let val_str_b = MetaVal::Str(String::from("val_b"));
-        let val_str_c = MetaVal::Str(String::from("val_c"));
+        let val_nil = MetaVal::Null;
+        let val_str_a = MetaVal::String(String::from("val_a"));
+        let val_str_b = MetaVal::String(String::from("val_b"));
+        let val_str_c = MetaVal::String(String::from("val_c"));
         let val_seq_a = MetaVal::Seq(vec![
             val_str_a.clone(), val_str_a.clone(), val_str_a.clone(),
         ]);
