@@ -15,23 +15,21 @@ use crate::util::Number;
 pub enum MetaVal {
     Null,
     String(String),
-    Seq(Vec<MetaVal>),
-    Map(BTreeMap<MetaKey, MetaVal>),
-    Int(i64),
+    Sequence(Vec<MetaVal>),
+    Mapping(BTreeMap<MetaKey, MetaVal>),
+    Integer(i64),
     Boolean(bool),
-    Dec(Decimal),
+    Decimal(Decimal),
 }
 
 impl MetaVal {
-    // LEARN: The following line does not work!
-    // pub fn get_key_path(&self, key_path: &'k MetaKeyPath) -> Option<&MetaVal> {
-    pub fn get_key_path(&self, key_path: &MetaKeyPath) -> Option<&MetaVal> {
+    pub fn get_key_path(&self, key_path: &MetaKeyPath) -> Option<&Self> {
         let mut curr_val = self;
 
         for key in key_path {
             // See if the current meta value is indeed a mapping.
             match curr_val {
-                MetaVal::Map(map) => {
+                Self::Mapping(map) => {
                     // See if the current key in the key path is found in this mapping.
                     match map.get(key) {
                         // Unable to proceed on the key path, short circuit.
@@ -67,7 +65,7 @@ impl From<&str> for MetaVal {
 
 impl From<i64> for MetaVal {
     fn from(i: i64) -> Self {
-        Self::Int(i)
+        Self::Integer(i)
     }
 }
 
@@ -79,13 +77,13 @@ impl From<bool> for MetaVal {
 
 impl From<Decimal> for MetaVal {
     fn from(d: Decimal) -> Self {
-        Self::Dec(d)
+        Self::Decimal(d)
     }
 }
 
 impl From<Vec<MetaVal>> for MetaVal {
     fn from(s: Vec<MetaVal>) -> Self {
-        Self::Seq(s)
+        Self::Sequence(s)
     }
 }
 
@@ -103,8 +101,8 @@ impl TryFrom<MetaVal> for Number {
 
     fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
         match value {
-            MetaVal::Int(i) => Ok(Self::from(i)),
-            MetaVal::Dec(d) => Ok(Self::from(d)),
+            MetaVal::Integer(i) => Ok(Self::from(i)),
+            MetaVal::Decimal(d) => Ok(Self::from(d)),
             _ => Err(()),
         }
     }
@@ -115,8 +113,8 @@ impl<'k> TryFrom<&'k MetaVal> for Number {
 
     fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
         match value {
-            &MetaVal::Int(i) => Ok(Self::Integer(i)),
-            &MetaVal::Dec(d) => Ok(Self::Decimal(d)),
+            &MetaVal::Integer(i) => Ok(Self::Integer(i)),
+            &MetaVal::Decimal(d) => Ok(Self::Decimal(d)),
             _ => Err(()),
         }
     }
@@ -149,7 +147,7 @@ impl TryFrom<MetaVal> for Vec<MetaVal> {
 
     fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
         match value {
-            MetaVal::Seq(s) => Ok(s),
+            MetaVal::Sequence(s) => Ok(s),
             _ => Err(()),
         }
     }
@@ -169,26 +167,26 @@ mod tests {
         let inputs_and_expected = vec![
             ("null", MetaVal::Null),
             (r#""string""#, MetaVal::String(String::from("string"))),
-            ("27", MetaVal::Int(27)),
-            ("-27", MetaVal::Int(-27)),
-            ("3.1415", MetaVal::Dec(Decimal::new(31415.into(), 4))),
-            ("-3.1415", MetaVal::Dec(-Decimal::new(31415.into(), 4))),
+            ("27", MetaVal::Integer(27)),
+            ("-27", MetaVal::Integer(-27)),
+            ("3.1415", MetaVal::Decimal(Decimal::new(31415.into(), 4))),
+            ("-3.1415", MetaVal::Decimal(-Decimal::new(31415.into(), 4))),
             ("true", MetaVal::Boolean(true)),
             ("false", MetaVal::Boolean(false)),
             (
                 r#"[null, "string", 27, true]"#,
-                MetaVal::Seq(vec![
+                MetaVal::Sequence(vec![
                     MetaVal::Null,
                     MetaVal::String(String::from("string")),
-                    MetaVal::Int(27),
+                    MetaVal::Integer(27),
                     MetaVal::Boolean(true),
                 ]),
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
-                MetaVal::Map(btreemap![
+                MetaVal::Mapping(btreemap![
                     MetaKey::from("key_a") => MetaVal::String(String::from("string")),
-                    MetaKey::from("key_b") => MetaVal::Int(-27),
+                    MetaKey::from("key_b") => MetaVal::Integer(-27),
                     MetaKey::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
@@ -204,43 +202,43 @@ mod tests {
             ("~", MetaVal::Null),
             (r#""string""#, MetaVal::String(String::from("string"))),
             ("string", MetaVal::String(String::from("string"))),
-            ("27", MetaVal::Int(27)),
-            ("-27", MetaVal::Int(-27)),
-            ("3.1415", MetaVal::Dec(Decimal::new(31415.into(), 4))),
-            ("-3.1415", MetaVal::Dec(-Decimal::new(31415.into(), 4))),
+            ("27", MetaVal::Integer(27)),
+            ("-27", MetaVal::Integer(-27)),
+            ("3.1415", MetaVal::Decimal(Decimal::new(31415.into(), 4))),
+            ("-3.1415", MetaVal::Decimal(-Decimal::new(31415.into(), 4))),
             ("true", MetaVal::Boolean(true)),
             ("false", MetaVal::Boolean(false)),
             (
                 r#"[null, "string", 27, true]"#,
-                MetaVal::Seq(vec![
+                MetaVal::Sequence(vec![
                     MetaVal::Null,
                     MetaVal::String(String::from("string")),
-                    MetaVal::Int(27),
+                    MetaVal::Integer(27),
                     MetaVal::Boolean(true),
                 ]),
             ),
             (
                 "- null\n- string\n- 27\n- true",
-                MetaVal::Seq(vec![
+                MetaVal::Sequence(vec![
                     MetaVal::Null,
                     MetaVal::String(String::from("string")),
-                    MetaVal::Int(27),
+                    MetaVal::Integer(27),
                     MetaVal::Boolean(true),
                 ]),
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
-                MetaVal::Map(btreemap![
+                MetaVal::Mapping(btreemap![
                     MetaKey::from("key_a") => MetaVal::String(String::from("string")),
-                    MetaKey::from("key_b") => MetaVal::Int(-27),
+                    MetaKey::from("key_b") => MetaVal::Integer(-27),
                     MetaKey::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
             (
                 "key_a: string\nkey_b: -27\nkey_c: false",
-                MetaVal::Map(btreemap![
+                MetaVal::Mapping(btreemap![
                     MetaKey::from("key_a") => MetaVal::String(String::from("string")),
-                    MetaKey::from("key_b") => MetaVal::Int(-27),
+                    MetaKey::from("key_b") => MetaVal::Integer(-27),
                     MetaKey::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
@@ -263,31 +261,31 @@ mod tests {
         let val_str_a = MetaVal::String(String::from("val_a"));
         let val_str_b = MetaVal::String(String::from("val_b"));
         let val_str_c = MetaVal::String(String::from("val_c"));
-        let val_seq_a = MetaVal::Seq(vec![
+        let val_seq_a = MetaVal::Sequence(vec![
             val_str_a.clone(), val_str_a.clone(), val_str_a.clone(),
         ]);
-        let val_seq_b = MetaVal::Seq(vec![
+        let val_seq_b = MetaVal::Sequence(vec![
             val_str_b.clone(), val_str_b.clone(), val_str_b.clone(),
         ]);
-        let val_seq_c = MetaVal::Seq(vec![
+        let val_seq_c = MetaVal::Sequence(vec![
             val_str_c.clone(), val_str_c.clone(), val_str_c.clone(),
         ]);
-        let val_map_a = MetaVal::Map(btreemap![
+        let val_map_a = MetaVal::Mapping(btreemap![
             key_str_a.clone() => val_str_a.clone(),
             key_str_b.clone() => val_str_b.clone(),
             key_str_c.clone() => val_str_c.clone(),
         ]);
-        let val_map_b = MetaVal::Map(btreemap![
+        let val_map_b = MetaVal::Mapping(btreemap![
             key_str_a.clone() => val_seq_a.clone(),
             key_str_b.clone() => val_seq_b.clone(),
             key_str_c.clone() => val_seq_c.clone(),
         ]);
-        let val_map_c = MetaVal::Map(btreemap![
+        let val_map_c = MetaVal::Mapping(btreemap![
             key_str_a.clone() => val_nil.clone(),
             key_str_b.clone() => val_nil.clone(),
             key_str_c.clone() => val_nil.clone(),
         ]);
-        let val_map_d = MetaVal::Map(btreemap![
+        let val_map_d = MetaVal::Mapping(btreemap![
             key_str_a.clone() => val_map_a.clone(),
             key_str_b.clone() => val_map_b.clone(),
             key_str_c.clone() => val_map_c.clone(),

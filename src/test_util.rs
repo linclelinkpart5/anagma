@@ -210,20 +210,20 @@ trait TestSerialize {
 impl TestSerialize for MetaStructure {
     fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String {
         match self {
-            &MetaStructure::One(ref mb) => MetaVal::Map(mb.clone()).to_serialized_chunk(serialize_format),
+            &MetaStructure::One(ref mb) => MetaVal::Mapping(mb.clone()).to_serialized_chunk(serialize_format),
             &MetaStructure::Seq(ref mb_seq) => {
-                MetaVal::Seq(
+                MetaVal::Sequence(
                     mb_seq
                         .into_iter()
-                        .map(|v| MetaVal::Map(v.clone()))
+                        .map(|v| MetaVal::Mapping(v.clone()))
                         .collect()
                 ).to_serialized_chunk(serialize_format)
             },
             &MetaStructure::Map(ref mb_map) => {
-                MetaVal::Map(
+                MetaVal::Mapping(
                     mb_map
                         .into_iter()
-                        .map(|(k, v)| (MetaKey::from(k.clone()), MetaVal::Map(v.clone())))
+                        .map(|(k, v)| (MetaKey::from(k.clone()), MetaVal::Mapping(v.clone())))
                         .collect()
                 ).to_serialized_chunk(serialize_format)
             },
@@ -238,10 +238,10 @@ impl TestSerialize for MetaVal {
             (SerializeFormat::Yaml, &Self::Null) => "~".into(),
             (SerializeFormat::Json, &Self::String(ref s)) => format!(r#""{}""#, s),
             (SerializeFormat::Yaml, &Self::String(ref s)) => s.clone(),
-            (_, &Self::Int(i)) => format!("{}", i),
-            (_, &Self::Dec(ref d)) => format!("{}", d),
+            (_, &Self::Integer(i)) => format!("{}", i),
+            (_, &Self::Decimal(ref d)) => format!("{}", d),
             (_, &Self::Boolean(b)) => format!("{}", b),
-            (SerializeFormat::Json, &Self::Seq(ref seq)) => {
+            (SerializeFormat::Json, &Self::Sequence(ref seq)) => {
                 let mut val_chunks = vec![];
 
                 for val in seq {
@@ -259,7 +259,7 @@ impl TestSerialize for MetaVal {
                     String::from("[]")
                 }
             },
-            (SerializeFormat::Yaml, &Self::Seq(ref seq)) => {
+            (SerializeFormat::Yaml, &Self::Sequence(ref seq)) => {
                 let mut val_chunks = vec![];
 
                 for val in seq {
@@ -277,7 +277,7 @@ impl TestSerialize for MetaVal {
                     String::from("[]")
                 }
             },
-            (SerializeFormat::Json, &Self::Map(ref map)) => {
+            (SerializeFormat::Json, &Self::Mapping(ref map)) => {
                 let mut kv_pair_chunks = vec![];
 
                 for (key, val) in map {
@@ -297,7 +297,7 @@ impl TestSerialize for MetaVal {
                     String::from("{}")
                 }
             },
-            (SerializeFormat::Yaml, &Self::Map(ref map)) => {
+            (SerializeFormat::Yaml, &Self::Mapping(ref map)) => {
                 let mut kv_pair_chunks = vec![];
 
                 for (key, val) in map {
@@ -305,7 +305,7 @@ impl TestSerialize for MetaVal {
                         let val_chunk = val.to_serialized_chunk(serialize_format);
 
                         match val {
-                            Self::Seq(..) | Self::Map(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
+                            Self::Sequence(..) | Self::Mapping(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
                             _ => format!(" {}", val_chunk),
                         }
                     };
@@ -342,11 +342,11 @@ impl TestUtil {
     }
 
     pub fn sample_integer() -> MetaVal {
-        MetaVal::Int(27)
+        MetaVal::Integer(27)
     }
 
     pub fn sample_decimal() -> MetaVal {
-        MetaVal::Dec(Decimal::new(31415.into(), 4))
+        MetaVal::Decimal(Decimal::new(31415.into(), 4))
     }
 
     pub fn sample_boolean() -> MetaVal {
@@ -387,35 +387,35 @@ impl TestUtil {
     }
 
     pub fn sample_flat_sequence() -> MetaVal {
-        MetaVal::Seq(Self::core_flat_sequence())
+        MetaVal::Sequence(Self::core_flat_sequence())
     }
 
     pub fn sample_flat_mapping() -> MetaVal {
-        MetaVal::Map(Self::core_flat_mapping())
+        MetaVal::Mapping(Self::core_flat_mapping())
     }
 
     pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Vec<MetaVal> {
         let mut nums = vec![];
 
         for i in 1..=int_max {
-            nums.push(MetaVal::Int(i));
-            nums.push(MetaVal::Int(-i));
+            nums.push(MetaVal::Integer(i));
+            nums.push(MetaVal::Integer(-i));
 
             // Add -0.5 decimal values.
             let m = (i - 1) * 10 + 5;
-            nums.push(MetaVal::Dec(Decimal::new(m.into(), 1)));
-            nums.push(MetaVal::Dec(Decimal::new((-m).into(), 1)));
+            nums.push(MetaVal::Decimal(Decimal::new(m.into(), 1)));
+            nums.push(MetaVal::Decimal(Decimal::new((-m).into(), 1)));
         }
 
         if dec_extremes {
             // These are +/-(int_max + 0.5).
             let m = int_max * 10 + 5;
-            nums.push(MetaVal::Dec(Decimal::new(m.into(), 1)));
-            nums.push(MetaVal::Dec(Decimal::new((-m).into(), 1)));
+            nums.push(MetaVal::Decimal(Decimal::new(m.into(), 1)));
+            nums.push(MetaVal::Decimal(Decimal::new((-m).into(), 1)));
         }
 
         if include_zero {
-            nums.push(MetaVal::Int(0));
+            nums.push(MetaVal::Integer(0));
         }
 
         if shuffle {
@@ -426,15 +426,15 @@ impl TestUtil {
     }
 
     pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal {
-        MetaVal::Seq(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
+        MetaVal::Sequence(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
     }
 
     // pub fn sample_nested_sequence() -> MetaVal {
-    //     MetaVal::Seq(Self::core_nested_sequence())
+    //     MetaVal::Sequence(Self::core_nested_sequence())
     // }
 
     // pub fn sample_nested_mapping() -> MetaVal {
-    //     MetaVal::Map(Self::core_nested_mapping())
+    //     MetaVal::Mapping(Self::core_nested_mapping())
     // }
 
     pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock {
@@ -601,7 +601,7 @@ impl TestUtil {
     }
 
     pub fn i(i: i64) -> MetaVal {
-        MetaVal::Int(i)
+        MetaVal::Integer(i)
     }
 
     pub fn d_raw(i: i64, e: u32) -> Decimal {
@@ -609,7 +609,7 @@ impl TestUtil {
     }
 
     pub fn d(i: i64, e: u32) -> MetaVal {
-        MetaVal::Dec(Self::d_raw(i, e))
+        MetaVal::Decimal(Self::d_raw(i, e))
     }
 }
 
@@ -636,19 +636,19 @@ mod tests {
         let test_cases = vec![
             (
                 TestUtil::sample_number_sequence(2, false, false, false),
-                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1)]),
+                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1)]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, false),
-                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1)]),
+                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1)]),
             ),
             (
                 TestUtil::sample_number_sequence(2, false, false, true),
-                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), i(0)]),
+                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), i(0)]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, true),
-                MetaVal::Seq(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1), i(0)]),
+                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1), i(0)]),
             ),
         ];
 
@@ -661,12 +661,12 @@ mod tests {
     fn test_to_serialized_chunk() {
         let dec = Decimal::new(31415.into(), 4);
 
-        let seq_a = MetaVal::Seq(vec![MetaVal::Int(27), MetaVal::String("string".into())]);
-        let seq_b = MetaVal::Seq(vec![MetaVal::Boolean(false), MetaVal::Null, MetaVal::Dec(dec)]);
+        let seq_a = MetaVal::Sequence(vec![MetaVal::Integer(27), MetaVal::String("string".into())]);
+        let seq_b = MetaVal::Sequence(vec![MetaVal::Boolean(false), MetaVal::Null, MetaVal::Decimal(dec)]);
 
-        let seq_seq = MetaVal::Seq(vec![seq_a.clone(), seq_b.clone()]);
+        let seq_seq = MetaVal::Sequence(vec![seq_a.clone(), seq_b.clone()]);
 
-        let map = MetaVal::Map(btreemap![
+        let map = MetaVal::Mapping(btreemap![
             "key_a".into() => seq_a.clone(),
             "key_b".into() => seq_b.clone(),
             "key_c".into() => seq_seq.clone(),

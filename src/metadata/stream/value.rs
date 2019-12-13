@@ -105,7 +105,8 @@ impl<'p> Iterator for BlockMetaValueStream<'p> {
                     Err(err) => Some(Err(Error::MetaBlockStream(err))),
                     Ok((path, mb)) => {
                         // Initalize the meta value by wrapping the entire meta block in a map.
-                        let curr_val = MetaVal::Map(mb);
+                        // Having metadata keys be simple strings makes this easy and possible!
+                        let curr_val = MetaVal::Mapping(mb);
 
                         match curr_val.get_key_path(&self.target_key_path) {
                             // Not found here, delegate to the next iteration.
