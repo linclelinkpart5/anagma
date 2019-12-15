@@ -15,7 +15,6 @@ use rand::seq::SliceRandom;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::types::MetaVal;
-use crate::metadata::types::MetaKey;
 use crate::metadata::types::MetaBlock;
 use crate::metadata::types::MetaStructure;
 
@@ -223,7 +222,7 @@ impl TestSerialize for MetaStructure {
                 MetaVal::Mapping(
                     mb_map
                         .into_iter()
-                        .map(|(k, v)| (MetaKey::from(k.clone()), MetaVal::Mapping(v.clone())))
+                        .map(|(k, v)| (k.clone(), MetaVal::Mapping(v.clone())))
                         .collect()
                 ).to_serialized_chunk(serialize_format)
             },
@@ -367,21 +366,21 @@ impl TestUtil {
         ]
     }
 
-    pub fn core_flat_mapping() -> BTreeMap<MetaKey, MetaVal> {
+    pub fn core_flat_mapping() -> BTreeMap<String, MetaVal> {
         btreemap![
-            MetaKey::from(Self::STRING_KEY) => Self::sample_string(),
-            MetaKey::from(Self::INTEGER_KEY) => Self::sample_integer(),
-            MetaKey::from(Self::DECIMAL_KEY) => Self::sample_decimal(),
-            MetaKey::from(Self::BOOLEAN_KEY) => Self::sample_boolean(),
-            MetaKey::from(Self::NULL_KEY) => Self::sample_null(),
+            String::from(Self::STRING_KEY) => Self::sample_string(),
+            String::from(Self::INTEGER_KEY) => Self::sample_integer(),
+            String::from(Self::DECIMAL_KEY) => Self::sample_decimal(),
+            String::from(Self::BOOLEAN_KEY) => Self::sample_boolean(),
+            String::from(Self::NULL_KEY) => Self::sample_null(),
         ]
     }
 
-    pub fn core_nested_mapping() -> BTreeMap<MetaKey, MetaVal> {
+    pub fn core_nested_mapping() -> BTreeMap<String, MetaVal> {
         let mut map = Self::core_flat_mapping();
 
-        map.insert(MetaKey::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
-        map.insert(MetaKey::from(Self::MAPPING_KEY), Self::sample_flat_mapping());
+        map.insert(String::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
+        map.insert(String::from(Self::MAPPING_KEY), Self::sample_flat_mapping());
 
         map
     }
@@ -441,23 +440,23 @@ impl TestUtil {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
-            MetaKey::from(format!("{}_key", meta_location.default_file_name())),
+            String::from(format!("{}_key", meta_location.default_file_name())),
             MetaVal::String(format!("{}_val", meta_location.default_file_name())),
         );
 
         map.insert(
-            MetaKey::from("meta_location"),
+            String::from("meta_location"),
             MetaVal::String(String::from(meta_location.default_file_name())),
         );
 
         map.insert(
-            MetaKey::from("target_file_name"),
+            String::from("target_file_name"),
             MetaVal::String(String::from(target_name)),
         );
 
         if include_flag_key {
             map.insert(
-                MetaKey::from("flag_key"),
+                String::from("flag_key"),
                 MetaVal::String(String::from(target_name)),
             );
         }
@@ -470,13 +469,13 @@ impl TestUtil {
     //     let mut map = Self::core_nested_mapping();
 
     //     map.insert(
-    //         MetaKey::from("target_file_name"),
+    //         String::from("target_file_name"),
     //         MetaVal::String(String::from(target_name)),
     //     );
 
     //     if include_flag_key {
     //         map.insert(
-    //             MetaKey::from("flag_key"),
+    //             String::from("flag_key"),
     //             MetaVal::String(String::from(target_name)),
     //         );
     //     }

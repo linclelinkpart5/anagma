@@ -5,9 +5,10 @@ use std::convert::TryFrom;
 
 use rust_decimal::Decimal;
 
-use crate::metadata::types::key::MetaKey;
-use crate::metadata::types::key::MetaKeyPath;
 use crate::util::Number;
+
+pub type Sequence = Vec<MetaVal>;
+pub type Mapping = BTreeMap<String, MetaVal>;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
@@ -15,15 +16,15 @@ use crate::util::Number;
 pub enum MetaVal {
     Null,
     String(String),
-    Sequence(Vec<MetaVal>),
-    Mapping(BTreeMap<MetaKey, MetaVal>),
+    Sequence(Sequence),
+    Mapping(Mapping),
     Integer(i64),
     Boolean(bool),
     Decimal(Decimal),
 }
 
 impl MetaVal {
-    pub fn get_key_path(&self, key_path: &MetaKeyPath) -> Option<&Self> {
+    pub fn get_key_path<S: AsRef<str>>(&self, key_path: &[S]) -> Option<&Self> {
         let mut curr_val = self;
 
         for key in key_path {
@@ -31,7 +32,7 @@ impl MetaVal {
             match curr_val {
                 Self::Mapping(map) => {
                     // See if the current key in the key path is found in this mapping.
-                    match map.get(key) {
+                    match map.get(key.as_ref()) {
                         // Unable to proceed on the key path, short circuit.
                         None => return None,
 
@@ -159,9 +160,6 @@ mod tests {
 
     use rust_decimal::Decimal;
 
-    use crate::metadata::types::key::MetaKey;
-    use crate::metadata::types::key::MetaKeyPath;
-
     #[test]
     fn test_deserialize() {
         let inputs_and_expected = vec![
@@ -185,9 +183,9 @@ mod tests {
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
                 MetaVal::Mapping(btreemap![
-                    MetaKey::from("key_a") => MetaVal::String(String::from("string")),
-                    MetaKey::from("key_b") => MetaVal::Integer(-27),
-                    MetaKey::from("key_c") => MetaVal::Boolean(false),
+                    String::from("key_a") => MetaVal::String(String::from("string")),
+                    String::from("key_b") => MetaVal::Integer(-27),
+                    String::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
         ];
@@ -229,17 +227,17 @@ mod tests {
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
                 MetaVal::Mapping(btreemap![
-                    MetaKey::from("key_a") => MetaVal::String(String::from("string")),
-                    MetaKey::from("key_b") => MetaVal::Integer(-27),
-                    MetaKey::from("key_c") => MetaVal::Boolean(false),
+                    String::from("key_a") => MetaVal::String(String::from("string")),
+                    String::from("key_b") => MetaVal::Integer(-27),
+                    String::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
             (
                 "key_a: string\nkey_b: -27\nkey_c: false",
                 MetaVal::Mapping(btreemap![
-                    MetaKey::from("key_a") => MetaVal::String(String::from("string")),
-                    MetaKey::from("key_b") => MetaVal::Integer(-27),
-                    MetaKey::from("key_c") => MetaVal::Boolean(false),
+                    String::from("key_a") => MetaVal::String(String::from("string")),
+                    String::from("key_b") => MetaVal::Integer(-27),
+                    String::from("key_c") => MetaVal::Boolean(false),
                 ]),
             ),
         ];
@@ -252,10 +250,10 @@ mod tests {
 
     #[test]
     fn test_get_key_path() {
-        let key_str_a = MetaKey::from("key_a");
-        let key_str_b = MetaKey::from("key_b");
-        let key_str_c = MetaKey::from("key_c");
-        let key_str_x = MetaKey::from("key_x");
+        let key_str_a = String::from("key_a");
+        let key_str_b = String::from("key_b");
+        let key_str_c = String::from("key_c");
+        let key_str_x = String::from("key_x");
 
         let val_nil = MetaVal::Null;
         let val_str_a = MetaVal::String(String::from("val_a"));
@@ -294,38 +292,38 @@ mod tests {
         let inputs_and_expected = vec![
 
             // An empty key path always returns the original value.
-            ((&val_nil, MetaKeyPath::new()), Some(&val_nil)),
-            ((&val_str_a, MetaKeyPath::new()), Some(&val_str_a)),
-            ((&val_seq_a, MetaKeyPath::new()), Some(&val_seq_a)),
-            ((&val_map_a, MetaKeyPath::new()), Some(&val_map_a)),
+            ((&val_nil, vec![]), Some(&val_nil)),
+            ((&val_str_a, vec![]), Some(&val_str_a)),
+            ((&val_seq_a, vec![]), Some(&val_seq_a)),
+            ((&val_map_a, vec![]), Some(&val_map_a)),
 
             // A non-empty key path returns no value on non-maps.
-            ((&val_nil, MetaKeyPath::from(key_str_a.clone())), None),
-            ((&val_str_a, MetaKeyPath::from(key_str_a.clone())), None),
-            ((&val_seq_a, MetaKeyPath::from(key_str_a.clone())), None),
+            ((&val_nil, vec![key_str_a.clone()]), None),
+            ((&val_str_a, vec![key_str_a.clone()]), None),
+            ((&val_seq_a, vec![key_str_a.clone()]), None),
 
             // If the key is not found in a mapping, nothing is returned.
-            ((&val_map_a, MetaKeyPath::from(key_str_x.clone())), None),
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_a.clone(), key_str_x.clone()])), None),
+            ((&val_map_a, vec![key_str_x.clone()]), None),
+            ((&val_map_d, vec![key_str_a.clone(), key_str_x.clone()]), None),
 
             // Positive test cases.
-            ((&val_map_a, MetaKeyPath::from(key_str_a.clone())), Some(&val_str_a)),
-            ((&val_map_b, MetaKeyPath::from(key_str_a.clone())), Some(&val_seq_a)),
-            ((&val_map_c, MetaKeyPath::from(key_str_a.clone())), Some(&val_nil)),
-            ((&val_map_d, MetaKeyPath::from(key_str_a.clone())), Some(&val_map_a)),
-            ((&val_map_a, MetaKeyPath::from(key_str_b.clone())), Some(&val_str_b)),
-            ((&val_map_b, MetaKeyPath::from(key_str_b.clone())), Some(&val_seq_b)),
-            ((&val_map_c, MetaKeyPath::from(key_str_b.clone())), Some(&val_nil)),
-            ((&val_map_d, MetaKeyPath::from(key_str_b.clone())), Some(&val_map_b)),
-            ((&val_map_a, MetaKeyPath::from(key_str_c.clone())), Some(&val_str_c)),
-            ((&val_map_b, MetaKeyPath::from(key_str_c.clone())), Some(&val_seq_c)),
-            ((&val_map_c, MetaKeyPath::from(key_str_c.clone())), Some(&val_nil)),
-            ((&val_map_d, MetaKeyPath::from(key_str_c.clone())), Some(&val_map_c)),
+            ((&val_map_a, vec![key_str_a.clone()]), Some(&val_str_a)),
+            ((&val_map_b, vec![key_str_a.clone()]), Some(&val_seq_a)),
+            ((&val_map_c, vec![key_str_a.clone()]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_a.clone()]), Some(&val_map_a)),
+            ((&val_map_a, vec![key_str_b.clone()]), Some(&val_str_b)),
+            ((&val_map_b, vec![key_str_b.clone()]), Some(&val_seq_b)),
+            ((&val_map_c, vec![key_str_b.clone()]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_b.clone()]), Some(&val_map_b)),
+            ((&val_map_a, vec![key_str_c.clone()]), Some(&val_str_c)),
+            ((&val_map_b, vec![key_str_c.clone()]), Some(&val_seq_c)),
+            ((&val_map_c, vec![key_str_c.clone()]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_c.clone()]), Some(&val_map_c)),
 
             // Nested positive test cases.
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_a.clone(), key_str_a.clone()])), Some(&val_str_a)),
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_b.clone(), key_str_b.clone()])), Some(&val_seq_b)),
-            ((&val_map_d, MetaKeyPath::from(vec![key_str_c.clone(), key_str_c.clone()])), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_a.clone(), key_str_a.clone()]), Some(&val_str_a)),
+            ((&val_map_d, vec![key_str_b.clone(), key_str_b.clone()]), Some(&val_seq_b)),
+            ((&val_map_d, vec![key_str_c.clone(), key_str_c.clone()]), Some(&val_nil)),
 
         ];
 

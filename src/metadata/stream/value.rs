@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
 
-use crate::metadata::types::MetaKeyPath;
 use crate::metadata::types::MetaVal;
 use crate::metadata::stream::block::MetaBlockStream;
 use crate::metadata::stream::block::Error as MetaBlockStreamError;
@@ -79,12 +78,12 @@ impl<'p> Iterator for FixedMetaValueStream<'p> {
 
 #[derive(Debug)]
 pub struct BlockMetaValueStream<'p> {
-    target_key_path: MetaKeyPath<'p>,
+    target_key_path: Vec<String>,
     meta_block_stream: MetaBlockStream<'p>,
 }
 
 impl<'p> BlockMetaValueStream<'p> {
-    pub fn new<MBS>(target_key_path: MetaKeyPath<'p>, meta_block_stream: MBS) -> Self
+    pub fn new<MBS>(target_key_path: Vec<String>, meta_block_stream: MBS) -> Self
     where
         MBS: Into<MetaBlockStream<'p>>,
     {
@@ -137,7 +136,6 @@ mod tests {
     use crate::metadata::stream::block::MetaBlockStream;
     use crate::metadata::stream::block::FileMetaBlockStream;
 
-    use crate::metadata::types::MetaKeyPath;
     use crate::metadata::types::MetaVal;
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
@@ -155,7 +153,7 @@ mod tests {
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
 
-        let target_key_path = MetaKeyPath::from("flag_key");
+        let target_key_path = vec![String::from("flag_key")];
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -189,7 +187,7 @@ mod tests {
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
 
-        let target_key_path = MetaKeyPath::from("flag_key");
+        let target_key_path = vec![String::from("flag_key")];
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -213,7 +211,7 @@ mod tests {
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
 
-        let target_key_path = MetaKeyPath::from("flag_key");
+        let target_key_path = vec![String::from("flag_key")];
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -252,7 +250,7 @@ mod tests {
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
 
-        let target_key_path = MetaKeyPath::from("flag_key");
+        let target_key_path = vec![String::from("flag_key")];
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
@@ -274,7 +272,7 @@ mod tests {
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
 
-        let target_key_path = MetaKeyPath::from("flag_key");
+        let target_key_path = vec![String::from("flag_key")];
 
         let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
             file_walker,
