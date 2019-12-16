@@ -2,14 +2,11 @@
 
 use std::path::Path;
 use std::convert::TryFrom;
-use std::convert::TryInto;
 
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
 use globset::Error as GlobError;
-use serde::Deserialize;
-use serde::de::Deserializer;
 
 #[derive(Debug)]
 pub enum Error {
@@ -54,18 +51,9 @@ impl TryFrom<OneOrManyPatterns> for Matcher {
 }
 
 /// A filter for file paths, used to determine if a path is to be considered a metadata-containing item.
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
+#[serde(try_from = "OneOrManyPatterns")]
 pub struct Matcher(GlobSet);
-
-impl<'de> Deserialize<'de> for Matcher {
-    fn deserialize<D>(deserializer: D) -> Result<Matcher, D::Error>
-    where D: Deserializer<'de> {
-        use serde::de::Error;
-        let oom_patterns = OneOrManyPatterns::deserialize(deserializer).map_err(Error::custom)?;
-        let matcher = oom_patterns.try_into().map_err(Error::custom)?;
-        Ok(matcher)
-    }
-}
 
 impl Matcher {
     pub fn build<II, S>(pattern_strs: II) -> Result<Self, Error>
