@@ -4,13 +4,13 @@ use crate::metadata::block::MetaBlockMap;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-pub enum UnitMetaStructureRepr {
+pub(crate) enum UnitMetaStructureRepr {
     One(MetaBlock),
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-pub enum ManyMetaStructureRepr {
+pub(crate) enum ManyMetaStructureRepr {
     Seq(MetaBlockSeq),
     Map(MetaBlockMap),
 }
@@ -18,7 +18,7 @@ pub enum ManyMetaStructureRepr {
 /// An easy-to-deserialize flavor of a meta structure.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
-pub enum MetaStructureRepr {
+pub(crate) enum MetaStructureRepr {
     Unit(UnitMetaStructureRepr),
     Many(ManyMetaStructureRepr),
 }
