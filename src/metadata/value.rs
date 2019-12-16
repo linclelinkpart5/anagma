@@ -7,13 +7,13 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
-pub type Sequence = Vec<MetaVal>;
-pub type Mapping = BTreeMap<String, MetaVal>;
+pub type Sequence = Vec<Value>;
+pub type Mapping = BTreeMap<String, Value>;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
-#[strum_discriminants(name(MetaValKind))]
-pub enum MetaVal {
+#[strum_discriminants(name(ValueKind))]
+pub enum Value {
     Null,
     String(String),
     Sequence(Sequence),
@@ -23,7 +23,7 @@ pub enum MetaVal {
     Decimal(Decimal),
 }
 
-impl MetaVal {
+impl Value {
     pub fn get_key_path<S: AsRef<str>>(&self, key_path: &[S]) -> Option<&Self> {
         let mut curr_val = self;
 
@@ -51,45 +51,45 @@ impl MetaVal {
     }
 }
 
-impl From<String> for MetaVal {
+impl From<String> for Value {
     fn from(s: String) -> Self {
         Self::String(s)
     }
 }
 
-// TODO: Remove this impl, feels non-Rustic.
-impl From<&str> for MetaVal {
+#[cfg(test)]
+impl From<&str> for Value {
     fn from(s: &str) -> Self {
         Self::String(s.to_string())
     }
 }
 
-impl From<i64> for MetaVal {
+impl From<i64> for Value {
     fn from(i: i64) -> Self {
         Self::Integer(i)
     }
 }
 
-impl From<bool> for MetaVal {
+impl From<bool> for Value {
     fn from(b: bool) -> Self {
         Self::Boolean(b)
     }
 }
 
-impl From<Decimal> for MetaVal {
+impl From<Decimal> for Value {
     fn from(d: Decimal) -> Self {
         Self::Decimal(d)
     }
 }
 
-impl From<Vec<MetaVal>> for MetaVal {
-    fn from(s: Vec<MetaVal>) -> Self {
+impl From<Vec<Value>> for Value {
+    fn from(s: Vec<Value>) -> Self {
         Self::Sequence(s)
     }
 }
 
-impl From<Number> for MetaVal {
-    fn from(nl: Number) -> MetaVal {
+impl From<Number> for Value {
+    fn from(nl: Number) -> Value {
         match nl {
             Number::Integer(i) => Self::from(i),
             Number::Decimal(d) => Self::from(d),
@@ -97,58 +97,58 @@ impl From<Number> for MetaVal {
     }
 }
 
-impl TryFrom<MetaVal> for Number {
+impl TryFrom<Value> for Number {
     type Error = ();
 
-    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            MetaVal::Integer(i) => Ok(Self::from(i)),
-            MetaVal::Decimal(d) => Ok(Self::from(d)),
+            Value::Integer(i) => Ok(Self::from(i)),
+            Value::Decimal(d) => Ok(Self::from(d)),
             _ => Err(()),
         }
     }
 }
 
-impl<'k> TryFrom<&'k MetaVal> for Number {
+impl<'k> TryFrom<&'k Value> for Number {
     type Error = ();
 
-    fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
+    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
-            &MetaVal::Integer(i) => Ok(Self::Integer(i)),
-            &MetaVal::Decimal(d) => Ok(Self::Decimal(d)),
+            &Value::Integer(i) => Ok(Self::Integer(i)),
+            &Value::Decimal(d) => Ok(Self::Decimal(d)),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<MetaVal> for bool {
+impl TryFrom<Value> for bool {
     type Error = ();
 
-    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            MetaVal::Boolean(b) => Ok(b),
+            Value::Boolean(b) => Ok(b),
             _ => Err(()),
         }
     }
 }
 
-impl<'k> TryFrom<&'k MetaVal> for bool {
+impl<'k> TryFrom<&'k Value> for bool {
     type Error = ();
 
-    fn try_from(value: &'k MetaVal) -> Result<Self, Self::Error> {
+    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
-            &MetaVal::Boolean(b) => Ok(b),
+            &Value::Boolean(b) => Ok(b),
             _ => Err(()),
         }
     }
 }
 
-impl TryFrom<MetaVal> for Vec<MetaVal> {
+impl TryFrom<Value> for Vec<Value> {
     type Error = ();
 
-    fn try_from(value: MetaVal) -> Result<Self, Self::Error> {
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
-            MetaVal::Sequence(s) => Ok(s),
+            Value::Sequence(s) => Ok(s),
             _ => Err(()),
         }
     }
@@ -156,94 +156,94 @@ impl TryFrom<MetaVal> for Vec<MetaVal> {
 
 #[cfg(test)]
 mod tests {
-    use super::MetaVal;
+    use super::Value;
 
     use rust_decimal::Decimal;
 
     #[test]
     fn test_deserialize() {
         let inputs_and_expected = vec![
-            ("null", MetaVal::Null),
-            (r#""string""#, MetaVal::String(String::from("string"))),
-            ("27", MetaVal::Integer(27)),
-            ("-27", MetaVal::Integer(-27)),
-            ("3.1415", MetaVal::Decimal(Decimal::new(31415.into(), 4))),
-            ("-3.1415", MetaVal::Decimal(-Decimal::new(31415.into(), 4))),
-            ("true", MetaVal::Boolean(true)),
-            ("false", MetaVal::Boolean(false)),
+            ("null", Value::Null),
+            (r#""string""#, Value::String(String::from("string"))),
+            ("27", Value::Integer(27)),
+            ("-27", Value::Integer(-27)),
+            ("3.1415", Value::Decimal(Decimal::new(31415.into(), 4))),
+            ("-3.1415", Value::Decimal(-Decimal::new(31415.into(), 4))),
+            ("true", Value::Boolean(true)),
+            ("false", Value::Boolean(false)),
             (
                 r#"[null, "string", 27, true]"#,
-                MetaVal::Sequence(vec![
-                    MetaVal::Null,
-                    MetaVal::String(String::from("string")),
-                    MetaVal::Integer(27),
-                    MetaVal::Boolean(true),
+                Value::Sequence(vec![
+                    Value::Null,
+                    Value::String(String::from("string")),
+                    Value::Integer(27),
+                    Value::Boolean(true),
                 ]),
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
-                MetaVal::Mapping(btreemap![
-                    String::from("key_a") => MetaVal::String(String::from("string")),
-                    String::from("key_b") => MetaVal::Integer(-27),
-                    String::from("key_c") => MetaVal::Boolean(false),
+                Value::Mapping(btreemap![
+                    String::from("key_a") => Value::String(String::from("string")),
+                    String::from("key_b") => Value::Integer(-27),
+                    String::from("key_c") => Value::Boolean(false),
                 ]),
             ),
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = serde_json::from_str::<MetaVal>(&input).unwrap();
+            let produced = serde_json::from_str::<Value>(&input).unwrap();
             assert_eq!(expected, produced);
         }
 
         let inputs_and_expected = vec![
-            ("null", MetaVal::Null),
-            ("~", MetaVal::Null),
-            (r#""string""#, MetaVal::String(String::from("string"))),
-            ("string", MetaVal::String(String::from("string"))),
-            ("27", MetaVal::Integer(27)),
-            ("-27", MetaVal::Integer(-27)),
-            ("3.1415", MetaVal::Decimal(Decimal::new(31415.into(), 4))),
-            ("-3.1415", MetaVal::Decimal(-Decimal::new(31415.into(), 4))),
-            ("true", MetaVal::Boolean(true)),
-            ("false", MetaVal::Boolean(false)),
+            ("null", Value::Null),
+            ("~", Value::Null),
+            (r#""string""#, Value::String(String::from("string"))),
+            ("string", Value::String(String::from("string"))),
+            ("27", Value::Integer(27)),
+            ("-27", Value::Integer(-27)),
+            ("3.1415", Value::Decimal(Decimal::new(31415.into(), 4))),
+            ("-3.1415", Value::Decimal(-Decimal::new(31415.into(), 4))),
+            ("true", Value::Boolean(true)),
+            ("false", Value::Boolean(false)),
             (
                 r#"[null, "string", 27, true]"#,
-                MetaVal::Sequence(vec![
-                    MetaVal::Null,
-                    MetaVal::String(String::from("string")),
-                    MetaVal::Integer(27),
-                    MetaVal::Boolean(true),
+                Value::Sequence(vec![
+                    Value::Null,
+                    Value::String(String::from("string")),
+                    Value::Integer(27),
+                    Value::Boolean(true),
                 ]),
             ),
             (
                 "- null\n- string\n- 27\n- true",
-                MetaVal::Sequence(vec![
-                    MetaVal::Null,
-                    MetaVal::String(String::from("string")),
-                    MetaVal::Integer(27),
-                    MetaVal::Boolean(true),
+                Value::Sequence(vec![
+                    Value::Null,
+                    Value::String(String::from("string")),
+                    Value::Integer(27),
+                    Value::Boolean(true),
                 ]),
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
-                MetaVal::Mapping(btreemap![
-                    String::from("key_a") => MetaVal::String(String::from("string")),
-                    String::from("key_b") => MetaVal::Integer(-27),
-                    String::from("key_c") => MetaVal::Boolean(false),
+                Value::Mapping(btreemap![
+                    String::from("key_a") => Value::String(String::from("string")),
+                    String::from("key_b") => Value::Integer(-27),
+                    String::from("key_c") => Value::Boolean(false),
                 ]),
             ),
             (
                 "key_a: string\nkey_b: -27\nkey_c: false",
-                MetaVal::Mapping(btreemap![
-                    String::from("key_a") => MetaVal::String(String::from("string")),
-                    String::from("key_b") => MetaVal::Integer(-27),
-                    String::from("key_c") => MetaVal::Boolean(false),
+                Value::Mapping(btreemap![
+                    String::from("key_a") => Value::String(String::from("string")),
+                    String::from("key_b") => Value::Integer(-27),
+                    String::from("key_c") => Value::Boolean(false),
                 ]),
             ),
         ];
 
         for (input, expected) in inputs_and_expected {
-            let produced = serde_yaml::from_str::<MetaVal>(&input).unwrap();
+            let produced = serde_yaml::from_str::<Value>(&input).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -255,35 +255,35 @@ mod tests {
         let key_str_c = String::from("key_c");
         let key_str_x = String::from("key_x");
 
-        let val_nil = MetaVal::Null;
-        let val_str_a = MetaVal::String(String::from("val_a"));
-        let val_str_b = MetaVal::String(String::from("val_b"));
-        let val_str_c = MetaVal::String(String::from("val_c"));
-        let val_seq_a = MetaVal::Sequence(vec![
+        let val_nil = Value::Null;
+        let val_str_a = Value::String(String::from("val_a"));
+        let val_str_b = Value::String(String::from("val_b"));
+        let val_str_c = Value::String(String::from("val_c"));
+        let val_seq_a = Value::Sequence(vec![
             val_str_a.clone(), val_str_a.clone(), val_str_a.clone(),
         ]);
-        let val_seq_b = MetaVal::Sequence(vec![
+        let val_seq_b = Value::Sequence(vec![
             val_str_b.clone(), val_str_b.clone(), val_str_b.clone(),
         ]);
-        let val_seq_c = MetaVal::Sequence(vec![
+        let val_seq_c = Value::Sequence(vec![
             val_str_c.clone(), val_str_c.clone(), val_str_c.clone(),
         ]);
-        let val_map_a = MetaVal::Mapping(btreemap![
+        let val_map_a = Value::Mapping(btreemap![
             key_str_a.clone() => val_str_a.clone(),
             key_str_b.clone() => val_str_b.clone(),
             key_str_c.clone() => val_str_c.clone(),
         ]);
-        let val_map_b = MetaVal::Mapping(btreemap![
+        let val_map_b = Value::Mapping(btreemap![
             key_str_a.clone() => val_seq_a.clone(),
             key_str_b.clone() => val_seq_b.clone(),
             key_str_c.clone() => val_seq_c.clone(),
         ]);
-        let val_map_c = MetaVal::Mapping(btreemap![
+        let val_map_c = Value::Mapping(btreemap![
             key_str_a.clone() => val_nil.clone(),
             key_str_b.clone() => val_nil.clone(),
             key_str_c.clone() => val_nil.clone(),
         ]);
-        let val_map_d = MetaVal::Mapping(btreemap![
+        let val_map_d = Value::Mapping(btreemap![
             key_str_a.clone() => val_map_a.clone(),
             key_str_b.clone() => val_map_b.clone(),
             key_str_c.clone() => val_map_c.clone(),

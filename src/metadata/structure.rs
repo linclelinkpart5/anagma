@@ -1,16 +1,6 @@
-//! Types for modeling and representing item metadata.
-
-pub mod val;
-
-use std::collections::BTreeMap;
-
-use indexmap::IndexMap;
-
-pub use crate::metadata::types::val::MetaVal;
-
-pub type MetaBlock = BTreeMap<String, MetaVal>;
-pub type MetaBlockSeq = Vec<MetaBlock>;
-pub type MetaBlockMap = IndexMap<String, MetaBlock>;
+use crate::metadata::block::MetaBlock;
+use crate::metadata::block::MetaBlockSeq;
+use crate::metadata::block::MetaBlockMap;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]

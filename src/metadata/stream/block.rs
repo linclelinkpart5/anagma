@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
-use crate::metadata::types::MetaBlock;
+use crate::metadata::block::MetaBlock;
 use crate::metadata::processor::MetaProcessor;
 use crate::metadata::processor::Error as ProcessorError;
 use crate::util::file_walkers::FileWalker;
@@ -169,7 +169,7 @@ mod tests {
     use std::collections::VecDeque;
     use crate::test_util::TestUtil;
 
-    use crate::metadata::types::MetaVal;
+    use crate::metadata::value::Value;
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
     use crate::config::serialize_format::SerializeFormat;
@@ -180,12 +180,12 @@ mod tests {
     #[test]
     fn test_fixed_meta_block_stream() {
         let mb_a = btreemap![
-            String::from("key_a") => MetaVal::Boolean(true),
-            String::from("key_b") => MetaVal::Decimal(dec!(3.1415)),
+            String::from("key_a") => Value::Boolean(true),
+            String::from("key_b") => Value::Decimal(dec!(3.1415)),
         ];
         let mb_b = btreemap![
-            String::from("key_a") => MetaVal::Integer(-1),
-            String::from("key_b") => MetaVal::Null,
+            String::from("key_a") => Value::Integer(-1),
+            String::from("key_b") => Value::Null,
         ];
 
         let mut vd = VecDeque::new();
@@ -219,10 +219,10 @@ mod tests {
             sorter: Sorter::default(),
         };
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("0_1_2")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("0_1")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("0")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("ROOT")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("0_1_2")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("0_1")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("0")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("ROOT")));
 
         let test_path = root_dir.clone();
 
@@ -233,21 +233,21 @@ mod tests {
             sorter: Sorter::default(),
         };
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("ROOT")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("ROOT")));
         assert!(stream.next().is_none());
 
         stream.delve().unwrap();
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("0")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("1")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("2")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("0")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("1")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2")));
         assert!(stream.next().is_none());
 
         stream.delve().unwrap();
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("2_0")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("2_1")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&MetaVal::from("2_2")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2_0")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2_1")));
+        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2_2")));
         assert!(stream.next().is_none());
     }
 }

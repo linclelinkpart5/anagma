@@ -1,5 +1,5 @@
-use crate::metadata::types::MetaStructure;
-use crate::metadata::types::MetaStructureRepr;
+use crate::metadata::structure::MetaStructure;
+use crate::metadata::structure::MetaStructureRepr;
 use crate::metadata::reader::Error;
 use crate::metadata::location::MetaLocation;
 

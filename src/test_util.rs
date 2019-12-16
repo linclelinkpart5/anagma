@@ -14,9 +14,9 @@ use rand::seq::SliceRandom;
 
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::location::MetaLocation;
-use crate::metadata::types::MetaVal;
-use crate::metadata::types::MetaBlock;
-use crate::metadata::types::MetaStructure;
+use crate::metadata::value::Value;
+use crate::metadata::block::MetaBlock;
+use crate::metadata::structure::MetaStructure;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -209,20 +209,20 @@ trait TestSerialize {
 impl TestSerialize for MetaStructure {
     fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String {
         match self {
-            &MetaStructure::One(ref mb) => MetaVal::Mapping(mb.clone()).to_serialized_chunk(serialize_format),
+            &MetaStructure::One(ref mb) => Value::Mapping(mb.clone()).to_serialized_chunk(serialize_format),
             &MetaStructure::Seq(ref mb_seq) => {
-                MetaVal::Sequence(
+                Value::Sequence(
                     mb_seq
                         .into_iter()
-                        .map(|v| MetaVal::Mapping(v.clone()))
+                        .map(|v| Value::Mapping(v.clone()))
                         .collect()
                 ).to_serialized_chunk(serialize_format)
             },
             &MetaStructure::Map(ref mb_map) => {
-                MetaVal::Mapping(
+                Value::Mapping(
                     mb_map
                         .into_iter()
-                        .map(|(k, v)| (k.clone(), MetaVal::Mapping(v.clone())))
+                        .map(|(k, v)| (k.clone(), Value::Mapping(v.clone())))
                         .collect()
                 ).to_serialized_chunk(serialize_format)
             },
@@ -230,7 +230,7 @@ impl TestSerialize for MetaStructure {
     }
 }
 
-impl TestSerialize for MetaVal {
+impl TestSerialize for Value {
     fn to_serialized_chunk(&self, serialize_format: SerializeFormat) -> String {
         match (serialize_format, self) {
             (SerializeFormat::Json, &Self::Null) => "null".into(),
@@ -336,27 +336,27 @@ impl TestUtil {
     pub const SEQUENCE_KEY: &'static str = "sequence_key";
     pub const MAPPING_KEY: &'static str = "mapping_key";
 
-    pub fn sample_string() -> MetaVal {
-        MetaVal::String(String::from("string"))
+    pub fn sample_string() -> Value {
+        Value::String(String::from("string"))
     }
 
-    pub fn sample_integer() -> MetaVal {
-        MetaVal::Integer(27)
+    pub fn sample_integer() -> Value {
+        Value::Integer(27)
     }
 
-    pub fn sample_decimal() -> MetaVal {
-        MetaVal::Decimal(Decimal::new(31415.into(), 4))
+    pub fn sample_decimal() -> Value {
+        Value::Decimal(Decimal::new(31415.into(), 4))
     }
 
-    pub fn sample_boolean() -> MetaVal {
-        MetaVal::Boolean(true)
+    pub fn sample_boolean() -> Value {
+        Value::Boolean(true)
     }
 
-    pub fn sample_null() -> MetaVal {
-        MetaVal::Null
+    pub fn sample_null() -> Value {
+        Value::Null
     }
 
-    pub fn core_flat_sequence() -> Vec<MetaVal> {
+    pub fn core_flat_sequence() -> Vec<Value> {
         vec![
             Self::sample_string(),
             Self::sample_integer(),
@@ -366,7 +366,7 @@ impl TestUtil {
         ]
     }
 
-    pub fn core_flat_mapping() -> BTreeMap<String, MetaVal> {
+    pub fn core_flat_mapping() -> BTreeMap<String, Value> {
         btreemap![
             String::from(Self::STRING_KEY) => Self::sample_string(),
             String::from(Self::INTEGER_KEY) => Self::sample_integer(),
@@ -376,7 +376,7 @@ impl TestUtil {
         ]
     }
 
-    pub fn core_nested_mapping() -> BTreeMap<String, MetaVal> {
+    pub fn core_nested_mapping() -> BTreeMap<String, Value> {
         let mut map = Self::core_flat_mapping();
 
         map.insert(String::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
@@ -385,36 +385,36 @@ impl TestUtil {
         map
     }
 
-    pub fn sample_flat_sequence() -> MetaVal {
-        MetaVal::Sequence(Self::core_flat_sequence())
+    pub fn sample_flat_sequence() -> Value {
+        Value::Sequence(Self::core_flat_sequence())
     }
 
-    pub fn sample_flat_mapping() -> MetaVal {
-        MetaVal::Mapping(Self::core_flat_mapping())
+    pub fn sample_flat_mapping() -> Value {
+        Value::Mapping(Self::core_flat_mapping())
     }
 
-    pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Vec<MetaVal> {
+    pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Vec<Value> {
         let mut nums = vec![];
 
         for i in 1..=int_max {
-            nums.push(MetaVal::Integer(i));
-            nums.push(MetaVal::Integer(-i));
+            nums.push(Value::Integer(i));
+            nums.push(Value::Integer(-i));
 
             // Add -0.5 decimal values.
             let m = (i - 1) * 10 + 5;
-            nums.push(MetaVal::Decimal(Decimal::new(m.into(), 1)));
-            nums.push(MetaVal::Decimal(Decimal::new((-m).into(), 1)));
+            nums.push(Value::Decimal(Decimal::new(m.into(), 1)));
+            nums.push(Value::Decimal(Decimal::new((-m).into(), 1)));
         }
 
         if dec_extremes {
             // These are +/-(int_max + 0.5).
             let m = int_max * 10 + 5;
-            nums.push(MetaVal::Decimal(Decimal::new(m.into(), 1)));
-            nums.push(MetaVal::Decimal(Decimal::new((-m).into(), 1)));
+            nums.push(Value::Decimal(Decimal::new(m.into(), 1)));
+            nums.push(Value::Decimal(Decimal::new((-m).into(), 1)));
         }
 
         if include_zero {
-            nums.push(MetaVal::Integer(0));
+            nums.push(Value::Integer(0));
         }
 
         if shuffle {
@@ -424,16 +424,16 @@ impl TestUtil {
         nums
     }
 
-    pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> MetaVal {
-        MetaVal::Sequence(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
+    pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Value {
+        Value::Sequence(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
     }
 
-    // pub fn sample_nested_sequence() -> MetaVal {
-    //     MetaVal::Sequence(Self::core_nested_sequence())
+    // pub fn sample_nested_sequence() -> Value {
+    //     Value::Sequence(Self::core_nested_sequence())
     // }
 
-    // pub fn sample_nested_mapping() -> MetaVal {
-    //     MetaVal::Mapping(Self::core_nested_mapping())
+    // pub fn sample_nested_mapping() -> Value {
+    //     Value::Mapping(Self::core_nested_mapping())
     // }
 
     pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock {
@@ -441,23 +441,23 @@ impl TestUtil {
 
         map.insert(
             String::from(format!("{}_key", meta_location.default_file_name())),
-            MetaVal::String(format!("{}_val", meta_location.default_file_name())),
+            Value::String(format!("{}_val", meta_location.default_file_name())),
         );
 
         map.insert(
             String::from("meta_location"),
-            MetaVal::String(String::from(meta_location.default_file_name())),
+            Value::String(String::from(meta_location.default_file_name())),
         );
 
         map.insert(
             String::from("target_file_name"),
-            MetaVal::String(String::from(target_name)),
+            Value::String(String::from(target_name)),
         );
 
         if include_flag_key {
             map.insert(
                 String::from("flag_key"),
-                MetaVal::String(String::from(target_name)),
+                Value::String(String::from(target_name)),
             );
         }
 
@@ -470,24 +470,24 @@ impl TestUtil {
 
     //     map.insert(
     //         String::from("target_file_name"),
-    //         MetaVal::String(String::from(target_name)),
+    //         Value::String(String::from(target_name)),
     //     );
 
     //     if include_flag_key {
     //         map.insert(
     //             String::from("flag_key"),
-    //             MetaVal::String(String::from(target_name)),
+    //             Value::String(String::from(target_name)),
     //         );
     //     }
 
     //     map
     // }
 
-    // pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedMetaValueStream<'a>
+    // pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedValueueStream<'a>
     // where
-    //     II: IntoIterator<Item = MetaVal<'a>>,
+    //     II: IntoIterator<Item = Value<'a>>,
     // {
-    //     FixedMetaValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
+    //     FixedValueueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
     // }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
@@ -599,16 +599,16 @@ impl TestUtil {
         root_dir
     }
 
-    pub fn i(i: i64) -> MetaVal {
-        MetaVal::Integer(i)
+    pub fn i(i: i64) -> Value {
+        Value::Integer(i)
     }
 
     pub fn d_raw(i: i64, e: u32) -> Decimal {
         Decimal::new(i.into(), e)
     }
 
-    pub fn d(i: i64, e: u32) -> MetaVal {
-        MetaVal::Decimal(Self::d_raw(i, e))
+    pub fn d(i: i64, e: u32) -> Value {
+        Value::Decimal(Self::d_raw(i, e))
     }
 }
 
@@ -620,7 +620,7 @@ mod tests {
     use rust_decimal::Decimal;
 
     use crate::config::serialize_format::SerializeFormat;
-    use crate::metadata::types::MetaVal;
+    use crate::metadata::value::Value;
 
     #[test]
     fn test_create_meta_fanout_test_dir() {
@@ -635,19 +635,19 @@ mod tests {
         let test_cases = vec![
             (
                 TestUtil::sample_number_sequence(2, false, false, false),
-                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1)]),
+                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1)]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, false),
-                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1)]),
+                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1)]),
             ),
             (
                 TestUtil::sample_number_sequence(2, false, false, true),
-                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), i(0)]),
+                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), i(0)]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, true),
-                MetaVal::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1), i(0)]),
+                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1), i(0)]),
             ),
         ];
 
@@ -660,12 +660,12 @@ mod tests {
     fn test_to_serialized_chunk() {
         let dec = Decimal::new(31415.into(), 4);
 
-        let seq_a = MetaVal::Sequence(vec![MetaVal::Integer(27), MetaVal::String("string".into())]);
-        let seq_b = MetaVal::Sequence(vec![MetaVal::Boolean(false), MetaVal::Null, MetaVal::Decimal(dec)]);
+        let seq_a = Value::Sequence(vec![Value::Integer(27), Value::String("string".into())]);
+        let seq_b = Value::Sequence(vec![Value::Boolean(false), Value::Null, Value::Decimal(dec)]);
 
-        let seq_seq = MetaVal::Sequence(vec![seq_a.clone(), seq_b.clone()]);
+        let seq_seq = Value::Sequence(vec![seq_a.clone(), seq_b.clone()]);
 
-        let map = MetaVal::Mapping(btreemap![
+        let map = Value::Mapping(btreemap![
             "key_a".into() => seq_a.clone(),
             "key_b".into() => seq_b.clone(),
             "key_c".into() => seq_seq.clone(),

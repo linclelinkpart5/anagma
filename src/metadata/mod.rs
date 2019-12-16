@@ -1,11 +1,13 @@
 //! This is intended to be the main public API of the library.
 
 pub mod location;
-pub mod types;
 pub mod reader;
 pub mod plexer;
 pub mod processor;
 pub mod stream;
+pub mod block;
+pub mod value;
+pub mod structure;
 
 use crate::metadata::processor::Error as ProcessorError;
 

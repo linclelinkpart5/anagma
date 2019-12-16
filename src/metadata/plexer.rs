@@ -2,9 +2,9 @@
 use std::path::PathBuf;
 
 use crate::config::sorter::Sorter;
-use crate::metadata::types::MetaBlock;
-use crate::metadata::types::MetaBlockMap;
-use crate::metadata::types::MetaStructure;
+use crate::metadata::block::MetaBlock;
+use crate::metadata::block::MetaBlockMap;
+use crate::metadata::structure::MetaStructure;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Error {
@@ -146,25 +146,25 @@ mod tests {
     use std::collections::HashSet;
 
     use crate::config::sorter::Sorter;
-    use crate::metadata::types::MetaStructure;
-    use crate::metadata::types::MetaVal;
+    use crate::metadata::structure::MetaStructure;
+    use crate::metadata::value::Value;
 
     #[test]
     fn test_plex() {
         let mb_a = btreemap![
-            String::from("key_1a") => MetaVal::String(String::from("val_1a")),
-            String::from("key_1b") => MetaVal::String(String::from("val_1b")),
-            String::from("key_1c") => MetaVal::String(String::from("val_1c")),
+            String::from("key_1a") => Value::String(String::from("val_1a")),
+            String::from("key_1b") => Value::String(String::from("val_1b")),
+            String::from("key_1c") => Value::String(String::from("val_1c")),
         ];
         let mb_b = btreemap![
-            String::from("key_2a") => MetaVal::String(String::from("val_2a")),
-            String::from("key_2b") => MetaVal::String(String::from("val_2b")),
-            String::from("key_2c") => MetaVal::String(String::from("val_2c")),
+            String::from("key_2a") => Value::String(String::from("val_2a")),
+            String::from("key_2b") => Value::String(String::from("val_2b")),
+            String::from("key_2c") => Value::String(String::from("val_2c")),
         ];
         let mb_c = btreemap![
-            String::from("key_3a") => MetaVal::String(String::from("val_3a")),
-            String::from("key_3b") => MetaVal::String(String::from("val_3b")),
-            String::from("key_3c") => MetaVal::String(String::from("val_3c")),
+            String::from("key_3a") => Value::String(String::from("val_3a")),
+            String::from("key_3b") => Value::String(String::from("val_3b")),
+            String::from("key_3c") => Value::String(String::from("val_3c")),
         ];
 
         let ms_a = MetaStructure::One(mb_a.clone());

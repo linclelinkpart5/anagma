@@ -9,7 +9,7 @@ use std::io::Read;
 
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::location::MetaLocation;
-use crate::metadata::types::MetaStructure;
+use crate::metadata::structure::MetaStructure;
 
 #[derive(Debug)]
 pub enum Error {

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
 
-use crate::metadata::types::MetaVal;
+use crate::metadata::value::Value;
 use crate::metadata::stream::block::MetaBlockStream;
 use crate::metadata::stream::block::Error as MetaBlockStreamError;
 
@@ -28,13 +28,13 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug)]
-pub enum MetaValueStream<'p> {
-    Fixed(FixedMetaValueStream<'p>),
-    Block(BlockMetaValueStream<'p>),
+pub enum ValueueStream<'p> {
+    Fixed(FixedValueueStream<'p>),
+    Block(BlockValueueStream<'p>),
 }
 
-impl<'p> Iterator for MetaValueStream<'p> {
-    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
+impl<'p> Iterator for ValueueStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -44,32 +44,32 @@ impl<'p> Iterator for MetaValueStream<'p> {
     }
 }
 
-impl<'p> From<FixedMetaValueStream<'p>> for MetaValueStream<'p> {
-    fn from(other: FixedMetaValueStream<'p>) -> Self {
+impl<'p> From<FixedValueueStream<'p>> for ValueueStream<'p> {
+    fn from(other: FixedValueueStream<'p>) -> Self {
         Self::Fixed(other)
     }
 }
 
-impl<'p> From<BlockMetaValueStream<'p>> for MetaValueStream<'p> {
-    fn from(other: BlockMetaValueStream<'p>) -> Self {
+impl<'p> From<BlockValueueStream<'p>> for ValueueStream<'p> {
+    fn from(other: BlockValueueStream<'p>) -> Self {
         Self::Block(other)
     }
 }
 
 #[derive(Debug)]
-pub struct FixedMetaValueStream<'p>(VecDeque<(Cow<'p, Path>, MetaVal)>);
+pub struct FixedValueueStream<'p>(VecDeque<(Cow<'p, Path>, Value)>);
 
-impl<'p> FixedMetaValueStream<'p> {
+impl<'p> FixedValueueStream<'p> {
     pub fn new<II>(items: II) -> Self
     where
-        II: IntoIterator<Item = (Cow<'p, Path>, MetaVal)>,
+        II: IntoIterator<Item = (Cow<'p, Path>, Value)>,
     {
-        FixedMetaValueStream(items.into_iter().collect())
+        FixedValueueStream(items.into_iter().collect())
     }
 }
 
-impl<'p> Iterator for FixedMetaValueStream<'p> {
-    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
+impl<'p> Iterator for FixedValueueStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
@@ -77,12 +77,12 @@ impl<'p> Iterator for FixedMetaValueStream<'p> {
 }
 
 #[derive(Debug)]
-pub struct BlockMetaValueStream<'p> {
+pub struct BlockValueueStream<'p> {
     target_key_path: Vec<String>,
     meta_block_stream: MetaBlockStream<'p>,
 }
 
-impl<'p> BlockMetaValueStream<'p> {
+impl<'p> BlockValueueStream<'p> {
     pub fn new<MBS>(target_key_path: Vec<String>, meta_block_stream: MBS) -> Self
     where
         MBS: Into<MetaBlockStream<'p>>,
@@ -94,8 +94,8 @@ impl<'p> BlockMetaValueStream<'p> {
     }
 }
 
-impl<'p> Iterator for BlockMetaValueStream<'p> {
-    type Item = Result<(Cow<'p, Path>, MetaVal), Error>;
+impl<'p> Iterator for BlockValueueStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.meta_block_stream.next() {
@@ -105,7 +105,7 @@ impl<'p> Iterator for BlockMetaValueStream<'p> {
                     Ok((path, mb)) => {
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         // Having metadata keys be simple strings makes this easy and possible!
-                        let curr_val = MetaVal::Mapping(mb);
+                        let curr_val = Value::Mapping(mb);
 
                         match curr_val.get_key_path(&self.target_key_path) {
                             // Not found here, delegate to the next iteration.
@@ -128,7 +128,7 @@ impl<'p> Iterator for BlockMetaValueStream<'p> {
 
 #[cfg(test)]
 mod tests {
-    use super::BlockMetaValueStream;
+    use super::BlockValueueStream;
 
     use std::borrow::Cow;
     use crate::test_util::TestUtil;
@@ -136,7 +136,7 @@ mod tests {
     use crate::metadata::stream::block::MetaBlockStream;
     use crate::metadata::stream::block::FileMetaBlockStream;
 
-    use crate::metadata::types::MetaVal;
+    use crate::metadata::value::Value;
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
     use crate::config::serialize_format::SerializeFormat;
@@ -163,13 +163,13 @@ mod tests {
         ));
 
         let expected = vec![
-            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
-            (Cow::Owned(root_dir.join("0").join("0_1")), MetaVal::from("0_1")),
-            (Cow::Owned(root_dir.join("0")), MetaVal::from("0")),
-            // (Cow::Owned(root_dir.to_path_buf()), MetaVal::from("ROOT")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
+            (Cow::Owned(root_dir.join("0").join("0_1")), Value::from("0_1")),
+            (Cow::Owned(root_dir.join("0")), Value::from("0")),
+            // (Cow::Owned(root_dir.to_path_buf()), Value::from("ROOT")),
         ];
         let produced = {
-            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockValueueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -197,10 +197,10 @@ mod tests {
         ));
 
         let expected = vec![
-            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
         ];
         let produced = {
-            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockValueueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -221,18 +221,18 @@ mod tests {
         ));
 
         let expected = vec![
-            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_0")), MetaVal::from("0_0_0")),
-            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_1").join("0_0_1_1")), MetaVal::from("0_0_1_1")),
-            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_2")), MetaVal::from("0_0_2")),
-            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_0")), MetaVal::from("0_1_0")),
-            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_1").join("0_1_1_1")), MetaVal::from("0_1_1_1")),
-            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), MetaVal::from("0_1_2")),
-            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_0")), MetaVal::from("0_2_0")),
-            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_1").join("0_2_1_1")), MetaVal::from("0_2_1_1")),
-            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), MetaVal::from("0_2_2")),
+            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_0")), Value::from("0_0_0")),
+            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_1").join("0_0_1_1")), Value::from("0_0_1_1")),
+            (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_2")), Value::from("0_0_2")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_0")), Value::from("0_1_0")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_1").join("0_1_1_1")), Value::from("0_1_1_1")),
+            (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
+            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_0")), Value::from("0_2_0")),
+            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_1").join("0_2_1_1")), Value::from("0_2_1_1")),
+            (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), Value::from("0_2_2")),
         ];
         let produced = {
-            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockValueueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -259,9 +259,9 @@ mod tests {
             Sorter::default(),
         ));
 
-        let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
+        let expected: Vec<(Cow<'_, _>, Value)> = vec![];
         let produced = {
-            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockValueueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -281,9 +281,9 @@ mod tests {
             Sorter::default(),
         ));
 
-        let expected: Vec<(Cow<'_, _>, MetaVal)> = vec![];
+        let expected: Vec<(Cow<'_, _>, Value)> = vec![];
         let produced = {
-            BlockMetaValueStream::new(target_key_path.clone(), block_stream)
+            BlockValueueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
