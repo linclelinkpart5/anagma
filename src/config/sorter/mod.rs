@@ -1,11 +1,22 @@
 pub mod sort_by;
-pub mod sort_order;
 
 use std::path::Path;
 use std::cmp::Ordering;
 
 pub use self::sort_by::SortBy;
-pub use self::sort_order::SortOrder;
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum SortOrder {
+    Ascending,
+    Descending,
+}
+
+impl Default for SortOrder {
+    fn default() -> Self {
+        SortOrder::Ascending
+    }
+}
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
 #[serde(default)]

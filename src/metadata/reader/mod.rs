@@ -15,10 +15,6 @@ use crate::metadata::structure::MetaStructure;
 pub enum Error {
     CannotOpenFile(std::io::Error),
     CannotReadFile(std::io::Error),
-    CannotParseMetadata,
-    EmptyMetadata,
-    CannotConvert(&'static str, &'static str),
-    InvalidItemName(String),
     YamlDeserializeError(serde_yaml::Error),
     JsonDeserializeError(serde_json::Error),
 }
@@ -28,10 +24,6 @@ impl std::fmt::Display for Error {
         match *self {
             Error::CannotOpenFile(ref err) => write!(f, "cannot open metadata file: {}", err),
             Error::CannotReadFile(ref err) => write!(f, "cannot read metadata file: {}", err),
-            Error::CannotParseMetadata => write!(f, "cannot parse metadata"),
-            Error::EmptyMetadata => write!(f, "metadata is empty"),
-            Error::CannotConvert(source, target) => write!(f, "cannot convert from {} to {}", source, target),
-            Error::InvalidItemName(ref item_name) => write!(f, "invalid item name: {}", item_name),
             Error::YamlDeserializeError(ref err) => write!(f, "cannot deserialize YAML: {}", err),
             Error::JsonDeserializeError(ref err) => write!(f, "cannot deserialize JSON: {}", err),
         }
@@ -43,10 +35,6 @@ impl std::error::Error for Error {
         match *self {
             Error::CannotOpenFile(ref err) => Some(err),
             Error::CannotReadFile(ref err) => Some(err),
-            Error::CannotParseMetadata => None,
-            Error::EmptyMetadata => None,
-            Error::CannotConvert(..) => None,
-            Error::InvalidItemName(..) => None,
             Error::YamlDeserializeError(ref err) => Some(err),
             Error::JsonDeserializeError(ref err) => Some(err),
         }
@@ -69,7 +57,7 @@ pub trait MetaReader {
 
 impl MetaReader for SerializeFormat {
     fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
-        Ok(match *self {
+        Ok(match self {
             SerializeFormat::Yaml => yaml::read_str(s, mt)?,
             SerializeFormat::Json => json::read_str(s, mt)?,
         })

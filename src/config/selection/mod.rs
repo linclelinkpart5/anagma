@@ -1,5 +1,4 @@
 pub mod matcher;
-pub mod selector;
 
 use std::path::Path;
 use std::path::PathBuf;
