@@ -28,12 +28,12 @@ impl std::error::Error for Error {
 }
 
 #[derive(Debug)]
-pub enum ValueueStream<'p> {
-    Fixed(FixedValueueStream<'p>),
-    Block(BlockValueueStream<'p>),
+pub enum ValueStream<'p> {
+    Fixed(FixedValueStream<'p>),
+    Block(BlockValueStream<'p>),
 }
 
-impl<'p> Iterator for ValueueStream<'p> {
+impl<'p> Iterator for ValueStream<'p> {
     type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -44,31 +44,31 @@ impl<'p> Iterator for ValueueStream<'p> {
     }
 }
 
-impl<'p> From<FixedValueueStream<'p>> for ValueueStream<'p> {
-    fn from(other: FixedValueueStream<'p>) -> Self {
+impl<'p> From<FixedValueStream<'p>> for ValueStream<'p> {
+    fn from(other: FixedValueStream<'p>) -> Self {
         Self::Fixed(other)
     }
 }
 
-impl<'p> From<BlockValueueStream<'p>> for ValueueStream<'p> {
-    fn from(other: BlockValueueStream<'p>) -> Self {
+impl<'p> From<BlockValueStream<'p>> for ValueStream<'p> {
+    fn from(other: BlockValueStream<'p>) -> Self {
         Self::Block(other)
     }
 }
 
 #[derive(Debug)]
-pub struct FixedValueueStream<'p>(VecDeque<(Cow<'p, Path>, Value)>);
+pub struct FixedValueStream<'p>(VecDeque<(Cow<'p, Path>, Value)>);
 
-impl<'p> FixedValueueStream<'p> {
+impl<'p> FixedValueStream<'p> {
     pub fn new<II>(items: II) -> Self
     where
         II: IntoIterator<Item = (Cow<'p, Path>, Value)>,
     {
-        FixedValueueStream(items.into_iter().collect())
+        FixedValueStream(items.into_iter().collect())
     }
 }
 
-impl<'p> Iterator for FixedValueueStream<'p> {
+impl<'p> Iterator for FixedValueStream<'p> {
     type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -77,12 +77,12 @@ impl<'p> Iterator for FixedValueueStream<'p> {
 }
 
 #[derive(Debug)]
-pub struct BlockValueueStream<'p> {
+pub struct BlockValueStream<'p> {
     target_key_path: Vec<String>,
     meta_block_stream: MetaBlockStream<'p>,
 }
 
-impl<'p> BlockValueueStream<'p> {
+impl<'p> BlockValueStream<'p> {
     pub fn new<MBS>(target_key_path: Vec<String>, meta_block_stream: MBS) -> Self
     where
         MBS: Into<MetaBlockStream<'p>>,
@@ -94,7 +94,7 @@ impl<'p> BlockValueueStream<'p> {
     }
 }
 
-impl<'p> Iterator for BlockValueueStream<'p> {
+impl<'p> Iterator for BlockValueStream<'p> {
     type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -128,7 +128,7 @@ impl<'p> Iterator for BlockValueueStream<'p> {
 
 #[cfg(test)]
 mod tests {
-    use super::BlockValueueStream;
+    use super::BlockValueStream;
 
     use std::borrow::Cow;
     use crate::test_util::TestUtil;
@@ -169,7 +169,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), Value::from("ROOT")),
         ];
         let produced = {
-            BlockValueueStream::new(target_key_path.clone(), block_stream)
+            BlockValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -200,7 +200,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
         ];
         let produced = {
-            BlockValueueStream::new(target_key_path.clone(), block_stream)
+            BlockValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -232,7 +232,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), Value::from("0_2_2")),
         ];
         let produced = {
-            BlockValueueStream::new(target_key_path.clone(), block_stream)
+            BlockValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -261,7 +261,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, Value)> = vec![];
         let produced = {
-            BlockValueueStream::new(target_key_path.clone(), block_stream)
+            BlockValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -283,7 +283,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, Value)> = vec![];
         let produced = {
-            BlockValueueStream::new(target_key_path.clone(), block_stream)
+            BlockValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()

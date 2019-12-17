@@ -483,11 +483,11 @@ impl TestUtil {
     //     map
     // }
 
-    // pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedValueueStream<'a>
+    // pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedValueStream<'a>
     // where
     //     II: IntoIterator<Item = Value<'a>>,
     // {
-    //     FixedValueueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
+    //     FixedValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
     // }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
