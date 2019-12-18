@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
-use crate::metadata::block::MetaBlock;
+use crate::metadata::block::Block;
 use crate::metadata::processor::MetaProcessor;
 use crate::metadata::processor::Error as ProcessorError;
 use crate::util::file_walkers::FileWalker;
@@ -40,13 +40,13 @@ impl std::error::Error for Error {
 
 /// Generic meta block stream, that can be fed in a variety of ways.
 #[derive(Debug)]
-pub enum MetaBlockStream<'p> {
-    Fixed(FixedMetaBlockStream<'p>),
-    File(FileMetaBlockStream<'p>),
+pub enum BlockStream<'p> {
+    Fixed(FixedBlockStream<'p>),
+    File(FileBlockStream<'p>),
 }
 
-impl<'p> Iterator for MetaBlockStream<'p> {
-    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
+impl<'p> Iterator for BlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Block), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -56,7 +56,7 @@ impl<'p> Iterator for MetaBlockStream<'p> {
     }
 }
 
-impl<'p> MetaBlockStream<'p> {
+impl<'p> BlockStream<'p> {
     pub fn delve(&mut self) -> Result<(), Error> {
         match self {
             &mut Self::Fixed(..) => Ok(()),
@@ -65,33 +65,33 @@ impl<'p> MetaBlockStream<'p> {
     }
 }
 
-impl<'p> From<FixedMetaBlockStream<'p>> for MetaBlockStream<'p> {
-    fn from(other: FixedMetaBlockStream<'p>) -> Self {
+impl<'p> From<FixedBlockStream<'p>> for BlockStream<'p> {
+    fn from(other: FixedBlockStream<'p>) -> Self {
         Self::Fixed(other)
     }
 }
 
-impl<'p> From<FileMetaBlockStream<'p>> for MetaBlockStream<'p> {
-    fn from(other: FileMetaBlockStream<'p>) -> Self {
+impl<'p> From<FileBlockStream<'p>> for BlockStream<'p> {
+    fn from(other: FileBlockStream<'p>) -> Self {
         Self::File(other)
     }
 }
 
 /// A meta block stream that yields from a fixed sequence, used for testing.
 #[derive(Debug)]
-pub struct FixedMetaBlockStream<'p>(VecDeque<(Cow<'p, Path>, MetaBlock)>);
+pub struct FixedBlockStream<'p>(VecDeque<(Cow<'p, Path>, Block)>);
 
-impl<'p> FixedMetaBlockStream<'p> {
+impl<'p> FixedBlockStream<'p> {
     pub fn new<II>(items: II) -> Self
     where
-        II: IntoIterator<Item = (Cow<'p, Path>, MetaBlock)>,
+        II: IntoIterator<Item = (Cow<'p, Path>, Block)>,
     {
-        FixedMetaBlockStream(items.into_iter().collect())
+        FixedBlockStream(items.into_iter().collect())
     }
 }
 
-impl<'p> Iterator for FixedMetaBlockStream<'p> {
-    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
+impl<'p> Iterator for FixedBlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Block), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop_front().map(Result::Ok)
@@ -100,14 +100,14 @@ impl<'p> Iterator for FixedMetaBlockStream<'p> {
 
 /// A meta block stream that yields from files on disk, powered by a file walker.
 #[derive(Debug)]
-pub struct FileMetaBlockStream<'p> {
+pub struct FileBlockStream<'p> {
     file_walker: FileWalker<'p>,
     serialize_format: SerializeFormat,
     selection: &'p Selection,
     sorter: Sorter,
 }
 
-impl<'p> FileMetaBlockStream<'p> {
+impl<'p> FileBlockStream<'p> {
     pub fn new<FW>(
         file_walker: FW,
         serialize_format: SerializeFormat,
@@ -117,7 +117,7 @@ impl<'p> FileMetaBlockStream<'p> {
     where
         FW: Into<FileWalker<'p>>,
     {
-        FileMetaBlockStream {
+        FileBlockStream {
             file_walker: file_walker.into(),
             serialize_format,
             selection,
@@ -126,8 +126,8 @@ impl<'p> FileMetaBlockStream<'p> {
     }
 }
 
-impl<'p> Iterator for FileMetaBlockStream<'p> {
-    type Item = Result<(Cow<'p, Path>, MetaBlock), Error>;
+impl<'p> Iterator for FileBlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Block), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next() {
@@ -153,7 +153,7 @@ impl<'p> Iterator for FileMetaBlockStream<'p> {
     }
 }
 
-impl<'p> FileMetaBlockStream<'p> {
+impl<'p> FileBlockStream<'p> {
     pub fn delve(&mut self) -> Result<(), Error> {
         self.file_walker.delve(&self.selection, self.sorter).map_err(Error::FileWalker)
     }
@@ -161,8 +161,8 @@ impl<'p> FileMetaBlockStream<'p> {
 
 #[cfg(test)]
 mod tests {
-    use super::FixedMetaBlockStream;
-    use super::FileMetaBlockStream;
+    use super::FixedBlockStream;
+    use super::FileBlockStream;
 
     use std::borrow::Cow;
     use std::path::Path;
@@ -192,7 +192,7 @@ mod tests {
         vd.push_back((Cow::Borrowed(Path::new("dummy_a")), mb_a.clone()));
         vd.push_back((Cow::Borrowed(Path::new("dummy_b")), mb_b.clone()));
 
-        let mut stream = FixedMetaBlockStream(vd);
+        let mut stream = FixedBlockStream(vd);
 
         assert_eq!(
             stream.next().unwrap().unwrap(),
@@ -212,7 +212,7 @@ mod tests {
 
         let test_path = root_dir.join("0").join("0_1").join("0_1_2");
 
-        let mut stream = FileMetaBlockStream {
+        let mut stream = FileBlockStream {
             file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
             serialize_format: SerializeFormat::Json,
             selection: &Selection::default(),
@@ -226,7 +226,7 @@ mod tests {
 
         let test_path = root_dir.clone();
 
-        let mut stream = FileMetaBlockStream {
+        let mut stream = FileBlockStream {
             file_walker: FileWalker::Child(ChildFileWalker::new(&test_path)),
             serialize_format: SerializeFormat::Json,
             selection: &Selection::default(),

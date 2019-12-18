@@ -15,7 +15,7 @@ use rand::seq::SliceRandom;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::value::Value;
-use crate::metadata::block::MetaBlock;
+use crate::metadata::block::Block;
 use crate::metadata::structure::MetaStructure;
 
 enum TEntry<'a> {
@@ -436,7 +436,7 @@ impl TestUtil {
     //     Value::Mapping(Self::core_nested_mapping())
     // }
 
-    pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> MetaBlock {
+    pub fn sample_meta_block(meta_location: MetaLocation, target_name: &str, include_flag_key: bool) -> Block {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
@@ -465,7 +465,7 @@ impl TestUtil {
     }
 
     // /// Used for test scenarios where a target is not needed.
-    // pub fn sample_naive_meta_block(target_name: &str, include_flag_key: bool) -> MetaBlock {
+    // pub fn sample_naive_meta_block(target_name: &str, include_flag_key: bool) -> Block {
     //     let mut map = Self::core_nested_mapping();
 
     //     map.insert(

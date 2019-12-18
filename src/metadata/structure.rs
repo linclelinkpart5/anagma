@@ -1,18 +1,18 @@
-use crate::metadata::block::MetaBlock;
-use crate::metadata::block::MetaBlockSeq;
-use crate::metadata::block::MetaBlockMap;
+use crate::metadata::block::Block;
+use crate::metadata::block::BlockSeq;
+use crate::metadata::block::BlockMap;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum UnitMetaStructureRepr {
-    One(MetaBlock),
+    One(Block),
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum ManyMetaStructureRepr {
-    Seq(MetaBlockSeq),
-    Map(MetaBlockMap),
+    Seq(BlockSeq),
+    Map(BlockMap),
 }
 
 /// An easy-to-deserialize flavor of a meta structure.
@@ -27,9 +27,9 @@ pub(crate) enum MetaStructureRepr {
 /// This is intended to be independent of the text-level representation of the metadata.
 #[derive(Debug, Clone)]
 pub enum MetaStructure {
-    One(MetaBlock),
-    Seq(MetaBlockSeq),
-    Map(MetaBlockMap),
+    One(Block),
+    Seq(BlockSeq),
+    Map(BlockMap),
 }
 
 impl From<MetaStructureRepr> for MetaStructure {

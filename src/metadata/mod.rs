@@ -35,14 +35,14 @@ impl std::error::Error for Error {
 // pub struct Metadata;
 
 // impl Metadata {
-//     pub fn get_metadata<'k, P: AsRef<Path>>(item_path: P) -> Result<MetaBlock<'k>, Error> {
+//     pub fn get_metadata<'k, P: AsRef<Path>>(item_path: P) -> Result<Block<'k>, Error> {
 //         // Use a default configuration and no aggregations.
 //         let config = Config::default();
 
 //         Self::get_metadata_with_config(item_path, &config)
 //     }
 
-//     pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<MetaBlock, Error> {
+//     pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<Block, Error> {
 //         let mb = MetaProcessor::process_item_file(
 //             item_path,
 //             config.serialize_format,

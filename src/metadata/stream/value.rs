@@ -3,18 +3,18 @@ use std::path::Path;
 use std::collections::VecDeque;
 
 use crate::metadata::value::Value;
-use crate::metadata::stream::block::MetaBlockStream;
-use crate::metadata::stream::block::Error as MetaBlockStreamError;
+use crate::metadata::stream::block::BlockStream;
+use crate::metadata::stream::block::Error as BlockStreamError;
 
 #[derive(Debug)]
 pub enum Error {
-    MetaBlockStream(MetaBlockStreamError),
+    BlockStream(BlockStreamError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::MetaBlockStream(ref err) => write!(f, "meta block stream error: {}", err),
+            Self::BlockStream(ref err) => write!(f, "meta block stream error: {}", err),
         }
     }
 }
@@ -22,7 +22,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Self::MetaBlockStream(ref err) => Some(err),
+            Self::BlockStream(ref err) => Some(err),
         }
     }
 }
@@ -79,13 +79,13 @@ impl<'p> Iterator for FixedValueStream<'p> {
 #[derive(Debug)]
 pub struct BlockValueStream<'p> {
     target_key_path: Vec<String>,
-    meta_block_stream: MetaBlockStream<'p>,
+    meta_block_stream: BlockStream<'p>,
 }
 
 impl<'p> BlockValueStream<'p> {
     pub fn new<MBS>(target_key_path: Vec<String>, meta_block_stream: MBS) -> Self
     where
-        MBS: Into<MetaBlockStream<'p>>,
+        MBS: Into<BlockStream<'p>>,
     {
         Self {
             target_key_path,
@@ -101,7 +101,7 @@ impl<'p> Iterator for BlockValueStream<'p> {
         match self.meta_block_stream.next() {
             Some(mb_res) => {
                 match mb_res {
-                    Err(err) => Some(Err(Error::MetaBlockStream(err))),
+                    Err(err) => Some(Err(Error::BlockStream(err))),
                     Ok((path, mb)) => {
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         // Having metadata keys be simple strings makes this easy and possible!
@@ -113,7 +113,7 @@ impl<'p> Iterator for BlockValueStream<'p> {
                                 // We need to delve here before proceeding.
                                 match self.meta_block_stream.delve() {
                                     Ok(()) => self.next(),
-                                    Err(err) => Some(Err(Error::MetaBlockStream(err))),
+                                    Err(err) => Some(Err(Error::BlockStream(err))),
                                 }
                             },
                             Some(val) => Some(Ok((path, val.clone()))),
@@ -133,8 +133,8 @@ mod tests {
     use std::borrow::Cow;
     use crate::test_util::TestUtil;
 
-    use crate::metadata::stream::block::MetaBlockStream;
-    use crate::metadata::stream::block::FileMetaBlockStream;
+    use crate::metadata::stream::block::BlockStream;
+    use crate::metadata::stream::block::FileBlockStream;
 
     use crate::metadata::value::Value;
     use crate::config::selection::Selection;
@@ -155,7 +155,7 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
+        let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
             SerializeFormat::Json,
             &selection,
@@ -189,7 +189,7 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
+        let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
             SerializeFormat::Json,
             &selection,
@@ -213,7 +213,7 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
+        let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
             SerializeFormat::Json,
             &selection,
@@ -252,7 +252,7 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
+        let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
             SerializeFormat::Json,
             &selection,
@@ -274,7 +274,7 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = MetaBlockStream::File(FileMetaBlockStream::new(
+        let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
             SerializeFormat::Json,
             &selection,

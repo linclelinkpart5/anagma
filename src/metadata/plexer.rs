@@ -2,14 +2,14 @@
 use std::path::PathBuf;
 
 use crate::config::sorter::Sorter;
-use crate::metadata::block::MetaBlock;
-use crate::metadata::block::MetaBlockMap;
+use crate::metadata::block::Block;
+use crate::metadata::block::BlockMap;
 use crate::metadata::structure::MetaStructure;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Error {
     UnusedItemPath(PathBuf),
-    UnusedMetaBlock(MetaBlock, Option<String>),
+    UnusedBlock(Block, Option<String>),
     NamelessItemPath(PathBuf),
 }
 
@@ -17,7 +17,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
-            Error::UnusedMetaBlock(_, ref opt_tag) => {
+            Error::UnusedBlock(_, ref opt_tag) => {
                 let tag_desc = match opt_tag {
                     Some(tag) => format!(", with tag: {}", tag),
                     None => String::from(""),
@@ -34,23 +34,23 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::UnusedItemPath(..) => None,
-            Error::UnusedMetaBlock(..) => None,
+            Error::UnusedBlock(..) => None,
             Error::NamelessItemPath(..) => None,
         }
     }
 }
 
 pub enum MetaPlexer<I: Iterator<Item = PathBuf>> {
-    One(Option<MetaBlock>, I),
-    Seq(std::vec::IntoIter<MetaBlock>, std::vec::IntoIter<PathBuf>),
-    Map(MetaBlockMap, I),
+    One(Option<Block>, I),
+    Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<PathBuf>),
+    Map(BlockMap, I),
 }
 
 impl<I> Iterator for MetaPlexer<I>
 where
     I: Iterator<Item = PathBuf>,
 {
-    type Item = Result<(PathBuf, MetaBlock), Error>;
+    type Item = Result<(PathBuf, Block), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -66,7 +66,7 @@ where
                     (None, Some(path)) => Some(Err(Error::UnusedItemPath(path))),
 
                     // Got a meta block with no file path, report an error.
-                    (Some(block), None) => Some(Err(Error::UnusedMetaBlock(block, None))),
+                    (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
                 }
             },
             Self::Seq(ref mut block_iter, ref mut sorted_path_iter) => {
@@ -81,7 +81,7 @@ where
                     (None, Some(path)) => Some(Err(Error::UnusedItemPath(path))),
 
                     // Got a meta block with no file path, report an error.
-                    (Some(block), None) => Some(Err(Error::UnusedMetaBlock(block, None))),
+                    (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
                 }
             },
             Self::Map(ref mut block_mapping, ref mut path_iter) => {
@@ -107,7 +107,7 @@ where
                         // No more file paths, see if there are any more meta blocks.
                         match block_mapping.pop() {
                             // Found an orphaned meta block, report an error.
-                            Some((block_tag, block)) => Some(Err(Error::UnusedMetaBlock(block, Some(block_tag)))),
+                            Some((block_tag, block)) => Some(Err(Error::UnusedBlock(block, Some(block_tag)))),
 
                             // No more meta blocks were found, this iterator is now exhausted.
                             None => None,
@@ -193,7 +193,7 @@ mod tests {
             (
                 (ms_a.clone(), vec![]),
                 vec![
-                    Err(Error::UnusedMetaBlock(mb_a.clone(), None)),
+                    Err(Error::UnusedBlock(mb_a.clone(), None)),
                 ],
             ),
             (
@@ -217,8 +217,8 @@ mod tests {
                 (ms_b.clone(), vec![PathBuf::from("item_a")]),
                 vec![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Err(Error::UnusedMetaBlock(mb_b.clone(), None)),
-                    Err(Error::UnusedMetaBlock(mb_c.clone(), None)),
+                    Err(Error::UnusedBlock(mb_b.clone(), None)),
+                    Err(Error::UnusedBlock(mb_c.clone(), None)),
                 ],
             ),
         ];
@@ -244,7 +244,7 @@ mod tests {
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Err(Error::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Err(Error::UnusedBlock(mb_c.clone(), Some(String::from("item_c")))),
                 ],
             ),
             (
@@ -261,7 +261,7 @@ mod tests {
                 hashset![
                     Ok((PathBuf::from("item_a"), mb_a.clone())),
                     Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Err(Error::UnusedMetaBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Err(Error::UnusedBlock(mb_c.clone(), Some(String::from("item_c")))),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
-use crate::metadata::block::MetaBlock;
+use crate::metadata::block::Block;
 use crate::metadata::location::MetaLocation;
 use crate::metadata::location::Error as LocationError;
 use crate::metadata::reader::Error as ReaderError;
@@ -53,7 +53,7 @@ impl MetaProcessor {
         serialize_format: SerializeFormat,
         selection: &Selection,
         sorter: Sorter,
-    ) -> Result<HashMap<PathBuf, MetaBlock>, Error>
+    ) -> Result<HashMap<PathBuf, Block>, Error>
     where
         P: AsRef<Path>,
     {
@@ -83,11 +83,11 @@ impl MetaProcessor {
         serialize_format: SerializeFormat,
         selection: &Selection,
         sorter: Sorter,
-    ) -> Result<MetaBlock, Error>
+    ) -> Result<Block, Error>
     where
         P: AsRef<Path>,
     {
-        let mut comp_mb = MetaBlock::new();
+        let mut comp_mb = Block::new();
 
         for meta_location in META_LOCATION_ORDER.into_iter() {
             let meta_path = match meta_location.get_meta_path(&item_path, serialize_format) {
