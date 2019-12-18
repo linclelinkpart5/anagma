@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::Read;
 
 use crate::config::serialize_format::SerializeFormat;
-use crate::metadata::location::MetaLocation;
+use crate::metadata::location::Location;
 use crate::metadata::structure::MetaStructure;
 
 #[derive(Debug)]
@@ -42,9 +42,9 @@ impl std::error::Error for Error {
 }
 
 pub trait MetaReader {
-    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error>;
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: Location) -> Result<MetaStructure, Error>;
 
-    fn from_file<P: AsRef<Path>>(&self, p: P, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    fn from_file<P: AsRef<Path>>(&self, p: P, mt: Location) -> Result<MetaStructure, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
@@ -56,7 +56,7 @@ pub trait MetaReader {
 }
 
 impl MetaReader for SerializeFormat {
-    fn from_str<S: AsRef<str>>(&self, s: S, mt: MetaLocation) -> Result<MetaStructure, Error> {
+    fn from_str<S: AsRef<str>>(&self, s: S, mt: Location) -> Result<MetaStructure, Error> {
         Ok(match self {
             SerializeFormat::Yaml => yaml::read_str(s, mt)?,
             SerializeFormat::Json => json::read_str(s, mt)?,

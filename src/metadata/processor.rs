@@ -6,7 +6,7 @@ use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::block::Block;
-use crate::metadata::location::MetaLocation;
+use crate::metadata::location::Location;
 use crate::metadata::location::Error as LocationError;
 use crate::metadata::reader::Error as ReaderError;
 use crate::metadata::plexer::MetaPlexer;
@@ -42,14 +42,14 @@ impl std::error::Error for Error {
     }
 }
 
-const META_LOCATION_ORDER: &[MetaLocation] = &[MetaLocation::Siblings, MetaLocation::Contains];
+const META_LOCATION_ORDER: &[Location] = &[Location::Siblings, Location::Contains];
 
 pub struct MetaProcessor;
 
 impl MetaProcessor {
     pub fn process_meta_file<P>(
         meta_path: P,
-        meta_location: MetaLocation,
+        meta_location: Location,
         serialize_format: SerializeFormat,
         selection: &Selection,
         sorter: Sorter,
@@ -129,7 +129,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::config::serialize_format::SerializeFormat;
-    use crate::metadata::location::MetaLocation;
+    use crate::metadata::location::Location;
     use crate::metadata::value::Value;
 
     use crate::test_util::create_temp_media_test_dir;
@@ -146,7 +146,7 @@ mod tests {
         // Success cases
         let inputs_and_expected = vec![
             // (
-            //     (path.join("self.yml"), MetaLocation::Contains),
+            //     (path.join("self.yml"), Location::Contains),
             //     hashmap![
             //         path.to_owned() => btreemap![
             //             "ROOT_self_key".to_owned() => Value::String("ROOT_self_val".to_owned()),
@@ -157,7 +157,7 @@ mod tests {
             //     ],
             // ),
             (
-                (path.join("item.yml"), MetaLocation::Siblings),
+                (path.join("item.yml"), Location::Siblings),
                 hashmap![
                     path.join("ALBUM_01") => btreemap![
                         String::from("ALBUM_01_item_key") => Value::String("ALBUM_01_item_val".to_owned()),
@@ -192,7 +192,7 @@ mod tests {
                 ],
             ),
             // (
-            //     (path.join("ALBUM_01").join("self.yml"), MetaLocation::Contains),
+            //     (path.join("ALBUM_01").join("self.yml"), Location::Contains),
             //     hashmap![
             //         path.join("ALBUM_01") => btreemap![
             //             "ALBUM_01_self_key".to_owned() => Value::String("ALBUM_01_self_val".to_owned()),
@@ -203,7 +203,7 @@ mod tests {
             //     ],
             // ),
             // (
-            //     (path.join("ALBUM_01").join("DISC_01").join("item.yml"), MetaLocation::Siblings),
+            //     (path.join("ALBUM_01").join("DISC_01").join("item.yml"), Location::Siblings),
             //     hashmap![
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac") => btreemap![
             //             "TRACK_01_item_key".to_owned() => Value::String("TRACK_01_item_val".to_owned()),

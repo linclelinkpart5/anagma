@@ -53,13 +53,17 @@ impl std::error::Error for Error {
     }
 }
 
+/// Represents the location of the item file(s) that a given metadata file
+/// provides metadata for, relative to the location of the metadata file itself.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy, EnumIter)]
-pub enum MetaLocation {
+pub enum Location {
     Contains,
     Siblings,
 }
 
-impl MetaLocation {
+impl Location {
+    /// Provides the meta file path that provides metadata for an item file for
+    /// this location.
     pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P, serialize_format: SerializeFormat) -> Result<PathBuf, Error> {
         let item_path = item_path.as_ref();
 
@@ -67,15 +71,15 @@ impl MetaLocation {
             Err(Error::NonexistentItemPath(item_path.to_path_buf()))?
         }
 
-        let meta_path_parent_dir = match *self {
-            MetaLocation::Contains => {
+        let meta_path_parent_dir = match self {
+            Self::Contains => {
                 if !item_path.is_dir() {
                     Err(Error::InvalidItemDirPath(item_path.to_path_buf()))?
                 }
 
                 item_path
             },
-            MetaLocation::Siblings => {
+            Self::Siblings => {
                 match item_path.parent() {
                     Some(item_path_parent) => item_path_parent,
                     None => Err(Error::NoItemPathParent(item_path.to_path_buf()))?,
@@ -113,7 +117,7 @@ impl MetaLocation {
     }
 
     /// Provides the possible owned item paths of this location.
-    /// This is a listing of the file paths that this meta location *could* provide metadata for.
+    /// This is a listing of the file paths that this meta location could/should provide metadata for.
     /// Note that this does NOT parse meta files, it only uses file system locations and presence.
     /// Also, no filtering or sorting of the returned item paths is performed.
     pub fn get_item_paths<P: AsRef<Path>>(&self, meta_path: P) -> Result<Vec<PathBuf>, Error> {
@@ -132,12 +136,12 @@ impl MetaLocation {
         if let Some(meta_parent_dir_path) = meta_path.parent() {
             let mut po_item_paths = vec![];
 
-            match *self {
-                MetaLocation::Contains => {
+            match self {
+                Self::Contains => {
                     // This is just the passed-in path, just push it on unchanged.
                     po_item_paths.push(meta_parent_dir_path.to_path_buf());
                 },
-                MetaLocation::Siblings => {
+                Self::Siblings => {
                     // Return all children of this directory.
                     for entry in std::fs::read_dir(&meta_parent_dir_path).map_err(Error::CannotReadItemDir)? {
                         po_item_paths.push(entry.map_err(Error::CannotReadItemDirEntry)?.path());
@@ -167,9 +171,9 @@ impl MetaLocation {
     }
 
     pub fn default_file_name(&self) -> &'static str {
-        match *self {
-            MetaLocation::Contains => "self",
-            MetaLocation::Siblings => "item",
+        match self {
+            Self::Contains => "self",
+            Self::Siblings => "item",
         }
     }
 }

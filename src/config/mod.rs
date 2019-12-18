@@ -20,14 +20,14 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        use crate::metadata::location::MetaLocation;
+        use crate::metadata::location::Location;
 
         // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
         let selection = Selection::default();
         let sorter = Sorter::default();
         let serialize_format = SerializeFormat::default();
-        let item_fn = format!("{}.{}", MetaLocation::Siblings.default_file_name(), serialize_format.default_file_extension());
-        let self_fn = format!("{}.{}", MetaLocation::Contains.default_file_name(), serialize_format.default_file_extension());
+        let item_fn = format!("{}.{}", Location::Siblings.default_file_name(), serialize_format.default_file_extension());
+        let self_fn = format!("{}.{}", Location::Contains.default_file_name(), serialize_format.default_file_extension());
 
         Config {
             selection,
