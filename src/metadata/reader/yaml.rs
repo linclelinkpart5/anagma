@@ -1,12 +1,12 @@
 use crate::metadata::structure::MetaStructure;
 use crate::metadata::structure::MetaStructureRepr;
 use crate::metadata::reader::Error;
-use crate::metadata::location::Location;
+use crate::metadata::target::Target;
 
-pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Location) -> Result<MetaStructure, Error> {
+pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Target) -> Result<MetaStructure, Error> {
     Ok(match mt {
-        Location::Contains => MetaStructureRepr::Unit(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
-        Location::Siblings => MetaStructureRepr::Many(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
+        Target::Parent => MetaStructureRepr::Unit(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
+        Target::Siblings => MetaStructureRepr::Many(serde_yaml::from_str(s.as_ref()).map_err(Error::YamlDeserializeError)?),
     }.into())
 }
 
@@ -14,7 +14,7 @@ pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Location) -> Result<MetaStructur
 mod tests {
     use super::read_str;
 
-    use crate::metadata::location::Location;
+    use crate::metadata::target::Target;
 
     #[test]
     fn test_read_str() {
@@ -24,7 +24,7 @@ mod tests {
             key_c: val_c
             key_d: val_d
         "#;
-        let _ = read_str(input, Location::Contains).unwrap();
+        let _ = read_str(input, Target::Parent).unwrap();
 
         let input = r#"
             key_a: val_a
@@ -37,7 +37,7 @@ mod tests {
                 -   val_a
                 -   val_b
         "#;
-        let _ = read_str(input, Location::Contains).unwrap();
+        let _ = read_str(input, Target::Parent).unwrap();
 
         let input = r#"
             -   key_1_a: val_1_a
@@ -45,7 +45,7 @@ mod tests {
             -   key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        let _ = read_str(input, Location::Siblings).unwrap();
+        let _ = read_str(input, Target::Siblings).unwrap();
 
         let input = r#"
             item_1:
@@ -55,6 +55,6 @@ mod tests {
                 key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        let _ = read_str(input, Location::Siblings).unwrap();
+        let _ = read_str(input, Target::Siblings).unwrap();
     }
 }

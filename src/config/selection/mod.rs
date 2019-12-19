@@ -56,10 +56,10 @@ pub struct Selection {
 
 impl Default for Selection {
     fn default() -> Self {
-        use crate::metadata::location::Location;
+        use crate::metadata::target::Target;
 
         // TODO: Replace with `StaticVec` once released for stable Rust.
-        let excluded_patterns = Location::iter()
+        let excluded_patterns = Target::iter()
             .map(|ml| format!("{}{}", ml.default_file_name(), "*"))
             .collect::<Vec<_>>()
         ;

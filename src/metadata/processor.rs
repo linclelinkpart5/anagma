@@ -8,8 +8,8 @@ use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::block::Block;
-use crate::metadata::location::Location;
-use crate::metadata::location::Error as LocationError;
+use crate::metadata::target::Target;
+use crate::metadata::target::Error as TargetError;
 use crate::metadata::reader::Error as ReaderError;
 use crate::metadata::plexer::MetaPlexer;
 use crate::metadata::reader::MetaReader;
@@ -17,8 +17,8 @@ use crate::metadata::reader::MetaReader;
 #[derive(Debug)]
 pub enum Error {
     CannotReadMetadata(ReaderError),
-    CannotFindItemPaths(LocationError),
-    CannotFindMetaPath(LocationError),
+    CannotFindItemPaths(TargetError),
+    CannotFindMetaPath(TargetError),
     MissingMetadata,
 }
 
@@ -49,7 +49,7 @@ pub struct MetaProcessor;
 impl MetaProcessor {
     pub fn process_meta_file<P>(
         meta_path: P,
-        meta_location: Location,
+        meta_target: Target,
         serialize_format: SerializeFormat,
         selection: &Selection,
         sorter: Sorter,
@@ -57,9 +57,9 @@ impl MetaProcessor {
     where
         P: AsRef<Path>,
     {
-        let meta_structure = serialize_format.from_file(&meta_path, meta_location).map_err(Error::CannotReadMetadata)?;
+        let meta_structure = serialize_format.from_file(&meta_path, meta_target).map_err(Error::CannotReadMetadata)?;
 
-        let selected_item_paths = meta_location.get_selected_item_paths(&meta_path, selection).map_err(Error::CannotFindItemPaths)?;
+        let selected_item_paths = meta_target.get_selected_item_paths(&meta_path, selection).map_err(Error::CannotFindItemPaths)?;
 
         let mut meta_plexed = hashmap![];
 
@@ -77,7 +77,7 @@ impl MetaProcessor {
 
     // Processes metadata for an item file.
     // This performs the necessary merging of all metadata from different targets for this one item file.
-    // Merging is "combine-last", so matching result keys for subsequent locations override earlier keys.
+    // Merging is "combine-last", so matching result keys for subsequent targets override earlier keys.
     pub fn process_item_file<P>(
         item_path: P,
         serialize_format: SerializeFormat,
@@ -89,13 +89,13 @@ impl MetaProcessor {
     {
         let mut comp_mb = Block::new();
 
-        for meta_location in Location::iter() {
-            let meta_path = match meta_location.get_meta_path(&item_path, serialize_format) {
+        for meta_target in Target::iter() {
+            let meta_path = match meta_target.get_meta_path(&item_path, serialize_format) {
                 Err(e) => {
                     match e {
-                        LocationError::NonexistentMetaPath(..) |
-                            LocationError::InvalidItemDirPath(..) |
-                            LocationError::NoItemPathParent(..) => { continue; },
+                        TargetError::NonexistentMetaPath(..) |
+                            TargetError::InvalidItemDirPath(..) |
+                            TargetError::NoItemPathParent(..) => { continue; },
                         _ => { return Err(e).map_err(Error::CannotFindMetaPath)?; }
                     }
                 },
@@ -104,7 +104,7 @@ impl MetaProcessor {
 
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
-                meta_location,
+                meta_target,
                 serialize_format,
                 selection,
                 sorter,
@@ -129,7 +129,7 @@ mod tests {
 
     use crate::config::Config;
     use crate::config::serialize_format::SerializeFormat;
-    use crate::metadata::location::Location;
+    use crate::metadata::target::Target;
     use crate::metadata::value::Value;
 
     use crate::test_util::create_temp_media_test_dir;
@@ -146,7 +146,7 @@ mod tests {
         // Success cases
         let inputs_and_expected = vec![
             // (
-            //     (path.join("self.yml"), Location::Contains),
+            //     (path.join("self.yml"), Target::Parent),
             //     hashmap![
             //         path.to_owned() => btreemap![
             //             "ROOT_self_key".to_owned() => Value::String("ROOT_self_val".to_owned()),
@@ -157,7 +157,7 @@ mod tests {
             //     ],
             // ),
             (
-                (path.join("item.yml"), Location::Siblings),
+                (path.join("item.yml"), Target::Siblings),
                 hashmap![
                     path.join("ALBUM_01") => btreemap![
                         String::from("ALBUM_01_item_key") => Value::String("ALBUM_01_item_val".to_owned()),
@@ -192,7 +192,7 @@ mod tests {
                 ],
             ),
             // (
-            //     (path.join("ALBUM_01").join("self.yml"), Location::Contains),
+            //     (path.join("ALBUM_01").join("self.yml"), Target::Parent),
             //     hashmap![
             //         path.join("ALBUM_01") => btreemap![
             //             "ALBUM_01_self_key".to_owned() => Value::String("ALBUM_01_self_val".to_owned()),
@@ -203,7 +203,7 @@ mod tests {
             //     ],
             // ),
             // (
-            //     (path.join("ALBUM_01").join("DISC_01").join("item.yml"), Location::Siblings),
+            //     (path.join("ALBUM_01").join("DISC_01").join("item.yml"), Target::Siblings),
             //     hashmap![
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac") => btreemap![
             //             "TRACK_01_item_key".to_owned() => Value::String("TRACK_01_item_val".to_owned()),
@@ -228,9 +228,9 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (meta_path, meta_location) = input;
+            let (meta_path, meta_target) = input;
 
-            let produced = MetaProcessor::process_meta_file(meta_path, meta_location, SerializeFormat::Yaml, selection, sorter).unwrap();
+            let produced = MetaProcessor::process_meta_file(meta_path, meta_target, SerializeFormat::Yaml, selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }

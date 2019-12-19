@@ -1,6 +1,6 @@
 //! This is intended to be the main public API of the library.
 
-pub mod location;
+pub mod target;
 pub mod reader;
 pub mod plexer;
 pub mod processor;

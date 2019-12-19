@@ -1,12 +1,12 @@
 use crate::metadata::structure::MetaStructure;
 use crate::metadata::structure::MetaStructureRepr;
 use crate::metadata::reader::Error;
-use crate::metadata::location::Location;
+use crate::metadata::target::Target;
 
-pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Location) -> Result<MetaStructure, Error> {
+pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Target) -> Result<MetaStructure, Error> {
     Ok(match mt {
-        Location::Contains => MetaStructureRepr::Unit(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
-        Location::Siblings => MetaStructureRepr::Many(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
+        Target::Parent => MetaStructureRepr::Unit(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
+        Target::Siblings => MetaStructureRepr::Many(serde_json::from_str(s.as_ref()).map_err(Error::JsonDeserializeError)?),
     }.into())
 }
 
@@ -14,7 +14,7 @@ pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Location) -> Result<MetaStructur
 mod tests {
     use super::read_str;
 
-    use crate::metadata::location::Location;
+    use crate::metadata::target::Target;
 
     #[test]
     fn test_read_str() {
@@ -26,7 +26,7 @@ mod tests {
             "key_d": "val_d"
         }
         "#;
-        let _ = read_str(input, Location::Contains).unwrap();
+        let _ = read_str(input, Target::Parent).unwrap();
 
         let input = r#"
         {
@@ -49,7 +49,7 @@ mod tests {
             ]
         }
         "#;
-        let _ = read_str(input, Location::Contains).unwrap();
+        let _ = read_str(input, Target::Parent).unwrap();
 
         let input = r#"
         [
@@ -63,7 +63,7 @@ mod tests {
             }
         ]
         "#;
-        let _ = read_str(input, Location::Siblings).unwrap();
+        let _ = read_str(input, Target::Siblings).unwrap();
 
         let input = r#"
         {
@@ -77,6 +77,6 @@ mod tests {
             }
         }
         "#;
-        let _ = read_str(input, Location::Siblings).unwrap();
+        let _ = read_str(input, Target::Siblings).unwrap();
     }
 }

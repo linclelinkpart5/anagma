@@ -53,17 +53,17 @@ impl std::error::Error for Error {
     }
 }
 
-/// Represents the location of the item file(s) that a given metadata file
+/// Represents the target location of the item files that a given metadata file
 /// provides metadata for, relative to the location of the metadata file itself.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy, EnumIter)]
-pub enum Location {
+pub enum Target {
     Siblings,
-    Contains,
+    Parent,
 }
 
-impl Location {
+impl Target {
     /// Provides the meta file path that provides metadata for an item file for
-    /// this location.
+    /// this target.
     pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P, serialize_format: SerializeFormat) -> Result<PathBuf, Error> {
         let item_path = item_path.as_ref();
 
@@ -72,7 +72,7 @@ impl Location {
         }
 
         let meta_path_parent_dir = match self {
-            Self::Contains => {
+            Self::Parent => {
                 if !item_path.is_dir() {
                     Err(Error::InvalidItemDirPath(item_path.to_path_buf()))?
                 }
@@ -116,8 +116,8 @@ impl Location {
         Err(Error::NonexistentMetaPath(attempted_paths))
     }
 
-    /// Provides the possible owned item paths of this location.
-    /// This is a listing of the file paths that this meta location could/should provide metadata for.
+    /// Provides the possible owned item paths of this target.
+    /// This is a listing of the file paths that this meta target could/should provide metadata for.
     /// Note that this does NOT parse meta files, it only uses file system locations and presence.
     /// Also, no filtering or sorting of the returned item paths is performed.
     pub fn get_item_paths<P: AsRef<Path>>(&self, meta_path: P) -> Result<Vec<PathBuf>, Error> {
@@ -137,7 +137,7 @@ impl Location {
             let mut po_item_paths = vec![];
 
             match self {
-                Self::Contains => {
+                Self::Parent => {
                     // This is just the passed-in path, just push it on unchanged.
                     po_item_paths.push(meta_parent_dir_path.to_path_buf());
                 },
@@ -172,7 +172,7 @@ impl Location {
 
     pub fn default_file_name(&self) -> &'static str {
         match self {
-            Self::Contains => "self",
+            Self::Parent => "self",
             Self::Siblings => "item",
         }
     }

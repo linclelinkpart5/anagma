@@ -13,7 +13,7 @@ use rust_decimal::Decimal;
 use rand::seq::SliceRandom;
 
 use crate::config::serialize_format::SerializeFormat;
-use crate::metadata::location::Location;
+use crate::metadata::target::Target;
 use crate::metadata::value::Value;
 use crate::metadata::block::Block;
 use crate::metadata::structure::MetaStructure;
@@ -436,17 +436,17 @@ impl TestUtil {
     //     Value::Mapping(Self::core_nested_mapping())
     // }
 
-    pub fn sample_meta_block(meta_location: Location, target_name: &str, include_flag_key: bool) -> Block {
+    pub fn sample_meta_block(meta_target: Target, target_name: &str, include_flag_key: bool) -> Block {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
-            String::from(format!("{}_key", meta_location.default_file_name())),
-            Value::String(format!("{}_val", meta_location.default_file_name())),
+            String::from(format!("{}_key", meta_target.default_file_name())),
+            Value::String(format!("{}_val", meta_target.default_file_name())),
         );
 
         map.insert(
-            String::from("meta_location"),
-            Value::String(String::from(meta_location.default_file_name())),
+            String::from("meta_target"),
+            Value::String(String::from(meta_target.default_file_name())),
         );
 
         map.insert(
@@ -548,7 +548,7 @@ impl TestUtil {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
-            let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(Location::Contains, &parent_name, false));
+            let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
             let self_lines = self_meta_struct.to_serialized_chunk(SerializeFormat::Json);
             writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
 
@@ -579,7 +579,7 @@ impl TestUtil {
 
                 let include_flag_key = flag_set_by(max_depth - breadcrumbs.len(), i);
 
-                let item_meta_block = TestUtil::sample_meta_block(Location::Siblings, &name, include_flag_key);
+                let item_meta_block = TestUtil::sample_meta_block(Target::Siblings, &name, include_flag_key);
                 item_meta_blocks.push(item_meta_block);
             }
 
