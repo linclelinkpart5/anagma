@@ -12,9 +12,7 @@ pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Target) -> Result<MetaStructure,
 
 #[cfg(test)]
 mod tests {
-    use super::read_str;
-
-    use crate::metadata::target::Target;
+    use super::*;
 
     #[test]
     fn test_read_str() {
@@ -26,7 +24,7 @@ mod tests {
             "key_d": "val_d"
         }
         "#;
-        let _ = read_str(input, Target::Parent).unwrap();
+        assert_matches!(read_str(input, Target::Parent), Ok(MetaStructure::One(_)));
 
         let input = r#"
         {
@@ -49,7 +47,7 @@ mod tests {
             ]
         }
         "#;
-        let _ = read_str(input, Target::Parent).unwrap();
+        assert_matches!(read_str(input, Target::Parent), Ok(MetaStructure::One(_)));
 
         let input = r#"
         [
@@ -63,7 +61,7 @@ mod tests {
             }
         ]
         "#;
-        let _ = read_str(input, Target::Siblings).unwrap();
+        assert_matches!(read_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
 
         let input = r#"
         {
@@ -77,6 +75,6 @@ mod tests {
             }
         }
         "#;
-        let _ = read_str(input, Target::Siblings).unwrap();
+        assert_matches!(read_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
     }
 }
