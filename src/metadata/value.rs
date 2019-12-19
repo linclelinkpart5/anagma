@@ -7,8 +7,8 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
-pub type Sequence = Vec<Value>;
-pub type Mapping = BTreeMap<String, Value>;
+pub type ValueSequence = Vec<Value>;
+pub type ValueMapping = BTreeMap<String, Value>;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
@@ -16,8 +16,8 @@ pub type Mapping = BTreeMap<String, Value>;
 pub enum Value {
     Null,
     String(String),
-    Sequence(Sequence),
-    Mapping(Mapping),
+    Sequence(ValueSequence),
+    Mapping(ValueMapping),
     Integer(i64),
     Boolean(bool),
     Decimal(Decimal),
