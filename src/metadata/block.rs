@@ -9,7 +9,7 @@ use crate::metadata::value::ValueMapping;
 pub type Block = ValueMapping;
 
 /// Represents multiple chunks of metadata for an ordered collection of items.
-pub type BlockSeq = Vec<Block>;
+pub type BlockSequence = Vec<Block>;
 
 /// Represents multiple chunks of metadata for a mapping of items keyed by name.
-pub type BlockMap = IndexMap<String, Block>;
+pub type BlockMapping = IndexMap<String, Block>;

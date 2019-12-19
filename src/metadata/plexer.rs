@@ -1,9 +1,10 @@
 
 use std::path::PathBuf;
+use std::iter::FusedIterator;
 
 use crate::config::sorter::Sorter;
 use crate::metadata::block::Block;
-use crate::metadata::block::BlockMap;
+use crate::metadata::block::BlockMapping;
 use crate::metadata::structure::MetaStructure;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -43,7 +44,7 @@ impl std::error::Error for Error {
 pub enum MetaPlexer<I: Iterator<Item = PathBuf>> {
     One(Option<Block>, I),
     Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<PathBuf>),
-    Map(BlockMap, I),
+    Map(BlockMapping, I),
 }
 
 impl<I> Iterator for MetaPlexer<I>
@@ -119,7 +120,7 @@ where
     }
 }
 
-impl<I: Iterator<Item = PathBuf>> std::iter::FusedIterator for MetaPlexer<I> {}
+impl<I: Iterator<Item = PathBuf>> FusedIterator for MetaPlexer<I> {}
 
 impl<I: Iterator<Item = PathBuf>> MetaPlexer<I> {
     pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {

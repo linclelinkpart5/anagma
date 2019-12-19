@@ -2,6 +2,8 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
+use crate::strum::IntoEnumIterator;
+
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
@@ -41,8 +43,6 @@ impl std::error::Error for Error {
         }
     }
 }
-
-const META_LOCATION_ORDER: &[Location] = &[Location::Siblings, Location::Contains];
 
 pub struct MetaProcessor;
 
@@ -89,7 +89,7 @@ impl MetaProcessor {
     {
         let mut comp_mb = Block::new();
 
-        for meta_location in META_LOCATION_ORDER.into_iter() {
+        for meta_location in Location::iter() {
             let meta_path = match meta_location.get_meta_path(&item_path, serialize_format) {
                 Err(e) => {
                     match e {
@@ -104,7 +104,7 @@ impl MetaProcessor {
 
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
-                *meta_location,
+                meta_location,
                 serialize_format,
                 selection,
                 sorter,

@@ -57,8 +57,8 @@ impl std::error::Error for Error {
 /// provides metadata for, relative to the location of the metadata file itself.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy, EnumIter)]
 pub enum Location {
-    Contains,
     Siblings,
+    Contains,
 }
 
 impl Location {
