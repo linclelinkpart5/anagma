@@ -13,15 +13,15 @@ pub enum Error {
     // InvalidItemFilePath(PathBuf),
     NonexistentItemPath(PathBuf),
     NoItemPathParent(PathBuf),
-    CannotReadItemDir(std::io::Error),
-    CannotReadItemDirEntry(std::io::Error),
+    CannotReadItemDir(IoError),
+    CannotReadItemDirEntry(IoError),
 
     // InvalidMetaDirPath(PathBuf),
     InvalidMetaFilePath(PathBuf),
     NonexistentMetaPath(Vec<PathBuf>),
     NoMetaPathParent(PathBuf),
-    // CannotReadMetaDir(std::io::Error),
-    // CannotReadMetaDirEntry(std::io::Error),
+    // CannotReadMetaDir(IoError),
+    // CannotReadMetaDirEntry(IoError),
 }
 
 impl std::fmt::Display for Error {
@@ -68,11 +68,17 @@ impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
-    pub fn get_meta_path<P>(&self, item_path: P, serialize_format: SerializeFormat) -> Result<PathBuf, Error>
+    pub fn get_meta_path<'a, P>(
+        &'a self,
+        item_path: P,
+        serialize_format: SerializeFormat,
+    ) -> Result<PathBuf, Error>
     where
-        P: AsRef<Path> + Into<PathBuf>,
+        P: Into<Cow<'a, Path>>,
     {
-        if !item_path.as_ref().exists() {
+        let item_path = item_path.into();
+
+        if !item_path.exists() {
             return Err(Error::NonexistentItemPath(item_path.into()))
         }
 
@@ -133,23 +139,23 @@ impl Target {
     /// This is a listing of the file paths that this meta target could/should provide metadata for.
     /// Note that this does NOT parse meta files, it only uses file system locations and presence.
     /// Also, no filtering or sorting of the returned item paths is performed.
-    pub fn get_item_paths<P>(&self, meta_path: P) -> Result<Vec<PathBuf>, Error>
+    pub fn get_item_paths<'a, P>(&'a self, meta_path: P) -> Result<Vec<PathBuf>, Error>
     where
-        P: AsRef<Path> + Into<PathBuf>,
+        P: Into<Cow<'a, Path>>,
     {
-        let meta_path_ref = meta_path.as_ref();
+        let meta_path = meta_path.into();
 
-        if !meta_path_ref.exists() {
+        if !meta_path.exists() {
             return Err(Error::NonexistentMetaPath(vec![meta_path.into()]))
         }
 
-        if !meta_path_ref.is_file() {
+        if !meta_path.is_file() {
             return Err(Error::InvalidMetaFilePath(meta_path.into()))
         }
 
         // Get the parent directory of the meta file.
         // NOTE: This is only outside the pattern match because all branches currently use it.
-        if let Some(meta_parent_dir_path) = meta_path_ref.parent() {
+        if let Some(meta_parent_dir_path) = meta_path.parent() {
             let mut po_item_paths = vec![];
 
             match self {
@@ -174,18 +180,19 @@ impl Target {
     }
 
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
-    pub fn get_selected_item_paths<P>(
-        &self,
+    pub fn get_selected_item_paths<'a, P>(
+        &'a self,
         meta_path: P,
-        selection: &Selection,
+        selection: &'a Selection,
         ) -> Result<Vec<PathBuf>, Error>
     where
-        P: AsRef<Path> + Into<PathBuf>,
+        P: Into<Cow<'a, Path>>,
     {
-        let item_paths = self.get_item_paths(meta_path)?;
+        let mut item_paths = self.get_item_paths(meta_path)?;
 
-        // Use the config object to select the item paths.
-        Ok(selection.select(item_paths).collect())
+        item_paths.retain(|p| selection.is_selected(p));
+
+        Ok(item_paths)
     }
 
     pub fn default_file_name(&self) -> &'static str {
@@ -196,18 +203,34 @@ impl Target {
     }
 }
 
-enum ItemPathIterator<'a> {
+enum ItemPaths<'a> {
     Parent(Option<&'a Path>),
     Siblings(ReadDir),
 }
 
-impl<'a> Iterator for ItemPathIterator<'a> {
+impl<'a> Iterator for ItemPaths<'a> {
     type Item = Result<Cow<'a, Path>, IoError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
-            Self::Siblings(rd) => rd.next().map(|dir_res| dir_res.map(|entry| Cow::Owned(entry.path()))),
+            Self::Siblings(rd) => rd.next().map(|dir_res| {
+                dir_res.map(|entry| Cow::Owned(entry.path()))
+            }),
         }
+    }
+}
+
+struct SelectedItemPaths<'a>(&'a Selection, ItemPaths<'a>);
+
+impl<'a> Iterator for SelectedItemPaths<'a> {
+    type Item = Result<Cow<'a, Path>, IoError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let selection = &self.0;
+        self.1.find(|res| match res {
+            Ok(p) => selection.is_selected(p),
+            Err(_) => true,
+        })
     }
 }

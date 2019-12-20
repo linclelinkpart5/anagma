@@ -55,11 +55,11 @@ impl MetaProcessor {
         sorter: Sorter,
     ) -> Result<HashMap<PathBuf, Block>, Error>
     where
-        P: AsRef<Path> + Into<PathBuf>,
+        P: AsRef<Path>,
     {
         let meta_structure = serialize_format.from_file(&meta_path, meta_target).map_err(Error::CannotReadMetadata)?;
 
-        let selected_item_paths = meta_target.get_selected_item_paths(meta_path, selection).map_err(Error::CannotFindItemPaths)?;
+        let selected_item_paths = meta_target.get_selected_item_paths(meta_path.as_ref(), selection).map_err(Error::CannotFindItemPaths)?;
 
         let mut meta_plexed = hashmap![];
 
