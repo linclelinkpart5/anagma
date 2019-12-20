@@ -192,8 +192,8 @@ impl Target {
 }
 
 enum ItemPathIterator<'a> {
-    Parents(Option<&'a Path>),
-    Children(ReadDir),
+    Parent(Option<&'a Path>),
+    Siblings(ReadDir),
 }
 
 impl<'a> Iterator for ItemPathIterator<'a> {
@@ -201,8 +201,8 @@ impl<'a> Iterator for ItemPathIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
-            Self::Parents(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
-            Self::Children(rd) => rd.next().map(|dir_res| dir_res.map(|entry| Cow::Owned(entry.path()))),
+            Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
+            Self::Siblings(rd) => rd.next().map(|dir_res| dir_res.map(|entry| Cow::Owned(entry.path()))),
         }
     }
 }
