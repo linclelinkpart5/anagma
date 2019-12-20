@@ -137,25 +137,25 @@ impl Target {
     where
         P: AsRef<Path> + Into<PathBuf>,
     {
-        let meta_path = meta_path.as_ref();
+        let meta_path_ref = meta_path.as_ref();
 
-        if !meta_path.exists() {
-            Err(Error::NonexistentMetaPath(vec![meta_path.to_path_buf()]))?
+        if !meta_path_ref.exists() {
+            return Err(Error::NonexistentMetaPath(vec![meta_path.into()]))
         }
 
-        if !meta_path.is_file() {
-            Err(Error::InvalidMetaFilePath(meta_path.to_path_buf()))?
+        if !meta_path_ref.is_file() {
+            return Err(Error::InvalidMetaFilePath(meta_path.into()))
         }
 
         // Get the parent directory of the meta file.
         // NOTE: This is only outside the pattern match because all branches currently use it.
-        if let Some(meta_parent_dir_path) = meta_path.parent() {
+        if let Some(meta_parent_dir_path) = meta_path_ref.parent() {
             let mut po_item_paths = vec![];
 
             match self {
                 Self::Parent => {
                     // This is just the passed-in path, just push it on unchanged.
-                    po_item_paths.push(meta_parent_dir_path.to_path_buf());
+                    po_item_paths.push(meta_parent_dir_path.into());
                 },
                 Self::Siblings => {
                     // Return all children of this directory.
@@ -169,7 +169,7 @@ impl Target {
         }
         else {
             // This should never happen!
-            Err(Error::NoMetaPathParent(meta_path.to_path_buf()))?
+            Err(Error::NoMetaPathParent(meta_path.into()))?
         }
     }
 
