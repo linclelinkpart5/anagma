@@ -41,13 +41,13 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum MetaPlexer<I: Iterator<Item = PathBuf>> {
+pub enum Plexer<I: Iterator<Item = PathBuf>> {
     One(Option<Block>, I),
     Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<PathBuf>),
     Map(BlockMapping, I),
 }
 
-impl<I> Iterator for MetaPlexer<I>
+impl<I> Iterator for Plexer<I>
 where
     I: Iterator<Item = PathBuf>,
 {
@@ -120,14 +120,14 @@ where
     }
 }
 
-impl<I: Iterator<Item = PathBuf>> FusedIterator for MetaPlexer<I> {}
+impl<I: Iterator<Item = PathBuf>> FusedIterator for Plexer<I> {}
 
-impl<I: Iterator<Item = PathBuf>> MetaPlexer<I> {
+impl<I: Iterator<Item = PathBuf>> Plexer<I> {
     pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
             MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
             MetaStructure::Seq(mb_seq) => {
-                // Need to pre-sort the file paths.
+                // Need to collect and pre-sort the file paths.
                 let mut file_paths = file_path_iter.collect::<Vec<_>>();
                 file_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
 
@@ -140,7 +140,7 @@ impl<I: Iterator<Item = PathBuf>> MetaPlexer<I> {
 
 #[cfg(test)]
 mod tests {
-    use super::MetaPlexer;
+    use super::Plexer;
     use super::Error;
 
     use std::path::PathBuf;
@@ -148,24 +148,25 @@ mod tests {
 
     use crate::config::sorter::Sorter;
     use crate::metadata::structure::MetaStructure;
-    use crate::metadata::value::Value;
+
+    use crate::test_util::TestUtil as TU;
 
     #[test]
     fn test_plex() {
         let mb_a = btreemap![
-            String::from("key_1a") => Value::String(String::from("val_1a")),
-            String::from("key_1b") => Value::String(String::from("val_1b")),
-            String::from("key_1c") => Value::String(String::from("val_1c")),
+            String::from("key_1a") => TU::s("val_1a"),
+            String::from("key_1b") => TU::s("val_1b"),
+            String::from("key_1c") => TU::s("val_1c"),
         ];
         let mb_b = btreemap![
-            String::from("key_2a") => Value::String(String::from("val_2a")),
-            String::from("key_2b") => Value::String(String::from("val_2b")),
-            String::from("key_2c") => Value::String(String::from("val_2c")),
+            String::from("key_2a") => TU::s("val_2a"),
+            String::from("key_2b") => TU::s("val_2b"),
+            String::from("key_2c") => TU::s("val_2c"),
         ];
         let mb_c = btreemap![
-            String::from("key_3a") => Value::String(String::from("val_3a")),
-            String::from("key_3b") => Value::String(String::from("val_3b")),
-            String::from("key_3c") => Value::String(String::from("val_3c")),
+            String::from("key_3a") => TU::s("val_3a"),
+            String::from("key_3b") => TU::s("val_3b"),
+            String::from("key_3c") => TU::s("val_3c"),
         ];
 
         let ms_a = MetaStructure::One(mb_a.clone());
@@ -226,7 +227,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<Vec<_>>();
+            let produced = Plexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
 
@@ -270,7 +271,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = MetaPlexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<HashSet<_>>();
+            let produced = Plexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<HashSet<_>>();
             assert_eq!(expected, produced);
         }
     }

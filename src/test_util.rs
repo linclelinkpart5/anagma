@@ -610,6 +610,10 @@ impl TestUtil {
     pub fn d(i: i64, e: u32) -> Value {
         Value::Decimal(Self::d_raw(i, e))
     }
+
+    pub fn s<I: Into<String>>(s: I) -> Value {
+        Value::String(s.into())
+    }
 }
 
 #[cfg(test)]

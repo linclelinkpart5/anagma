@@ -11,7 +11,7 @@ use crate::metadata::block::Block;
 use crate::metadata::target::Target;
 use crate::metadata::target::Error as TargetError;
 use crate::metadata::reader::Error as ReaderError;
-use crate::metadata::plexer::MetaPlexer;
+use crate::metadata::plexer::Plexer;
 use crate::metadata::reader::MetaReader;
 
 #[derive(Debug)]
@@ -63,7 +63,7 @@ impl MetaProcessor {
 
         let mut meta_plexed = hashmap![];
 
-        let meta_plexer = MetaPlexer::new(meta_structure, selected_item_paths.into_iter(), sorter);
+        let meta_plexer = Plexer::new(meta_structure, selected_item_paths.into_iter(), sorter);
 
         for meta_plex_res in meta_plexer {
             match meta_plex_res {
