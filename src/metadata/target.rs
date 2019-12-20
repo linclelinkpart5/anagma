@@ -133,7 +133,10 @@ impl Target {
     /// This is a listing of the file paths that this meta target could/should provide metadata for.
     /// Note that this does NOT parse meta files, it only uses file system locations and presence.
     /// Also, no filtering or sorting of the returned item paths is performed.
-    pub fn get_item_paths<P: AsRef<Path>>(&self, meta_path: P) -> Result<Vec<PathBuf>, Error> {
+    pub fn get_item_paths<P>(&self, meta_path: P) -> Result<Vec<PathBuf>, Error>
+    where
+        P: AsRef<Path> + Into<PathBuf>,
+    {
         let meta_path = meta_path.as_ref();
 
         if !meta_path.exists() {
@@ -171,11 +174,13 @@ impl Target {
     }
 
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
-    pub fn get_selected_item_paths<P: AsRef<Path>>(
+    pub fn get_selected_item_paths<P>(
         &self,
         meta_path: P,
         selection: &Selection,
         ) -> Result<Vec<PathBuf>, Error>
+    where
+        P: AsRef<Path> + Into<PathBuf>,
     {
         let item_paths = self.get_item_paths(meta_path)?;
 
