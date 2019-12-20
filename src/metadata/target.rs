@@ -1,5 +1,8 @@
 use std::path::Path;
 use std::path::PathBuf;
+use std::fs::ReadDir;
+use std::borrow::Cow;
+use std::io::Error as IoError;
 
 use crate::config::selection::Selection;
 use crate::config::serialize_format::SerializeFormat;
@@ -64,31 +67,41 @@ pub enum Target {
 impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
-    pub fn get_meta_path<P: AsRef<Path>>(&self, item_path: P, serialize_format: SerializeFormat) -> Result<PathBuf, Error> {
-        let item_path = item_path.as_ref();
-
-        if !item_path.exists() {
-            Err(Error::NonexistentItemPath(item_path.to_path_buf()))?
+    // NOTE: This always returns a `PathBuf`, since joining paths is required.
+    pub fn get_meta_path<P>(&self, item_path: P, serialize_format: SerializeFormat) -> Result<PathBuf, Error>
+    where
+        P: AsRef<Path> + Into<PathBuf>,
+    {
+        if !item_path.as_ref().exists() {
+            return Err(Error::NonexistentItemPath(item_path.into()))
         }
 
         let meta_path_parent_dir = match self {
             Self::Parent => {
-                if !item_path.is_dir() {
-                    Err(Error::InvalidItemDirPath(item_path.to_path_buf()))?
+                if !item_path.as_ref().is_dir() {
+                    return Err(Error::InvalidItemDirPath(item_path.into()))
                 }
 
-                item_path
+                item_path.as_ref()
             },
             Self::Siblings => {
-                match item_path.parent() {
+                match item_path.as_ref().parent() {
                     Some(item_path_parent) => item_path_parent,
-                    None => Err(Error::NoItemPathParent(item_path.to_path_buf()))?,
+                    None => Err(Error::NoItemPathParent(item_path.into()))?,
                 }
             }
         };
 
         // Start with the default extension of the meta format.
-        let exts = std::iter::once(serialize_format.default_file_extension()).chain(serialize_format.extra_file_extensions().into_iter().cloned());
+        let exts =
+            std::iter::once(serialize_format.default_file_extension())
+            .chain(
+                serialize_format
+                .extra_file_extensions()
+                .into_iter()
+                .copied()
+            )
+        ;
 
         let mut attempted_paths = vec![];
 
@@ -174,6 +187,22 @@ impl Target {
         match self {
             Self::Parent => "self",
             Self::Siblings => "item",
+        }
+    }
+}
+
+enum ItemPathIterator<'a> {
+    Parents(Option<&'a Path>),
+    Children(ReadDir),
+}
+
+impl<'a> Iterator for ItemPathIterator<'a> {
+    type Item = Result<Cow<'a, Path>, IoError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Parents(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
+            Self::Children(rd) => rd.next().map(|dir_res| dir_res.map(|entry| Cow::Owned(entry.path()))),
         }
     }
 }

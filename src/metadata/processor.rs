@@ -90,7 +90,7 @@ impl MetaProcessor {
         let mut comp_mb = Block::new();
 
         for meta_target in Target::iter() {
-            let meta_path = match meta_target.get_meta_path(&item_path, serialize_format) {
+            let meta_path = match meta_target.get_meta_path(item_path.as_ref(), serialize_format) {
                 Err(e) => {
                     match e {
                         TargetError::NonexistentMetaPath(..) |

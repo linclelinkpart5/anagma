@@ -1,4 +1,5 @@
 
+use std::path::Path;
 use std::path::PathBuf;
 use std::iter::FusedIterator;
 
@@ -41,17 +42,22 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum Plexer<I: Iterator<Item = PathBuf>> {
+pub enum Plexer<I, P>
+where
+    I: Iterator<Item = P>,
+    P: Into<PathBuf> + AsRef<Path>,
+{
     One(Option<Block>, I),
-    Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<PathBuf>),
+    Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<P>),
     Map(BlockMapping, I),
 }
 
-impl<I> Iterator for Plexer<I>
+impl<I, P> Iterator for Plexer<I, P>
 where
-    I: Iterator<Item = PathBuf>,
+    I: Iterator<Item = P>,
+    P: Into<PathBuf> + AsRef<Path>,
 {
-    type Item = Result<(PathBuf, Block), Error>;
+    type Item = Result<(P, Block), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -64,7 +70,7 @@ where
                     (Some(block), Some(path)) => Some(Ok((path, block))),
 
                     // Got a file path with no meta block, report an error.
-                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path))),
+                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
 
                     // Got a meta block with no file path, report an error.
                     (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
@@ -79,7 +85,7 @@ where
                     (Some(block), Some(path)) => Some(Ok((path, block))),
 
                     // Got a file path with no meta block, report an error.
-                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path))),
+                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
 
                     // Got a meta block with no file path, report an error.
                     (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
@@ -90,13 +96,13 @@ where
                     Some(path) => {
                         // Try and obtain a file name from the path, and convert into a string for lookup.
                         // If this fails, return an error for this iteration and then skip the string.
-                        match path.file_name().and_then(|os| os.to_str()) {
-                            None => Some(Err(Error::NamelessItemPath(path))),
+                        match path.as_ref().file_name().and_then(|os| os.to_str()) {
+                            None => Some(Err(Error::NamelessItemPath(path.into()))),
                             Some(file_name_str) => {
                                 // See if the file name string is in the meta block mapping.
                                 match block_mapping.swap_remove(file_name_str) {
                                     // No meta block in the mapping had a matching file name, report an error.
-                                    None => Some(Err(Error::UnusedItemPath(path))),
+                                    None => Some(Err(Error::UnusedItemPath(path.into()))),
 
                                     // Found a matching meta block, emit a successful plex result.
                                     Some(block) => Some(Ok((path, block))),
@@ -119,10 +125,17 @@ where
         }
     }
 }
+impl<I, P> FusedIterator for Plexer<I, P>
+where
+    I: Iterator<Item = P>,
+    P: Into<PathBuf> + AsRef<Path>
+{}
 
-impl<I: Iterator<Item = PathBuf>> FusedIterator for Plexer<I> {}
-
-impl<I: Iterator<Item = PathBuf>> Plexer<I> {
+impl<I, P> Plexer<I, P>
+where
+    I: Iterator<Item = P>,
+    P: Into<PathBuf> + AsRef<Path>,
+{
     pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
             MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
