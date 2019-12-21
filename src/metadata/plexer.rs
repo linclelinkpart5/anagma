@@ -2,6 +2,7 @@
 use std::path::Path;
 use std::path::PathBuf;
 use std::iter::FusedIterator;
+use std::borrow::Cow;
 
 use crate::config::sorter::Sorter;
 use crate::metadata::block::Block;
@@ -42,22 +43,22 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum Plexer<I, P>
+pub enum Plexer<'a, I, P>
 where
     I: Iterator<Item = P>,
-    P: Into<PathBuf> + AsRef<Path>,
+    P: Into<Cow<'a, Path>>,
 {
     One(Option<Block>, I),
-    Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<P>),
+    Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<Cow<'a, Path>>),
     Map(BlockMapping, I),
 }
 
-impl<I, P> Iterator for Plexer<I, P>
+impl<'a, I, P> Iterator for Plexer<'a, I, P>
 where
     I: Iterator<Item = P>,
-    P: Into<PathBuf> + AsRef<Path>,
+    P: Into<Cow<'a, Path>>,
 {
-    type Item = Result<(P, Block), Error>;
+    type Item = Result<(Cow<'a, Path>, Block), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -67,10 +68,10 @@ where
                     (None, None) => None,
 
                     // Both iterators produced a result, emit a successful plex result.
-                    (Some(block), Some(path)) => Some(Ok((path, block))),
+                    (Some(block), Some(path)) => Some(Ok((path.into(), block))),
 
                     // Got a file path with no meta block, report an error.
-                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
+                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into().into()))),
 
                     // Got a meta block with no file path, report an error.
                     (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
@@ -96,7 +97,8 @@ where
                     Some(path) => {
                         // Try and obtain a file name from the path, and convert into a string for lookup.
                         // If this fails, return an error for this iteration and then skip the string.
-                        match path.as_ref().file_name().and_then(|os| os.to_str()) {
+                        let path = path.into();
+                        match path.file_name().and_then(|os| os.to_str()) {
                             None => Some(Err(Error::NamelessItemPath(path.into()))),
                             Some(file_name_str) => {
                                 // See if the file name string is in the meta block mapping.
@@ -125,24 +127,24 @@ where
         }
     }
 }
-impl<I, P> FusedIterator for Plexer<I, P>
+impl<'a, I, P> FusedIterator for Plexer<'a, I, P>
 where
     I: Iterator<Item = P>,
-    P: Into<PathBuf> + AsRef<Path>
+    P: Into<Cow<'a, Path>>,
 {}
 
-impl<I, P> Plexer<I, P>
+impl<'a, I, P> Plexer<'a, I, P>
 where
     I: Iterator<Item = P>,
-    P: Into<PathBuf> + AsRef<Path>,
+    P: Into<Cow<'a, Path>>,
 {
     pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
             MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
             MetaStructure::Seq(mb_seq) => {
                 // Need to collect and pre-sort the file paths.
-                let mut file_paths = file_path_iter.collect::<Vec<_>>();
-                file_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
+                let mut file_paths = file_path_iter.map(Into::into).collect::<Vec<_>>();
+                file_paths.sort_by(|a, b| sorter.path_sort_cmp(a.as_ref(), b.as_ref()));
 
                 Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
             },
@@ -153,14 +155,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::Plexer;
-    use super::Error;
+    use super::*;
 
-    use std::path::PathBuf;
     use std::collections::HashSet;
-
-    use crate::config::sorter::Sorter;
-    use crate::metadata::structure::MetaStructure;
 
     use crate::test_util::TestUtil as TU;
 
@@ -195,13 +192,13 @@ mod tests {
             (
                 (ms_a.clone(), vec![PathBuf::from("item_a")]),
                 vec![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                 ],
             ),
             (
                 (ms_a.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b")]),
                 vec![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_b"))),
                 ],
             ),
@@ -214,24 +211,24 @@ mod tests {
             (
                 (ms_b.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c")]),
                 vec![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
                 ],
             ),
             (
                 (ms_b.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c"), PathBuf::from("item_d")]),
                 vec![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
             (
                 (ms_b.clone(), vec![PathBuf::from("item_a")]),
                 vec![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Err(Error::UnusedBlock(mb_b.clone(), None)),
                     Err(Error::UnusedBlock(mb_c.clone(), None)),
                 ],
@@ -249,33 +246,33 @@ mod tests {
             (
                 (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c")]),
                 hashset![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
                 ],
             ),
             (
                 (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b")]),
                 hashset![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
                     Err(Error::UnusedBlock(mb_c.clone(), Some(String::from("item_c")))),
                 ],
             ),
             (
                 (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c"), PathBuf::from("item_d")]),
                 hashset![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b"), mb_b.clone())),
-                    Ok((PathBuf::from("item_c"), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
             (
                 (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_d")]),
                 hashset![
-                    Ok((PathBuf::from("item_a"), mb_a.clone())),
-                    Ok((PathBuf::from("item_b"), mb_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
                     Err(Error::UnusedBlock(mb_c.clone(), Some(String::from("item_c")))),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],

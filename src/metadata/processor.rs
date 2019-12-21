@@ -67,7 +67,10 @@ impl MetaProcessor {
 
         for meta_plex_res in meta_plexer {
             match meta_plex_res {
-                Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
+                // Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
+
+                // TODO: This is ineffieicnt, since a new `PathBuf` is being allocated; fix later.
+                Ok((item_path, mb)) => { meta_plexed.insert(item_path.into_owned(), mb); },
                 Err(e) => { warn!("{}", e); },
             }
         }
