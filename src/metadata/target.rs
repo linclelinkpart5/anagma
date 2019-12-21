@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::path::PathBuf;
-use std::fs::ReadDir;
 use std::borrow::Cow;
 use std::io::Error as IoError;
 
@@ -203,34 +202,34 @@ impl Target {
     }
 }
 
-enum ItemPaths<'a> {
-    Parent(Option<&'a Path>),
-    Siblings(ReadDir),
-}
+// enum ItemPaths<'a> {
+//     Parent(Option<&'a Path>),
+//     Siblings(ReadDir),
+// }
 
-impl<'a> Iterator for ItemPaths<'a> {
-    type Item = Result<Cow<'a, Path>, IoError>;
+// impl<'a> Iterator for ItemPaths<'a> {
+//     type Item = Result<Cow<'a, Path>, IoError>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
-            Self::Siblings(rd) => rd.next().map(|dir_res| {
-                dir_res.map(|entry| Cow::Owned(entry.path()))
-            }),
-        }
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         match self {
+//             Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
+//             Self::Siblings(rd) => rd.next().map(|dir_res| {
+//                 dir_res.map(|entry| Cow::Owned(entry.path()))
+//             }),
+//         }
+//     }
+// }
 
-struct SelectedItemPaths<'a>(&'a Selection, ItemPaths<'a>);
+// struct SelectedItemPaths<'a>(&'a Selection, ItemPaths<'a>);
 
-impl<'a> Iterator for SelectedItemPaths<'a> {
-    type Item = Result<Cow<'a, Path>, IoError>;
+// impl<'a> Iterator for SelectedItemPaths<'a> {
+//     type Item = Result<Cow<'a, Path>, IoError>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let selection = &self.0;
-        self.1.find(|res| match res {
-            Ok(p) => selection.is_selected(p),
-            Err(_) => true,
-        })
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         let selection = &self.0;
+//         self.1.find(|res| match res {
+//             Ok(p) => selection.is_selected(p),
+//             Err(_) => true,
+//         })
+//     }
+// }
