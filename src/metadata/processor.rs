@@ -1,6 +1,6 @@
 use std::path::Path;
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::borrow::Cow;
 
 use crate::strum::IntoEnumIterator;
 
@@ -47,13 +47,13 @@ impl std::error::Error for Error {
 pub struct MetaProcessor;
 
 impl MetaProcessor {
-    pub fn process_meta_file<P>(
+    pub fn process_meta_file<'a, P>(
         meta_path: P,
         meta_target: Target,
         serialize_format: SerializeFormat,
         selection: &Selection,
         sorter: Sorter,
-    ) -> Result<HashMap<PathBuf, Block>, Error>
+    ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
     where
         P: AsRef<Path>,
     {
@@ -67,10 +67,7 @@ impl MetaProcessor {
 
         for meta_plex_res in meta_plexer {
             match meta_plex_res {
-                // Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
-
-                // TODO: This is ineffieicnt, since a new `PathBuf` is being allocated; fix later.
-                Ok((item_path, mb)) => { meta_plexed.insert(item_path.into_owned(), mb); },
+                Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
                 Err(e) => { warn!("{}", e); },
             }
         }
@@ -128,23 +125,19 @@ impl MetaProcessor {
 
 #[cfg(test)]
 mod tests {
-    use super::MetaProcessor;
-
-    use crate::config::Config;
-    use crate::config::serialize_format::SerializeFormat;
-    use crate::metadata::target::Target;
-    use crate::metadata::value::Value;
+    use super::*;
 
     use crate::test_util::create_temp_media_test_dir;
+
+    use crate::test_util::TestUtil as TU;
 
     #[test]
     fn test_process_meta_file() {
         let temp_dir = create_temp_media_test_dir("test_process_meta_file");
         let path = temp_dir.path();
 
-        let config = Config::default();
-        let selection = &config.selection;
-        let sorter = config.sorter;
+        let selection = Selection::default();
+        let sorter = Sorter::default();
 
         // Success cases
         let inputs_and_expected = vec![
@@ -152,45 +145,45 @@ mod tests {
             //     (path.join("self.yml"), Target::Parent),
             //     hashmap![
             //         path.to_owned() => btreemap![
-            //             "ROOT_self_key".to_owned() => Value::String("ROOT_self_val".to_owned()),
-            //             "const_key".to_owned() => Value::String("const_val".to_owned()),
-            //             "self_key".to_owned() => Value::String("self_val".to_owned()),
-            //             "overridden".to_owned() => Value::String("ROOT_self".to_owned()),
+            //             "ROOT_self_key".to_owned() => TU::s("ROOT_self_val"),
+            //             "const_key".to_owned() => TU::s("const_val"),
+            //             "self_key".to_owned() => TU::s("self_val"),
+            //             "overridden".to_owned() => TU::s("ROOT_self"),
             //         ],
             //     ],
             // ),
             (
                 (path.join("item.yml"), Target::Siblings),
                 hashmap![
-                    path.join("ALBUM_01") => btreemap![
-                        String::from("ALBUM_01_item_key") => Value::String("ALBUM_01_item_val".to_owned()),
-                        String::from("const_key") => Value::String("const_val".to_owned()),
-                        String::from("item_key") => Value::String("item_val".to_owned()),
-                        String::from("overridden") => Value::String("ALBUM_01_item".to_owned()),
+                    Cow::Owned(path.join("ALBUM_01")) => btreemap![
+                        String::from("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
+                        String::from("const_key") => TU::s("const_val"),
+                        String::from("item_key") => TU::s("item_val"),
+                        String::from("overridden") => TU::s("ALBUM_01_item"),
                     ],
-                    path.join("ALBUM_02") => btreemap![
-                        String::from("ALBUM_02_item_key") => Value::String("ALBUM_02_item_val".to_owned()),
-                        String::from("const_key") => Value::String("const_val".to_owned()),
-                        String::from("item_key") => Value::String("item_val".to_owned()),
-                        String::from("overridden") => Value::String("ALBUM_02_item".to_owned()),
+                    Cow::Owned(path.join("ALBUM_02")) => btreemap![
+                        String::from("ALBUM_02_item_key") => TU::s("ALBUM_02_item_val"),
+                        String::from("const_key") => TU::s("const_val"),
+                        String::from("item_key") => TU::s("item_val"),
+                        String::from("overridden") => TU::s("ALBUM_02_item"),
                     ],
-                    path.join("ALBUM_03") => btreemap![
-                        String::from("ALBUM_03_item_key") => Value::String("ALBUM_03_item_val".to_owned()),
-                        String::from("const_key") => Value::String("const_val".to_owned()),
-                        String::from("item_key") => Value::String("item_val".to_owned()),
-                        String::from("overridden") => Value::String("ALBUM_03_item".to_owned()),
+                    Cow::Owned(path.join("ALBUM_03")) => btreemap![
+                        String::from("ALBUM_03_item_key") => TU::s("ALBUM_03_item_val"),
+                        String::from("const_key") => TU::s("const_val"),
+                        String::from("item_key") => TU::s("item_val"),
+                        String::from("overridden") => TU::s("ALBUM_03_item"),
                     ],
-                    path.join("ALBUM_04.flac") => btreemap![
-                        String::from("ALBUM_04_item_key") => Value::String("ALBUM_04_item_val".to_owned()),
-                        String::from("const_key") => Value::String("const_val".to_owned()),
-                        String::from("item_key") => Value::String("item_val".to_owned()),
-                        String::from("overridden") => Value::String("ALBUM_04_item".to_owned()),
+                    Cow::Owned(path.join("ALBUM_04.flac")) => btreemap![
+                        String::from("ALBUM_04_item_key") => TU::s("ALBUM_04_item_val"),
+                        String::from("const_key") => TU::s("const_val"),
+                        String::from("item_key") => TU::s("item_val"),
+                        String::from("overridden") => TU::s("ALBUM_04_item"),
                     ],
-                    path.join("ALBUM_05") => btreemap![
-                        String::from("ALBUM_05_item_key") => Value::String("ALBUM_05_item_val".to_owned()),
-                        String::from("const_key") => Value::String("const_val".to_owned()),
-                        String::from("item_key") => Value::String("item_val".to_owned()),
-                        String::from("overridden") => Value::String("ALBUM_05_item".to_owned()),
+                    Cow::Owned(path.join("ALBUM_05")) => btreemap![
+                        String::from("ALBUM_05_item_key") => TU::s("ALBUM_05_item_val"),
+                        String::from("const_key") => TU::s("const_val"),
+                        String::from("item_key") => TU::s("item_val"),
+                        String::from("overridden") => TU::s("ALBUM_05_item"),
                     ],
                 ],
             ),
@@ -198,10 +191,10 @@ mod tests {
             //     (path.join("ALBUM_01").join("self.yml"), Target::Parent),
             //     hashmap![
             //         path.join("ALBUM_01") => btreemap![
-            //             "ALBUM_01_self_key".to_owned() => Value::String("ALBUM_01_self_val".to_owned()),
-            //             "const_key".to_owned() => Value::String("const_val".to_owned()),
-            //             "self_key".to_owned() => Value::String("self_val".to_owned()),
-            //             "overridden".to_owned() => Value::String("ALBUM_01_self".to_owned()),
+            //             "ALBUM_01_self_key".to_owned() => TU::s("ALBUM_01_self_val"),
+            //             "const_key".to_owned() => TU::s("const_val"),
+            //             "self_key".to_owned() => TU::s("self_val"),
+            //             "overridden".to_owned() => TU::s("ALBUM_01_self"),
             //         ],
             //     ],
             // ),
@@ -209,22 +202,22 @@ mod tests {
             //     (path.join("ALBUM_01").join("DISC_01").join("item.yml"), Target::Siblings),
             //     hashmap![
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac") => btreemap![
-            //             "TRACK_01_item_key".to_owned() => Value::String("TRACK_01_item_val".to_owned()),
-            //             "const_key".to_owned() => Value::String("const_val".to_owned()),
-            //             "item_key".to_owned() => Value::String("item_val".to_owned()),
-            //             "overridden".to_owned() => Value::String("TRACK_01_item".to_owned()),
+            //             "TRACK_01_item_key".to_owned() => TU::s("TRACK_01_item_val"),
+            //             "const_key".to_owned() => TU::s("const_val"),
+            //             "item_key".to_owned() => TU::s("item_val"),
+            //             "overridden".to_owned() => TU::s("TRACK_01_item"),
             //         ],
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_02.flac") => btreemap![
-            //             "TRACK_02_item_key".to_owned() => Value::String("TRACK_02_item_val".to_owned()),
-            //             "const_key".to_owned() => Value::String("const_val".to_owned()),
-            //             "item_key".to_owned() => Value::String("item_val".to_owned()),
-            //             "overridden".to_owned() => Value::String("TRACK_02_item".to_owned()),
+            //             "TRACK_02_item_key".to_owned() => TU::s("TRACK_02_item_val"),
+            //             "const_key".to_owned() => TU::s("const_val"),
+            //             "item_key".to_owned() => TU::s("item_val"),
+            //             "overridden".to_owned() => TU::s("TRACK_02_item"),
             //         ],
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_03.flac") => btreemap![
-            //             "TRACK_03_item_key".to_owned() => Value::String("TRACK_03_item_val".to_owned()),
-            //             "const_key".to_owned() => Value::String("const_val".to_owned()),
-            //             "item_key".to_owned() => Value::String("item_val".to_owned()),
-            //             "overridden".to_owned() => Value::String("TRACK_03_item".to_owned()),
+            //             "TRACK_03_item_key".to_owned() => TU::s("TRACK_03_item_val"),
+            //             "const_key".to_owned() => TU::s("const_val"),
+            //             "item_key".to_owned() => TU::s("item_val"),
+            //             "overridden".to_owned() => TU::s("TRACK_03_item"),
             //         ],
             //     ],
             // ),
@@ -233,7 +226,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = MetaProcessor::process_meta_file(meta_path, meta_target, SerializeFormat::Yaml, selection, sorter).unwrap();
+            let produced = MetaProcessor::process_meta_file(meta_path, meta_target, SerializeFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -243,39 +236,38 @@ mod tests {
         let temp_dir = create_temp_media_test_dir("test_process_item_file");
         let path = temp_dir.path();
 
-        let config = Config::default();
-        let selection = &config.selection;
-        let sorter = config.sorter;
+        let selection = Selection::default();
+        let sorter = Sorter::default();
 
         // Success cases
         let inputs_and_expected = vec![
             (
-                path.to_owned(),
+                Cow::Borrowed(path),
                 btreemap![
-                    String::from("ROOT_self_key") => Value::String("ROOT_self_val".to_owned()),
-                    String::from("const_key") => Value::String("const_val".to_owned()),
-                    String::from("self_key") => Value::String("self_val".to_owned()),
-                    String::from("overridden") => Value::String("ROOT_self".to_owned()),
+                    String::from("ROOT_self_key") => TU::s("ROOT_self_val"),
+                    String::from("const_key") => TU::s("const_val"),
+                    String::from("self_key") => TU::s("self_val"),
+                    String::from("overridden") => TU::s("ROOT_self"),
                 ],
             ),
             (
-                path.join("ALBUM_01"),
+                Cow::Owned(path.join("ALBUM_01")),
                 btreemap![
-                    String::from("ALBUM_01_item_key") => Value::String("ALBUM_01_item_val".to_owned()),
-                    String::from("ALBUM_01_self_key") => Value::String("ALBUM_01_self_val".to_owned()),
-                    String::from("const_key") => Value::String("const_val".to_owned()),
-                    String::from("item_key") => Value::String("item_val".to_owned()),
-                    String::from("self_key") => Value::String("self_val".to_owned()),
-                    String::from("overridden") => Value::String("ALBUM_01_self".to_owned()),
+                    String::from("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
+                    String::from("ALBUM_01_self_key") => TU::s("ALBUM_01_self_val"),
+                    String::from("const_key") => TU::s("const_val"),
+                    String::from("item_key") => TU::s("item_val"),
+                    String::from("self_key") => TU::s("self_val"),
+                    String::from("overridden") => TU::s("ALBUM_01_self"),
                 ],
             ),
             (
-                path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac"),
+                Cow::Owned(path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac")),
                 btreemap![
-                    String::from("TRACK_01_item_key") => Value::String("TRACK_01_item_val".to_owned()),
-                    String::from("const_key") => Value::String("const_val".to_owned()),
-                    String::from("item_key") => Value::String("item_val".to_owned()),
-                    String::from("overridden") => Value::String("TRACK_01_item".to_owned()),
+                    String::from("TRACK_01_item_key") => TU::s("TRACK_01_item_val"),
+                    String::from("const_key") => TU::s("const_val"),
+                    String::from("item_key") => TU::s("item_val"),
+                    String::from("overridden") => TU::s("TRACK_01_item"),
                 ],
             ),
         ];
@@ -283,7 +275,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::process_item_file(item_path, SerializeFormat::Yaml, selection, sorter).unwrap();
+            let produced = MetaProcessor::process_item_file(item_path, SerializeFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
