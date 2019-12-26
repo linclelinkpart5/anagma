@@ -88,6 +88,12 @@ impl From<Sequence> for Value {
     }
 }
 
+impl From<Mapping> for Value {
+    fn from(m: Mapping) -> Self {
+        Self::Mapping(m)
+    }
+}
+
 impl From<Number> for Value {
     fn from(nl: Number) -> Value {
         match nl {
@@ -149,6 +155,17 @@ impl TryFrom<Value> for Sequence {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Sequence(s) => Ok(s),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<Value> for Mapping {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Mapping(m) => Ok(m),
             _ => Err(()),
         }
     }
