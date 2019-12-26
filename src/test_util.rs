@@ -5,7 +5,6 @@ use std::fs::File;
 use std::path::Path;
 use std::io::Write;
 use std::time::Duration;
-use std::collections::BTreeMap;
 
 use tempfile::Builder;
 use tempfile::TempDir;
@@ -15,6 +14,8 @@ use rand::seq::SliceRandom;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::target::Target;
 use crate::metadata::value::Value;
+use crate::metadata::value::Sequence;
+use crate::metadata::value::Mapping;
 use crate::metadata::block::Block;
 use crate::metadata::structure::MetaStructure;
 
@@ -345,7 +346,7 @@ impl TestUtil {
     }
 
     pub fn sample_decimal() -> Value {
-        Value::Decimal(Decimal::new(31415.into(), 4))
+        Value::Decimal(dec!(3.1415))
     }
 
     pub fn sample_boolean() -> Value {
@@ -356,7 +357,7 @@ impl TestUtil {
         Value::Null
     }
 
-    pub fn core_flat_sequence() -> Vec<Value> {
+    pub fn core_flat_sequence() -> Sequence {
         vec![
             Self::sample_string(),
             Self::sample_integer(),
@@ -366,7 +367,7 @@ impl TestUtil {
         ]
     }
 
-    pub fn core_flat_mapping() -> BTreeMap<String, Value> {
+    pub fn core_flat_mapping() -> Mapping {
         btreemap![
             String::from(Self::STRING_KEY) => Self::sample_string(),
             String::from(Self::INTEGER_KEY) => Self::sample_integer(),
@@ -376,7 +377,7 @@ impl TestUtil {
         ]
     }
 
-    pub fn core_nested_mapping() -> BTreeMap<String, Value> {
+    pub fn core_nested_mapping() -> Mapping {
         let mut map = Self::core_flat_mapping();
 
         map.insert(String::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
@@ -393,7 +394,7 @@ impl TestUtil {
         Value::Mapping(Self::core_flat_mapping())
     }
 
-    pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Vec<Value> {
+    pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Sequence {
         let mut nums = vec![];
 
         for i in 1..=int_max {

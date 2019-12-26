@@ -7,8 +7,8 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
-pub type ValueSequence = Vec<Value>;
-pub type ValueMapping = BTreeMap<String, Value>;
+pub type Sequence = Vec<Value>;
+pub type Mapping = BTreeMap<String, Value>;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
@@ -16,8 +16,8 @@ pub type ValueMapping = BTreeMap<String, Value>;
 pub enum Value {
     Null,
     String(String),
-    Sequence(ValueSequence),
-    Mapping(ValueMapping),
+    Sequence(Sequence),
+    Mapping(Mapping),
     Integer(i64),
     Boolean(bool),
     Decimal(Decimal),
@@ -82,8 +82,8 @@ impl From<Decimal> for Value {
     }
 }
 
-impl From<Vec<Value>> for Value {
-    fn from(s: Vec<Value>) -> Self {
+impl From<Sequence> for Value {
+    fn from(s: Sequence) -> Self {
         Self::Sequence(s)
     }
 }
@@ -143,7 +143,7 @@ impl<'k> TryFrom<&'k Value> for bool {
     }
 }
 
-impl TryFrom<Value> for Vec<Value> {
+impl TryFrom<Value> for Sequence {
     type Error = ();
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {

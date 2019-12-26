@@ -2,11 +2,11 @@
 
 use indexmap::IndexMap;
 
-use crate::metadata::value::ValueMapping;
+use crate::metadata::value::Mapping;
 
 /// Represents a chunk of metadata for one item.
 // NOTE: This alias is intentional, this is taken advantage of later downstream.
-pub type Block = ValueMapping;
+pub type Block = Mapping;
 
 /// Represents multiple chunks of metadata for an ordered collection of items.
 pub type BlockSequence = Vec<Block>;
