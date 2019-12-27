@@ -7,6 +7,8 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
+pub type Integer = i64;
+pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
 pub type Mapping = BTreeMap<String, Value>;
 
@@ -18,8 +20,8 @@ pub enum Value {
     String(String),
     Sequence(Sequence),
     Mapping(Mapping),
-    Integer(i64),
-    Boolean(bool),
+    Integer(Integer),
+    Boolean(Boolean),
     Decimal(Decimal),
 }
 
@@ -51,12 +53,6 @@ impl Value {
     }
 }
 
-impl From<String> for Value {
-    fn from(s: String) -> Self {
-        Self::String(s)
-    }
-}
-
 #[cfg(test)]
 impl From<&str> for Value {
     fn from(s: &str) -> Self {
@@ -64,15 +60,87 @@ impl From<&str> for Value {
     }
 }
 
-impl From<i64> for Value {
-    fn from(i: i64) -> Self {
+impl From<String> for Value {
+    fn from(s: String) -> Self {
+        Self::String(s)
+    }
+}
+
+impl TryFrom<Value> for String {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::String(s) => Ok(s),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k Value> for &'k str {
+    type Error = ();
+
+    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
+        match value {
+            &Value::String(ref s) => Ok(s),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<Integer> for Value {
+    fn from(i: Integer) -> Self {
         Self::Integer(i)
     }
 }
 
-impl From<bool> for Value {
-    fn from(b: bool) -> Self {
+impl TryFrom<Value> for Integer {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Integer(i) => Ok(i),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k Value> for Integer {
+    type Error = ();
+
+    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
+        match value {
+            &Value::Integer(i) => Ok(i),
+            _ => Err(()),
+        }
+    }
+}
+
+impl From<Boolean> for Value {
+    fn from(b: Boolean) -> Self {
         Self::Boolean(b)
+    }
+}
+
+impl TryFrom<Value> for Boolean {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Boolean(b) => Ok(b),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k Value> for Boolean {
+    type Error = ();
+
+    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
+        match value {
+            &Value::Boolean(b) => Ok(b),
+            _ => Err(()),
+        }
     }
 }
 
@@ -82,15 +150,59 @@ impl From<Decimal> for Value {
     }
 }
 
+impl TryFrom<Value> for Decimal {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Decimal(d) => Ok(d),
+            _ => Err(()),
+        }
+    }
+}
+
+impl<'k> TryFrom<&'k Value> for Decimal {
+    type Error = ();
+
+    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
+        match value {
+            &Value::Decimal(d) => Ok(d),
+            _ => Err(()),
+        }
+    }
+}
+
 impl From<Sequence> for Value {
     fn from(s: Sequence) -> Self {
         Self::Sequence(s)
     }
 }
 
+impl TryFrom<Value> for Sequence {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Sequence(s) => Ok(s),
+            _ => Err(()),
+        }
+    }
+}
+
 impl From<Mapping> for Value {
     fn from(m: Mapping) -> Self {
         Self::Mapping(m)
+    }
+}
+
+impl TryFrom<Value> for Mapping {
+    type Error = ();
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Mapping(m) => Ok(m),
+            _ => Err(()),
+        }
     }
 }
 
@@ -122,50 +234,6 @@ impl<'k> TryFrom<&'k Value> for Number {
         match value {
             &Value::Integer(i) => Ok(Self::Integer(i)),
             &Value::Decimal(d) => Ok(Self::Decimal(d)),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<Value> for bool {
-    type Error = ();
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        match value {
-            Value::Boolean(b) => Ok(b),
-            _ => Err(()),
-        }
-    }
-}
-
-impl<'k> TryFrom<&'k Value> for bool {
-    type Error = ();
-
-    fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
-        match value {
-            &Value::Boolean(b) => Ok(b),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<Value> for Sequence {
-    type Error = ();
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        match value {
-            Value::Sequence(s) => Ok(s),
-            _ => Err(()),
-        }
-    }
-}
-
-impl TryFrom<Value> for Mapping {
-    type Error = ();
-
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
-        match value {
-            Value::Mapping(m) => Ok(m),
             _ => Err(()),
         }
     }
