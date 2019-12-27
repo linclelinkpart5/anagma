@@ -260,9 +260,7 @@ impl<'k> TryFrom<&'k Value> for Number {
 
 #[cfg(test)]
 mod tests {
-    use super::Value;
-
-    use rust_decimal::Decimal;
+    use super::*;
 
     #[test]
     fn test_deserialize() {
@@ -271,8 +269,8 @@ mod tests {
             (r#""string""#, Value::String(String::from("string"))),
             ("27", Value::Integer(27)),
             ("-27", Value::Integer(-27)),
-            ("3.1415", Value::Decimal(Decimal::new(31415.into(), 4))),
-            ("-3.1415", Value::Decimal(-Decimal::new(31415.into(), 4))),
+            ("3.1415", Value::Decimal(dec!(3.1415))),
+            ("-3.1415", Value::Decimal(dec!(-3.1415))),
             ("true", Value::Boolean(true)),
             ("false", Value::Boolean(false)),
             (
@@ -306,8 +304,8 @@ mod tests {
             ("string", Value::String(String::from("string"))),
             ("27", Value::Integer(27)),
             ("-27", Value::Integer(-27)),
-            ("3.1415", Value::Decimal(Decimal::new(31415.into(), 4))),
-            ("-3.1415", Value::Decimal(-Decimal::new(31415.into(), 4))),
+            ("3.1415", Value::Decimal(dec!(3.1415))),
+            ("-3.1415", Value::Decimal(dec!(-3.1415))),
             ("true", Value::Boolean(true)),
             ("false", Value::Boolean(false)),
             (
