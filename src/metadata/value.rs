@@ -7,6 +7,25 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
+#[derive(Debug, Copy, Clone, PartialEq, Hash)]
+pub enum Error {
+    Convert(ValueKind),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::Convert(ref source) => write!(f, "cannot convert value of kind {} into target", source.as_ref()),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        None
+    }
+}
+
 pub type Integer = i64;
 pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
@@ -14,7 +33,7 @@ pub type Mapping = BTreeMap<String, Value>;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
-#[strum_discriminants(name(ValueKind))]
+#[strum_discriminants(name(ValueKind), derive(Hash, AsRefStr))]
 pub enum Value {
     Null,
     String(String),
@@ -67,23 +86,23 @@ impl From<String> for Value {
 }
 
 impl TryFrom<Value> for String {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::String(s) => Ok(s),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
 
 impl<'k> TryFrom<&'k Value> for &'k str {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::String(ref s) => Ok(s),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
@@ -95,23 +114,23 @@ impl From<Integer> for Value {
 }
 
 impl TryFrom<Value> for Integer {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Integer(i) => Ok(i),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
 
 impl<'k> TryFrom<&'k Value> for Integer {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Integer(i) => Ok(i),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
@@ -123,23 +142,23 @@ impl From<Boolean> for Value {
 }
 
 impl TryFrom<Value> for Boolean {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Boolean(b) => Ok(b),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
 
 impl<'k> TryFrom<&'k Value> for Boolean {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Boolean(b) => Ok(b),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
@@ -151,23 +170,23 @@ impl From<Decimal> for Value {
 }
 
 impl TryFrom<Value> for Decimal {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Decimal(d) => Ok(d),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
 
 impl<'k> TryFrom<&'k Value> for Decimal {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Decimal(d) => Ok(d),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
@@ -179,12 +198,12 @@ impl From<Sequence> for Value {
 }
 
 impl TryFrom<Value> for Sequence {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Sequence(s) => Ok(s),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
@@ -196,12 +215,12 @@ impl From<Mapping> for Value {
 }
 
 impl TryFrom<Value> for Mapping {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Mapping(m) => Ok(m),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
@@ -216,25 +235,25 @@ impl From<Number> for Value {
 }
 
 impl TryFrom<Value> for Number {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Integer(i) => Ok(Self::from(i)),
             Value::Decimal(d) => Ok(Self::from(d)),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
 
 impl<'k> TryFrom<&'k Value> for Number {
-    type Error = ();
+    type Error = Error;
 
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Integer(i) => Ok(Self::Integer(i)),
             &Value::Decimal(d) => Ok(Self::Decimal(d)),
-            _ => Err(()),
+            _ => Err(Error::Convert(value.into())),
         }
     }
 }
