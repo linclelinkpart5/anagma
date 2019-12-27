@@ -26,19 +26,19 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.display()),
-            // Error::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.display()),
-            Error::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.display()),
-            Error::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.display()),
-            Error::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
-            Error::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
+            Self::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.display()),
+            // Self::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.display()),
+            Self::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.display()),
+            Self::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.display()),
+            Self::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
+            Self::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
 
-            // Error::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.display()),
-            Error::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.display()),
-            Error::NonexistentMetaPath(ref ps) => write!(f, "meta path does not exist, tried: {:?}", ps),
-            Error::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.display()),
-            // Error::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
-            // Error::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
+            // Self::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.display()),
+            Self::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.display()),
+            Self::NonexistentMetaPath(ref ps) => write!(f, "meta path does not exist, tried: {:?}", ps),
+            Self::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.display()),
+            // Self::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
+            // Self::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
         }
     }
 }
@@ -46,10 +46,10 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::CannotReadItemDir(ref err) => Some(err),
-            Error::CannotReadItemDirEntry(ref err) => Some(err),
-            // Error::CannotReadMetaDir(ref err) => Some(err),
-            // Error::CannotReadMetaDirEntry(ref err) => Some(err),
+            Self::CannotReadItemDir(ref err) => Some(err),
+            Self::CannotReadItemDirEntry(ref err) => Some(err),
+            // Self::CannotReadMetaDir(ref err) => Some(err),
+            // Self::CannotReadMetaDirEntry(ref err) => Some(err),
             _ => None,
         }
     }
