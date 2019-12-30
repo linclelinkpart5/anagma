@@ -7,6 +7,7 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
+/// Errors that can occur when working with `Value`.
 #[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum Error {
     Convert(ValueKind),
@@ -15,7 +16,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::Convert(ref source) => write!(f, "cannot convert value of kind {} into target", source.as_ref()),
+            Self::Convert(ref source) => write!(f, "cannot convert value of kind {} into target type", source.as_ref()),
         }
     }
 }
@@ -31,6 +32,7 @@ pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
 pub type Mapping = BTreeMap<String, Value>;
 
+/// Represents the types of data that can be used as metadata.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
 #[strum_discriminants(name(ValueKind), derive(Hash, AsRefStr))]
@@ -45,6 +47,8 @@ pub enum Value {
 }
 
 impl Value {
+    /// Given a list of keys, looks up the subvalue at that key path of this value.
+    /// This only works if this value is a mapping.
     pub fn get_key_path<S: AsRef<str>>(&self, key_path: &[S]) -> Option<&Self> {
         let mut curr_val = self;
 
@@ -53,13 +57,8 @@ impl Value {
             match curr_val {
                 Self::Mapping(map) => {
                     // See if the current key in the key path is found in this mapping.
-                    match map.get(key.as_ref()) {
-                        // Unable to proceed on the key path, short circuit.
-                        None => return None,
-
-                        // The current key was found, set the new current value.
-                        Some(val) => { curr_val = val; }
-                    }
+                    // If it is, set it as the new current value.
+                    curr_val = map.get(key.as_ref())?;
                 },
 
                 // An attempt was made to get the key of a non-mapping, short circuit.
@@ -352,43 +351,43 @@ mod tests {
 
     #[test]
     fn test_get_key_path() {
-        let key_str_a = String::from("key_a");
-        let key_str_b = String::from("key_b");
-        let key_str_c = String::from("key_c");
-        let key_str_x = String::from("key_x");
+        let key_str_a = "key_a";
+        let key_str_b = "key_b";
+        let key_str_c = "key_c";
+        let key_str_x = "key_x";
 
         let val_nil = Value::Null;
-        let val_str_a = Value::String(String::from("val_a"));
-        let val_str_b = Value::String(String::from("val_b"));
-        let val_str_c = Value::String(String::from("val_c"));
-        let val_seq_a = Value::Sequence(vec![
+        let val_str_a = Value::from("val_a");
+        let val_str_b = Value::from("val_b");
+        let val_str_c = Value::from("val_c");
+        let val_seq_a = Value::from(vec![
             val_str_a.clone(), val_str_a.clone(), val_str_a.clone(),
         ]);
-        let val_seq_b = Value::Sequence(vec![
+        let val_seq_b = Value::from(vec![
             val_str_b.clone(), val_str_b.clone(), val_str_b.clone(),
         ]);
-        let val_seq_c = Value::Sequence(vec![
+        let val_seq_c = Value::from(vec![
             val_str_c.clone(), val_str_c.clone(), val_str_c.clone(),
         ]);
-        let val_map_a = Value::Mapping(btreemap![
-            key_str_a.clone() => val_str_a.clone(),
-            key_str_b.clone() => val_str_b.clone(),
-            key_str_c.clone() => val_str_c.clone(),
+        let val_map_a = Value::from(btreemap![
+            key_str_a.to_string() => val_str_a.clone(),
+            key_str_b.to_string() => val_str_b.clone(),
+            key_str_c.to_string() => val_str_c.clone(),
         ]);
-        let val_map_b = Value::Mapping(btreemap![
-            key_str_a.clone() => val_seq_a.clone(),
-            key_str_b.clone() => val_seq_b.clone(),
-            key_str_c.clone() => val_seq_c.clone(),
+        let val_map_b = Value::from(btreemap![
+            key_str_a.to_string() => val_seq_a.clone(),
+            key_str_b.to_string() => val_seq_b.clone(),
+            key_str_c.to_string() => val_seq_c.clone(),
         ]);
-        let val_map_c = Value::Mapping(btreemap![
-            key_str_a.clone() => val_nil.clone(),
-            key_str_b.clone() => val_nil.clone(),
-            key_str_c.clone() => val_nil.clone(),
+        let val_map_c = Value::from(btreemap![
+            key_str_a.to_string() => val_nil.clone(),
+            key_str_b.to_string() => val_nil.clone(),
+            key_str_c.to_string() => val_nil.clone(),
         ]);
-        let val_map_d = Value::Mapping(btreemap![
-            key_str_a.clone() => val_map_a.clone(),
-            key_str_b.clone() => val_map_b.clone(),
-            key_str_c.clone() => val_map_c.clone(),
+        let val_map_d = Value::from(btreemap![
+            key_str_a.to_string() => val_map_a.clone(),
+            key_str_b.to_string() => val_map_b.clone(),
+            key_str_c.to_string() => val_map_c.clone(),
         ]);
 
         let inputs_and_expected = vec![
@@ -400,32 +399,32 @@ mod tests {
             ((&val_map_a, vec![]), Some(&val_map_a)),
 
             // A non-empty key path returns no value on non-maps.
-            ((&val_nil, vec![key_str_a.clone()]), None),
-            ((&val_str_a, vec![key_str_a.clone()]), None),
-            ((&val_seq_a, vec![key_str_a.clone()]), None),
+            ((&val_nil, vec![key_str_a]), None),
+            ((&val_str_a, vec![key_str_a]), None),
+            ((&val_seq_a, vec![key_str_a]), None),
 
             // If the key is not found in a mapping, nothing is returned.
-            ((&val_map_a, vec![key_str_x.clone()]), None),
-            ((&val_map_d, vec![key_str_a.clone(), key_str_x.clone()]), None),
+            ((&val_map_a, vec![key_str_x]), None),
+            ((&val_map_d, vec![key_str_a, key_str_x]), None),
 
             // Positive test cases.
-            ((&val_map_a, vec![key_str_a.clone()]), Some(&val_str_a)),
-            ((&val_map_b, vec![key_str_a.clone()]), Some(&val_seq_a)),
-            ((&val_map_c, vec![key_str_a.clone()]), Some(&val_nil)),
-            ((&val_map_d, vec![key_str_a.clone()]), Some(&val_map_a)),
-            ((&val_map_a, vec![key_str_b.clone()]), Some(&val_str_b)),
-            ((&val_map_b, vec![key_str_b.clone()]), Some(&val_seq_b)),
-            ((&val_map_c, vec![key_str_b.clone()]), Some(&val_nil)),
-            ((&val_map_d, vec![key_str_b.clone()]), Some(&val_map_b)),
-            ((&val_map_a, vec![key_str_c.clone()]), Some(&val_str_c)),
-            ((&val_map_b, vec![key_str_c.clone()]), Some(&val_seq_c)),
-            ((&val_map_c, vec![key_str_c.clone()]), Some(&val_nil)),
-            ((&val_map_d, vec![key_str_c.clone()]), Some(&val_map_c)),
+            ((&val_map_a, vec![key_str_a]), Some(&val_str_a)),
+            ((&val_map_b, vec![key_str_a]), Some(&val_seq_a)),
+            ((&val_map_c, vec![key_str_a]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_a]), Some(&val_map_a)),
+            ((&val_map_a, vec![key_str_b]), Some(&val_str_b)),
+            ((&val_map_b, vec![key_str_b]), Some(&val_seq_b)),
+            ((&val_map_c, vec![key_str_b]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_b]), Some(&val_map_b)),
+            ((&val_map_a, vec![key_str_c]), Some(&val_str_c)),
+            ((&val_map_b, vec![key_str_c]), Some(&val_seq_c)),
+            ((&val_map_c, vec![key_str_c]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_c]), Some(&val_map_c)),
 
             // Nested positive test cases.
-            ((&val_map_d, vec![key_str_a.clone(), key_str_a.clone()]), Some(&val_str_a)),
-            ((&val_map_d, vec![key_str_b.clone(), key_str_b.clone()]), Some(&val_seq_b)),
-            ((&val_map_d, vec![key_str_c.clone(), key_str_c.clone()]), Some(&val_nil)),
+            ((&val_map_d, vec![key_str_a, key_str_a]), Some(&val_str_a)),
+            ((&val_map_d, vec![key_str_b, key_str_b]), Some(&val_seq_b)),
+            ((&val_map_d, vec![key_str_c, key_str_c]), Some(&val_nil)),
 
         ];
 
