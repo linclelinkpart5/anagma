@@ -17,7 +17,7 @@ pub enum Error {
 
     // InvalidMetaDirPath(PathBuf),
     InvalidMetaFilePath(PathBuf),
-    NonexistentMetaPath(Vec<PathBuf>),
+    NonexistentMetaPath(PathBuf),
     NoMetaPathParent(PathBuf),
     // CannotReadMetaDir(IoError),
     // CannotReadMetaDirEntry(IoError),
@@ -97,41 +97,20 @@ impl Target {
             }
         };
 
-        // Start with the default extension of the meta format.
-        let exts =
-            std::iter::once(serialize_format.default_file_extension())
-            .chain(
-                serialize_format
-                .extra_file_extensions()
-                .into_iter()
-                .copied()
-            )
-        ;
+        // Create the target meta file name.
+        let target_fn = format!("{}.{}", self.default_file_name(), serialize_format.file_extension());
+        let meta_path = meta_path_parent_dir.join(target_fn);
 
-        let mut attempted_paths = vec![];
+        // LEARN: This is done to avoid calling `.clone()` unnecessarily.
+        match (meta_path.exists(), meta_path.is_file()) {
+            // Meta path does not exist.
+            (false, _) => Err(Error::NonexistentMetaPath(meta_path)),
 
-        for ext in exts {
-            // Create the target meta file name.
-            let target_fn = format!("{}.{}", self.default_file_name(), ext);
-            let meta_path = meta_path_parent_dir.join(target_fn);
+            // Found a directory with the name of the meta file, that would be a very strange case.
+            (_, false) => Err(Error::InvalidMetaFilePath(meta_path)),
 
-            // LEARN: This is done to avoid calling `.clone()` unnecessarily.
-            match (meta_path.exists(), meta_path.is_file()) {
-                // Only an error if all extensions do not match.
-                (false, _) => {
-                    attempted_paths.push(meta_path);
-                    continue
-                },
-
-                // Found a directory with the name of the meta file, that would be a very strange case.
-                (_, false) => return Err(Error::InvalidMetaFilePath(meta_path)),
-
-                (true, true) => return Ok(meta_path),
-            };
+            (true, true) => Ok(meta_path),
         }
-
-        // At this point, no valid meta paths were found.
-        Err(Error::NonexistentMetaPath(attempted_paths))
     }
 
     /// Provides the possible owned item paths of this target.
@@ -145,7 +124,7 @@ impl Target {
         let meta_path = meta_path.into();
 
         if !meta_path.exists() {
-            return Err(Error::NonexistentMetaPath(vec![meta_path.into()]))
+            return Err(Error::NonexistentMetaPath(meta_path.into()))
         }
 
         if !meta_path.is_file() {

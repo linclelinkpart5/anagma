@@ -26,8 +26,8 @@ impl Default for Config {
         let selection = Selection::default();
         let sorter = Sorter::default();
         let serialize_format = SerializeFormat::default();
-        let item_fn = format!("{}.{}", Target::Siblings.default_file_name(), serialize_format.default_file_extension());
-        let self_fn = format!("{}.{}", Target::Parent.default_file_name(), serialize_format.default_file_extension());
+        let item_fn = format!("{}.{}", Target::Siblings.default_file_name(), serialize_format.file_extension());
+        let self_fn = format!("{}.{}", Target::Parent.default_file_name(), serialize_format.file_extension());
 
         Config {
             selection,
