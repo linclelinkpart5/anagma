@@ -92,12 +92,8 @@ impl MetaProcessor {
         for meta_target in Target::iter() {
             let meta_path = match meta_target.get_meta_path(item_path.as_ref(), serialize_format) {
                 Err(e) => {
-                    match e {
-                        TargetError::NonexistentMetaPath(..) |
-                            TargetError::InvalidItemDirPath(..) |
-                            TargetError::NoItemPathParent(..) => { continue; },
-                        _ => { return Err(e).map_err(Error::CannotFindMetaPath)?; }
-                    }
+                    if e.is_fatal() { return Err(e).map_err(Error::CannotFindMetaPath); }
+                    else { continue; }
                 },
                 Ok(p) => p,
             };

@@ -2,6 +2,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::borrow::Cow;
 use std::io::Error as IoError;
+use std::io::ErrorKind as IoErrorKind;
 
 use crate::config::selection::Selection;
 use crate::config::serialize_format::SerializeFormat;
@@ -9,36 +10,28 @@ use crate::config::serialize_format::SerializeFormat;
 #[derive(Debug)]
 pub enum Error {
     InvalidItemDirPath(PathBuf),
-    // InvalidItemFilePath(PathBuf),
-    NonexistentItemPath(PathBuf),
+    CannotAccessItemPath(PathBuf, IoError),
     NoItemPathParent(PathBuf),
     CannotReadItemDir(IoError),
     CannotReadItemDirEntry(IoError),
 
-    // InvalidMetaDirPath(PathBuf),
     InvalidMetaFilePath(PathBuf),
-    NonexistentMetaPath(PathBuf),
+    CannotAccessMetaPath(PathBuf, IoError),
     NoMetaPathParent(PathBuf),
-    // CannotReadMetaDir(IoError),
-    // CannotReadMetaDirEntry(IoError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Self::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.display()),
-            // Self::InvalidItemFilePath(ref p) => write!(f, "invalid item file path: {}", p.display()),
-            Self::NonexistentItemPath(ref p) => write!(f, "item path does not exist: {}", p.display()),
+            Self::CannotAccessItemPath(ref p, ref err) => write!(f, r#"cannot access item path "{}", error: {}"#, p.display(), err),
             Self::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.display()),
             Self::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
             Self::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
 
-            // Self::InvalidMetaDirPath(ref p) => write!(f, "invalid meta directory path: {}", p.display()),
             Self::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.display()),
-            Self::NonexistentMetaPath(ref ps) => write!(f, "meta path does not exist, tried: {:?}", ps),
+            Self::CannotAccessMetaPath(ref p, ref err) => write!(f, r#"cannot access meta path "{}", error: {}"#, p.display(), err),
             Self::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.display()),
-            // Self::CannotReadMetaDir(ref err) => write!(f, "unable to read entries in meta directory: {}", err),
-            // Self::CannotReadMetaDirEntry(ref err) => write!(f, "unable to read meta directory entry: {}", err),
         }
     }
 }
@@ -46,11 +39,26 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
+            Self::CannotAccessItemPath(_, ref err) => Some(err),
+            Self::CannotAccessMetaPath(_, ref err) => Some(err),
             Self::CannotReadItemDir(ref err) => Some(err),
             Self::CannotReadItemDirEntry(ref err) => Some(err),
-            // Self::CannotReadMetaDir(ref err) => Some(err),
-            // Self::CannotReadMetaDirEntry(ref err) => Some(err),
             _ => None,
+        }
+    }
+}
+
+impl Error {
+    pub(crate) fn is_fatal(&self) -> bool {
+        match self {
+            Self::CannotAccessMetaPath(_, io_error) => {
+                match io_error.kind() {
+                    IoErrorKind::NotFound => false,
+                    _ => true,
+                }
+            },
+            Self::InvalidItemDirPath(..) | Self::NoItemPathParent(..) => false,
+            _ => true,
         }
     }
 }
@@ -77,13 +85,17 @@ impl Target {
     {
         let item_path = item_path.into();
 
-        if !item_path.exists() {
-            return Err(Error::NonexistentItemPath(item_path.into()))
-        }
+        // Get filesystem stat for item path.
+        // This step is always done, even if the file/dir status does not need to be checked,
+        // as it provides useful error information about permissions and non-existence.
+        let item_fs_stat = match std::fs::metadata(&item_path) {
+            Err(err) => return Err(Error::CannotAccessItemPath(item_path.into(), err)),
+            Ok(item_fs_stat) => item_fs_stat,
+        };
 
         let meta_path_parent_dir = match self {
             Self::Parent => {
-                if !item_path.as_ref().is_dir() {
+                if !item_fs_stat.is_dir() {
                     return Err(Error::InvalidItemDirPath(item_path.into()))
                 }
 
@@ -101,15 +113,21 @@ impl Target {
         let target_fn = format!("{}.{}", self.default_file_name(), serialize_format.file_extension());
         let meta_path = meta_path_parent_dir.join(target_fn);
 
-        // LEARN: This is done to avoid calling `.clone()` unnecessarily.
-        match (meta_path.exists(), meta_path.is_file()) {
-            // Meta path does not exist.
-            (false, _) => Err(Error::NonexistentMetaPath(meta_path)),
+        // Get filesystem stat for meta path.
+        // This step is always done, even if the file/dir status does not need to be checked,
+        // as it provides useful error information about permissions and non-existence.
+        let meta_fs_stat = match std::fs::metadata(&meta_path) {
+            Err(err) => return Err(Error::CannotAccessMetaPath(meta_path.into(), err)),
+            Ok(meta_fs_stat) => meta_fs_stat,
+        };
 
-            // Found a directory with the name of the meta file, that would be a very strange case.
-            (_, false) => Err(Error::InvalidMetaFilePath(meta_path)),
-
-            (true, true) => Ok(meta_path),
+        // Ensure that the meta path is indeed a file.
+        if !meta_fs_stat.is_file() {
+            // Found a directory with the meta file name, this would be an unusual error case.
+            Err(Error::InvalidMetaFilePath(meta_path))
+        }
+        else {
+            Ok(meta_path)
         }
     }
 
@@ -123,11 +141,12 @@ impl Target {
     {
         let meta_path = meta_path.into();
 
-        if !meta_path.exists() {
-            return Err(Error::NonexistentMetaPath(meta_path.into()))
-        }
+        let meta_fs_stat = match std::fs::metadata(&meta_path) {
+            Err(err) => return Err(Error::CannotAccessMetaPath(meta_path.into(), err)),
+            Ok(meta_fs_stat) => meta_fs_stat,
+        };
 
-        if !meta_path.is_file() {
+        if !meta_fs_stat.is_file() {
             return Err(Error::InvalidMetaFilePath(meta_path.into()))
         }
 
