@@ -65,6 +65,7 @@ impl Error {
 
 /// Represents the target location of the item files that a given metadata file
 /// provides metadata for, relative to the location of the metadata file itself.
+// WARNING: Do not modify the order of the variants in this enum!
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Clone, Copy, EnumIter)]
 pub enum Target {
     Siblings,

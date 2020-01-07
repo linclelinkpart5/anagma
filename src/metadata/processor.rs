@@ -12,6 +12,7 @@ use crate::metadata::target::Target;
 use crate::metadata::target::Error as TargetError;
 use crate::metadata::reader::Error as ReaderError;
 use crate::metadata::plexer::Plexer;
+use crate::metadata::plexer::Error as PlexerError;
 use crate::metadata::reader::MetaReader;
 
 #[derive(Debug)]
@@ -19,6 +20,7 @@ pub enum Error {
     CannotReadMetadata(ReaderError),
     CannotFindItemPaths(TargetError),
     CannotFindMetaPath(TargetError),
+    PlexerError(PlexerError),
     MissingMetadata,
 }
 
@@ -28,6 +30,7 @@ impl std::fmt::Display for Error {
             Self::CannotReadMetadata(ref err) => write!(f, "cannot read metadata file: {}", err),
             Self::CannotFindItemPaths(ref err) => write!(f, "cannot find item file paths: {}", err),
             Self::CannotFindMetaPath(ref err) => write!(f, "cannot find meta file path: {}", err),
+            Self::PlexerError(ref err) => write!(f, "plexing error: {}", err),
             Self::MissingMetadata => write!(f, "missing metadata"),
         }
     }
@@ -39,14 +42,18 @@ impl std::error::Error for Error {
             Self::CannotReadMetadata(ref err) => Some(err),
             Self::CannotFindItemPaths(ref err) => Some(err),
             Self::CannotFindMetaPath(ref err) => Some(err),
+            Self::PlexerError(ref err) => Some(err),
             Self::MissingMetadata => None,
         }
     }
 }
 
-pub struct MetaProcessor;
+pub struct Processor;
 
-impl MetaProcessor {
+impl Processor {
+    /// Processes the metadata contained in a target meta file.
+    /// This loads and plexes metadata, and produces a mapping of item file
+    /// paths to metadata blocks.
     pub fn process_meta_file<'a, P>(
         meta_path: P,
         meta_target: Target,
@@ -69,7 +76,7 @@ impl MetaProcessor {
             .map_err(Error::CannotFindItemPaths)?
         ;
 
-        let mut meta_plexed = hashmap![];
+        let mut meta_plexed = HashMap::new();
 
         let meta_plexer = Plexer::new(
             meta_structure,
@@ -78,18 +85,18 @@ impl MetaProcessor {
         );
 
         for meta_plex_res in meta_plexer {
-            match meta_plex_res {
-                Ok((item_path, mb)) => { meta_plexed.insert(item_path, mb); },
-                Err(e) => { warn!("{}", e); },
-            }
+            let (item_path, meta_block) = meta_plex_res.map_err(Error::PlexerError)?;
+            meta_plexed.insert(item_path, meta_block);
         }
 
         Ok(meta_plexed)
     }
 
-    // Processes metadata for an item file.
-    // This performs the necessary merging of all metadata from different targets for this one item file.
-    // Merging is "combine-last", so matching result keys for subsequent targets override earlier keys.
+    /// Processes metadata for a target item file.
+    /// This performs the necessary merging of all metadata across different
+    /// targets that may provide data for this item file. Merging is done in a
+    /// "combine-last" fashion; if a later target produces the same metadata key
+    /// as an earlier target, the later one wins and overwrites the earlier one.
     pub fn process_item_file<P>(
         item_path: P,
         serialize_format: SerializeFormat,
@@ -118,7 +125,9 @@ impl MetaProcessor {
                 sorter,
             )?;
 
-            // The remaining results can be thrown away.
+            // The results of processing a meta file will often return extra
+            // metadata for item files besides the targeted one. Extract the
+            // target item file's metadata, and drop the remaining results.
             if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
                 comp_mb.extend(meta_block)
             }
@@ -234,7 +243,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = MetaProcessor::process_meta_file(meta_path, meta_target, SerializeFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_meta_file(meta_path, meta_target, SerializeFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -283,7 +292,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = MetaProcessor::process_item_file(item_path, SerializeFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_item_file(item_path, SerializeFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }

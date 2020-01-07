@@ -9,7 +9,7 @@ use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
 use crate::metadata::block::Block;
-use crate::metadata::processor::MetaProcessor;
+use crate::metadata::processor::Processor;
 use crate::metadata::processor::Error as ProcessorError;
 use crate::util::file_walkers::FileWalker;
 use crate::util::file_walkers::Error as FileWalkerError;
@@ -135,7 +135,7 @@ impl<'p> Iterator for FileBlockStream<'p> {
                 match path_res {
                     Ok(path) => {
                         Some(
-                            MetaProcessor::process_item_file(
+                            Processor::process_item_file(
                                 &path,
                                 self.serialize_format,
                                 self.selection,
