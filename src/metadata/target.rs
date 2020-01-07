@@ -104,7 +104,7 @@ impl Target {
             Self::Siblings => {
                 match item_path.as_ref().parent() {
                     Some(item_path_parent) => item_path_parent,
-                    None => Err(Error::NoItemPathParent(item_path.into()))?,
+                    None => return Err(Error::NoItemPathParent(item_path.into())),
                 }
             }
         };
@@ -131,10 +131,10 @@ impl Target {
         }
     }
 
-    /// Provides the possible owned item paths of this target.
-    /// This is a listing of the file paths that this meta target could/should provide metadata for.
-    /// Note that this does NOT parse meta files, it only uses file system locations and presence.
-    /// Also, no filtering or sorting of the returned item paths is performed.
+    /// Provides a listing of the item file paths that this meta target
+    /// could/should provide metadata for. Note that this does NOT parse meta
+    /// files, it only uses file system locations and presence. In addition, no
+    /// filtering or sorting of the returned item paths is performed.
     pub fn get_item_paths<'a, P>(&'a self, meta_path: P) -> Result<Vec<PathBuf>, Error>
     where
         P: Into<Cow<'a, Path>>,
@@ -192,6 +192,7 @@ impl Target {
         Ok(item_paths)
     }
 
+    /// Returns the expected filename stub for a given target.
     pub fn default_file_name(&self) -> &'static str {
         match self {
             Self::Parent => "self",
