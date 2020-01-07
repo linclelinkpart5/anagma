@@ -24,22 +24,22 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Error::CannotReadMetadata(ref err) => write!(f, "cannot read metadata file: {}", err),
-            Error::CannotFindItemPaths(ref err) => write!(f, "cannot find item file paths: {}", err),
-            Error::CannotFindMetaPath(ref err) => write!(f, "cannot find meta file path: {}", err),
-            Error::MissingMetadata => write!(f, "missing metadata"),
+        match self {
+            Self::CannotReadMetadata(ref err) => write!(f, "cannot read metadata file: {}", err),
+            Self::CannotFindItemPaths(ref err) => write!(f, "cannot find item file paths: {}", err),
+            Self::CannotFindMetaPath(ref err) => write!(f, "cannot find meta file path: {}", err),
+            Self::MissingMetadata => write!(f, "missing metadata"),
         }
     }
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Error::CannotReadMetadata(ref err) => Some(err),
-            Error::CannotFindItemPaths(ref err) => Some(err),
-            Error::CannotFindMetaPath(ref err) => Some(err),
-            Error::MissingMetadata => None,
+        match self {
+            Self::CannotReadMetadata(ref err) => Some(err),
+            Self::CannotFindItemPaths(ref err) => Some(err),
+            Self::CannotFindMetaPath(ref err) => Some(err),
+            Self::MissingMetadata => None,
         }
     }
 }
@@ -57,13 +57,25 @@ impl MetaProcessor {
     where
         P: AsRef<Path>,
     {
-        let meta_structure = serialize_format.from_file(&meta_path, meta_target).map_err(Error::CannotReadMetadata)?;
+        let meta_structure =
+            serialize_format
+            .from_file(&meta_path, meta_target)
+            .map_err(Error::CannotReadMetadata)?
+        ;
 
-        let selected_item_paths = meta_target.get_selected_item_paths(meta_path.as_ref(), selection).map_err(Error::CannotFindItemPaths)?;
+        let selected_item_paths =
+            meta_target
+            .selected_item_paths(meta_path.as_ref(), selection)
+            .map_err(Error::CannotFindItemPaths)?
+        ;
 
         let mut meta_plexed = hashmap![];
 
-        let meta_plexer = Plexer::new(meta_structure, selected_item_paths.into_iter(), sorter);
+        let meta_plexer = Plexer::new(
+            meta_structure,
+            selected_item_paths.into_iter(),
+            sorter,
+        );
 
         for meta_plex_res in meta_plexer {
             match meta_plex_res {
@@ -90,7 +102,7 @@ impl MetaProcessor {
         let mut comp_mb = Block::new();
 
         for meta_target in Target::iter() {
-            let meta_path = match meta_target.get_meta_path(item_path.as_ref(), serialize_format) {
+            let meta_path = match meta_target.meta_path(item_path.as_ref(), serialize_format) {
                 Err(e) => {
                     if e.is_fatal() { return Err(e).map_err(Error::CannotFindMetaPath); }
                     else { continue; }

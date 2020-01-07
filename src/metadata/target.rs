@@ -22,7 +22,7 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
+        match self {
             Self::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.display()),
             Self::CannotAccessItemPath(ref p, ref err) => write!(f, r#"cannot access item path "{}", error: {}"#, p.display(), err),
             Self::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.display()),
@@ -38,7 +38,7 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
+        match self {
             Self::CannotAccessItemPath(_, ref err) => Some(err),
             Self::CannotAccessMetaPath(_, ref err) => Some(err),
             Self::CannotReadItemDir(ref err) => Some(err),
@@ -75,7 +75,7 @@ impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
-    pub fn get_meta_path<'a, P>(
+    pub fn meta_path<'a, P>(
         &'a self,
         item_path: P,
         serialize_format: SerializeFormat,
@@ -135,7 +135,7 @@ impl Target {
     /// could/should provide metadata for. Note that this does NOT parse meta
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
-    pub fn get_item_paths<'a, P>(&'a self, meta_path: P) -> Result<Vec<PathBuf>, Error>
+    pub fn item_paths<'a, P>(&'a self, meta_path: P) -> Result<Vec<PathBuf>, Error>
     where
         P: Into<Cow<'a, Path>>,
     {
@@ -177,7 +177,7 @@ impl Target {
     }
 
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
-    pub fn get_selected_item_paths<'a, P>(
+    pub fn selected_item_paths<'a, P>(
         &'a self,
         meta_path: P,
         selection: &'a Selection,
@@ -185,7 +185,7 @@ impl Target {
     where
         P: Into<Cow<'a, Path>>,
     {
-        let mut item_paths = self.get_item_paths(meta_path)?;
+        let mut item_paths = self.item_paths(meta_path)?;
 
         item_paths.retain(|p| selection.is_selected(p));
 

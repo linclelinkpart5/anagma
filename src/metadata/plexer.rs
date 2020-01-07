@@ -18,9 +18,9 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Error::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
-            Error::UnusedBlock(_, ref opt_tag) => {
+        match self {
+            Self::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
+            Self::UnusedBlock(_, ref opt_tag) => {
                 let tag_desc = match opt_tag {
                     Some(tag) => format!(", with tag: {}", tag),
                     None => String::from(""),
@@ -28,7 +28,7 @@ impl std::fmt::Display for Error {
 
                 write!(f, "meta block was unused in plexing{}", tag_desc)
             },
-            Error::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.display()),
+            Self::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.display()),
         }
     }
 }
@@ -36,9 +36,9 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::UnusedItemPath(..) => None,
-            Error::UnusedBlock(..) => None,
-            Error::NamelessItemPath(..) => None,
+            Self::UnusedItemPath(..) => None,
+            Self::UnusedBlock(..) => None,
+            Self::NamelessItemPath(..) => None,
         }
     }
 }
@@ -127,6 +127,7 @@ where
         }
     }
 }
+
 impl<'a, I, P> FusedIterator for Plexer<'a, I, P>
 where
     I: Iterator<Item = P>,
