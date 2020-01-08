@@ -117,7 +117,7 @@ impl Selection {
         inc.is_match(&path) && !exc.is_match(&path)
     }
 
-    /// Returns true if the path pattern matches according to the file matcher.
+    /// Returns true if the path matches according to the file matcher.
     /// In order to be a pattern match, the path must match the include filter,
     /// and must NOT match the exclude filter.
     /// Note that this method assumes the path is a file, and uses only the
@@ -126,7 +126,7 @@ impl Selection {
         self.is_pattern_match(path, FileOrDir::File)
     }
 
-    /// Returns true if the path pattern matches according to the directory matcher.
+    /// Returns true if the path matches according to the directory matcher.
     /// In order to be a pattern match, the path must match the include filter,
     /// and must NOT match the exclude filter.
     /// Note that this method assumes the path is a directory, and uses only the
@@ -138,6 +138,7 @@ impl Selection {
     /// Returns true if a path is selected.
     /// This accesses the filesystem to tell if the path is a file or directory.
     pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
+        // TODO: Change this into a call to `std::fs::metadata` and handle the error.
         match path.as_ref().is_dir() {
             false => self.is_file_pattern_match(path),
             true => self.is_dir_pattern_match(path),

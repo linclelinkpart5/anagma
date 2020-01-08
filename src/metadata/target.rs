@@ -95,6 +95,12 @@ impl Target {
         };
 
         let meta_path_parent_dir = match self {
+            Self::Siblings => {
+                match item_path.as_ref().parent() {
+                    Some(item_path_parent) => item_path_parent,
+                    None => return Err(Error::NoItemPathParent(item_path.into())),
+                }
+            },
             Self::Parent => {
                 if !item_fs_stat.is_dir() {
                     return Err(Error::InvalidItemDirPath(item_path.into()))
@@ -102,12 +108,6 @@ impl Target {
 
                 item_path.as_ref()
             },
-            Self::Siblings => {
-                match item_path.as_ref().parent() {
-                    Some(item_path_parent) => item_path_parent,
-                    None => return Err(Error::NoItemPathParent(item_path.into())),
-                }
-            }
         };
 
         // Create the target meta file name.
@@ -154,22 +154,27 @@ impl Target {
         // Get the parent directory of the meta file.
         // NOTE: This is only outside the pattern match because all branches currently use it.
         if let Some(meta_parent_dir_path) = meta_path.parent() {
-            let mut po_item_paths = vec![];
+            let mut item_paths = vec![];
 
             match self {
-                Self::Parent => {
-                    // This is just the passed-in path, just push it on unchanged.
-                    po_item_paths.push(meta_parent_dir_path.into());
-                },
                 Self::Siblings => {
                     // Return all children of this directory.
-                    for entry in std::fs::read_dir(&meta_parent_dir_path).map_err(Error::CannotReadItemDir)? {
-                        po_item_paths.push(entry.map_err(Error::CannotReadItemDirEntry)?.path());
+                    let read_dir =
+                        std::fs::read_dir(&meta_parent_dir_path)
+                        .map_err(Error::CannotReadItemDir)?
+                    ;
+
+                    for entry in read_dir {
+                        item_paths.push(entry.map_err(Error::CannotReadItemDirEntry)?.path());
                     }
+                },
+                Self::Parent => {
+                    // This is just the passed-in path, just push it on unchanged.
+                    item_paths.push(meta_parent_dir_path.into());
                 },
             }
 
-            Ok(po_item_paths)
+            Ok(item_paths)
         }
         else {
             // This should never happen!
@@ -196,15 +201,15 @@ impl Target {
     /// Returns the expected filename stub for a given target.
     pub fn default_file_name(&self) -> &'static str {
         match self {
-            Self::Parent => "self",
             Self::Siblings => "item",
+            Self::Parent => "self",
         }
     }
 }
 
 // enum ItemPaths<'a> {
-//     Parent(Option<&'a Path>),
 //     Siblings(ReadDir),
+//     Parent(Option<&'a Path>),
 // }
 
 // impl<'a> Iterator for ItemPaths<'a> {
@@ -212,10 +217,10 @@ impl Target {
 
 //     fn next(&mut self) -> Option<Self::Item> {
 //         match self {
-//             Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
 //             Self::Siblings(rd) => rd.next().map(|dir_res| {
 //                 dir_res.map(|entry| Cow::Owned(entry.path()))
 //             }),
+//             Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
 //         }
 //     }
 // }
