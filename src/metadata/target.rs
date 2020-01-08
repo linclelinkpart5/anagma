@@ -118,7 +118,7 @@ impl Target {
         // This step is always done, even if the file/dir status does not need to be checked,
         // as it provides useful error information about permissions and non-existence.
         let meta_fs_stat = match std::fs::metadata(&meta_path) {
-            Err(err) => return Err(Error::CannotAccessMetaPath(meta_path.into(), err)),
+            Err(err) => return Err(Error::CannotAccessMetaPath(meta_path, err)),
             Ok(meta_fs_stat) => meta_fs_stat,
         };
 
