@@ -1,7 +1,9 @@
 use std::path::Path;
 use std::cmp::Ordering;
-use std::time::SystemTime;
 
+use crate::util::Util;
+
+/// Represents all criteria that can be used for sorting item files.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum SortBy {
@@ -10,40 +12,50 @@ pub enum SortBy {
 }
 
 impl SortBy {
-    pub fn path_sort_cmp<P: AsRef<Path>>(&self, abs_item_path_a: P, abs_item_path_b: P) -> Ordering {
+    /// Compares two absolute item file paths using this sorting criteria.
+    pub fn path_sort_cmp<P: AsRef<Path>>(
+        &self,
+        abs_item_path_a: P,
+        abs_item_path_b: P
+    ) -> Ordering
+    {
         let abs_item_path_a = abs_item_path_a.as_ref();
         let abs_item_path_b = abs_item_path_b.as_ref();
 
-        match *self {
-            SortBy::Name => abs_item_path_a.file_name().cmp(&abs_item_path_b.file_name()),
-            SortBy::ModTime => SortBy::get_mtime(abs_item_path_a).cmp(&SortBy::get_mtime(abs_item_path_b)),
+        match self {
+            Self::Name => {
+                let file_name_a = abs_item_path_a.file_name();
+                let file_name_b = abs_item_path_b.file_name();
+                file_name_a.cmp(&file_name_b)
+            },
+            Self::ModTime => {
+                let mtime_a = Util::get_mtime(abs_item_path_a);
+                let mtime_b = Util::get_mtime(abs_item_path_b);
+                mtime_a.cmp(&mtime_b)
+            },
         }
-    }
-
-    fn get_mtime<P: AsRef<Path>>(abs_path: P) -> Option<SystemTime> {
-        abs_path.as_ref().metadata().and_then(|m| m.modified()).ok()
     }
 }
 
 impl Default for SortBy {
     fn default() -> Self {
-        SortBy::Name
+        Self::Name
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     use std::fs::File;
-    use std::time::SystemTime;
+    use std::time::Duration;
 
     use tempfile::Builder;
 
-    use super::SortBy;
-
     #[test]
-    fn test_path_sort_cmp() {
+    fn path_sort_cmp() {
         // Create temp directory.
-        let temp = Builder::new().suffix("test_path_sort_cmp").tempdir().expect("unable to create temp directory");
+        let temp = Builder::new().tempdir().expect("cannot create temp dir");
         let tp = temp.path();
 
         let fps = vec![
@@ -55,9 +67,10 @@ mod tests {
         ];
 
         for fp in &fps {
-            // LEARN: Because we're iterating over a ref to a vector, the iter vars are also refs.
+            // LEARN: Because we're iterating over a ref to a vector, the iter
+            // vars are also refs.
             File::create(fp).expect(&format!(r#"unable to create file "{:?}""#, fp));
-            std::thread::sleep(std::time::Duration::from_millis(10));
+            std::thread::sleep(Duration::from_millis(10));
         }
 
         // Test sorting by mod time.
@@ -74,36 +87,11 @@ mod tests {
 
         for o_val in fps.iter() {
             for i_val in fps.iter() {
-                assert_eq!(o_val.file_name().cmp(&i_val.file_name()), sort_order.path_sort_cmp(o_val, i_val));
+                assert_eq!(
+                    o_val.file_name().cmp(&i_val.file_name()),
+                    sort_order.path_sort_cmp(o_val, i_val)
+                );
             }
         }
-    }
-
-    #[test]
-    // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
-    fn test_get_mtime() {
-        // Create temp directory.
-        let temp = Builder::new().suffix("test_get_mtime").tempdir().expect("unable to create temp directory");
-        let tp = temp.path();
-
-        let time_a = SystemTime::now();
-
-        std::thread::sleep(std::time::Duration::from_millis(10));
-
-        // Create a file to get the mtime of.
-        let path = tp.join("file");
-        File::create(&path).unwrap();
-
-        std::thread::sleep(std::time::Duration::from_millis(10));
-
-        let time_b = SystemTime::now();
-
-        let file_time = SortBy::get_mtime(&path).unwrap();
-
-        assert_eq!(time_a < file_time, true);
-        assert_eq!(file_time < time_b, true);
-
-        // Test getting time of nonexistent file.
-        assert_eq!(None, SortBy::get_mtime(tp.join("DOES_NOT_EXIST")));
     }
 }
