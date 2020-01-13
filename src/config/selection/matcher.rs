@@ -1,4 +1,5 @@
-//! Represents a method of determining whether a potential item path is to be included in metadata lookup.
+//! Represents a method of determining whether a potential item path is to be
+//! included in metadata lookup.
 
 use std::path::Path;
 use std::convert::TryFrom;
@@ -16,18 +17,18 @@ pub enum Error {
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Error::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
-            Error::BuildFailure(ref err) => write!(f, "cannot build matcher: {}", err),
+        match self {
+            Self::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
+            Self::BuildFailure(ref err) => write!(f, "cannot build matcher: {}", err),
         }
     }
 }
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Error::InvalidPattern(ref err) => Some(err),
-            Error::BuildFailure(ref err) => Some(err),
+        match self {
+            Self::InvalidPattern(ref err) => Some(err),
+            Self::BuildFailure(ref err) => Some(err),
         }
     }
 }
@@ -44,18 +45,19 @@ impl TryFrom<OneOrManyPatterns> for Matcher {
 
     fn try_from(oom: OneOrManyPatterns) -> Result<Self, Self::Error> {
         match oom {
-            OneOrManyPatterns::One(p) => Matcher::build(&[p]),
-            OneOrManyPatterns::Many(ps) => Matcher::build(&ps),
+            OneOrManyPatterns::One(p) => Self::build(&[p]),
+            OneOrManyPatterns::Many(ps) => Self::build(&ps),
         }
     }
 }
 
-/// A filter for file paths, used to determine if a path is to be considered a metadata-containing item.
+/// Filter for file paths that uses zero or more glob patterns to perform matching.
 #[derive(Debug, Deserialize)]
 #[serde(try_from = "OneOrManyPatterns")]
 pub struct Matcher(GlobSet);
 
 impl Matcher {
+    /// Attempts to build a matcher out of an iterable of string-likes.
     pub fn build<II, S>(pattern_strs: II) -> Result<Self, Error>
     where
         II: IntoIterator<Item = S>,
@@ -71,27 +73,31 @@ impl Matcher {
 
         let matcher = builder.build().map_err(Error::BuildFailure)?;
 
-        Ok(Matcher(matcher))
+        Ok(Self(matcher))
     }
 
+    /// Matches a path based on its file name. If the path does not have a file
+    /// name (e.g. '/' on Unix systems), returns `false`.
     pub fn is_match<P: AsRef<Path>>(&self, path: P) -> bool {
-        // LEARN: Matching on the file name explicitly is needed for patterns such as "self*".
+        // Matching on only file name is needed for patterns such as "self*".
         path.as_ref().file_name().map(|f| self.0.is_match(f)).unwrap_or(false)
     }
 
+    /// Returns a matcher that matches any path that has a file name.
     pub fn any() -> Self {
-        // NOTE: We assume that this is a universal pattern, and will not fail.
-        Matcher::build(&["*"]).unwrap()
+        // Assume that this is a universal pattern, and will not fail.
+        Self::build(&["*"]).unwrap()
     }
 
+    /// Returns a matcher that matches no paths.
     pub fn empty() -> Self {
-        Matcher(GlobSet::empty())
+        Self(GlobSet::empty())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Matcher;
+    use super::*;
 
     #[test]
     fn test_deserialization() {
@@ -153,6 +159,11 @@ mod tests {
         assert_eq!(matcher.is_match("path.c"), false);
         assert_eq!(matcher.is_match("path.ab"), false);
         assert_eq!(matcher.is_match("path"), false);
+        assert_eq!(matcher.is_match("extra/path.a"), true);
+        assert_eq!(matcher.is_match("extra/path.b"), true);
+        assert_eq!(matcher.is_match("extra/path.c"), false);
+        assert_eq!(matcher.is_match("/"), false);
+        assert_eq!(matcher.is_match(""), false);
 
         let matcher = Matcher::build(&["*.b"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), false);
@@ -160,6 +171,11 @@ mod tests {
         assert_eq!(matcher.is_match("path.c"), false);
         assert_eq!(matcher.is_match("path.ab"), false);
         assert_eq!(matcher.is_match("path"), false);
+        assert_eq!(matcher.is_match("extra/path.a"), false);
+        assert_eq!(matcher.is_match("extra/path.b"), true);
+        assert_eq!(matcher.is_match("extra/path.c"), false);
+        assert_eq!(matcher.is_match("/"), false);
+        assert_eq!(matcher.is_match(""), false);
 
         let matcher = Matcher::build(&["*.a", "*.c"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), true);
@@ -167,6 +183,11 @@ mod tests {
         assert_eq!(matcher.is_match("path.c"), true);
         assert_eq!(matcher.is_match("path.ab"), false);
         assert_eq!(matcher.is_match("path"), false);
+        assert_eq!(matcher.is_match("extra/path.a"), true);
+        assert_eq!(matcher.is_match("extra/path.b"), false);
+        assert_eq!(matcher.is_match("extra/path.c"), true);
+        assert_eq!(matcher.is_match("/"), false);
+        assert_eq!(matcher.is_match(""), false);
 
         let matcher = Matcher::build(&["*"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), true);
@@ -174,6 +195,23 @@ mod tests {
         assert_eq!(matcher.is_match("path.c"), true);
         assert_eq!(matcher.is_match("path.ab"), true);
         assert_eq!(matcher.is_match("path"), true);
+        assert_eq!(matcher.is_match("extra/path.a"), true);
+        assert_eq!(matcher.is_match("extra/path.b"), true);
+        assert_eq!(matcher.is_match("extra/path.c"), true);
+        assert_eq!(matcher.is_match("/"), false);
+        assert_eq!(matcher.is_match(""), false);
+
+        let matcher = Matcher::build(&[] as &[&str]).unwrap();
+        assert_eq!(matcher.is_match("path.a"), false);
+        assert_eq!(matcher.is_match("path.b"), false);
+        assert_eq!(matcher.is_match("path.c"), false);
+        assert_eq!(matcher.is_match("path.ab"), false);
+        assert_eq!(matcher.is_match("path"), false);
+        assert_eq!(matcher.is_match("extra/path.a"), false);
+        assert_eq!(matcher.is_match("extra/path.b"), false);
+        assert_eq!(matcher.is_match("extra/path.c"), false);
+        assert_eq!(matcher.is_match("/"), false);
+        assert_eq!(matcher.is_match(""), false);
     }
 
     #[test]
@@ -183,6 +221,9 @@ mod tests {
         assert_eq!(matcher.is_match("path.a"), true);
         assert_eq!(matcher.is_match("path.a.b.c"), true);
         assert_eq!(matcher.is_match("path.ab"), true);
+        assert_eq!(matcher.is_match("/extra/path.a"), true);
+        assert_eq!(matcher.is_match("extra/path.a"), true);
+        assert_eq!(matcher.is_match("/"), false);
         assert_eq!(matcher.is_match(""), false);
     }
 
@@ -193,6 +234,9 @@ mod tests {
         assert_eq!(matcher.is_match("path.a"), false);
         assert_eq!(matcher.is_match("path.a.b.c"), false);
         assert_eq!(matcher.is_match("path.ab"), false);
+        assert_eq!(matcher.is_match("/extra/path.a"), false);
+        assert_eq!(matcher.is_match("extra/path.a"), false);
+        assert_eq!(matcher.is_match("/"), false);
         assert_eq!(matcher.is_match(""), false);
     }
 }
