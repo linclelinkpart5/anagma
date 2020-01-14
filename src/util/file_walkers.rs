@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
+use std::path::Ancestors;
 
 use crate::config::selection::Selection;
 use crate::config::selection::Error as SelectionError;
@@ -69,11 +70,15 @@ impl<'p> From<ChildFileWalker<'p>> for FileWalker<'p> {
 }
 
 #[derive(Debug)]
-pub struct ParentFileWalker<'p>(Option<&'p Path>);
+pub struct ParentFileWalker<'p>(Ancestors<'p>);
 
 impl<'p> ParentFileWalker<'p> {
-    pub fn new(origin_item_path: &'p Path) -> Self {
-        Self(Some(origin_item_path))
+    // LEARN: Since `PathBuf` impls `AsRef<Path>`, a caller could pass ownership
+    //        of a `PathBuf` here, so `&'p P` instead of just `P` is required.
+    //        This forces the input to be a borrow, so storing the result of
+    //        `.as_ref()` (which borrows its input) is valid.
+    pub fn new<P: AsRef<Path>>(origin_item_path: &'p P) -> Self {
+        Self(origin_item_path.as_ref().ancestors())
     }
 }
 
@@ -81,16 +86,7 @@ impl<'p> Iterator for ParentFileWalker<'p> {
     type Item = Cow<'p, Path>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.0 {
-            Some(p) => {
-                let ret = Some(p);
-
-                self.0 = p.parent();
-
-                ret.map(Cow::Borrowed)
-            },
-            None => None,
-        }
+        self.0.next().map(Cow::Borrowed)
     }
 }
 
