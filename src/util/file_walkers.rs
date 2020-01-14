@@ -101,11 +101,14 @@ pub struct ChildFileWalker<'p> {
 }
 
 impl<'p> ChildFileWalker<'p> {
-    pub fn new(origin_item_path: &'p Path) -> Self {
+    pub fn new<P>(origin_item_path: P) -> Self
+    where
+        P: Into<Cow<'p, Path>>,
+    {
         let mut frontier = VecDeque::new();
 
         // Initialize the frontier with the origin item.
-        frontier.push_back(Ok(Cow::Borrowed(origin_item_path)));
+        frontier.push_back(Ok(origin_item_path.into()));
 
         Self {
             frontier,
@@ -186,7 +189,7 @@ mod tests {
         // Skip the first file of each leaf directory.
         let selection = Selection::from_patterns(&["*_*"], &["*_0"], &["*"], &[] as &[&str]).unwrap();
         let sorter = Sorter::default();
-        let mut walker = ChildFileWalker::new(&start_path);
+        let mut walker = ChildFileWalker::new(start_path);
 
         // We should get just the root value, since no delving has happened.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
