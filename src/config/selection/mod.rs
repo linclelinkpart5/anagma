@@ -1,12 +1,16 @@
-pub mod matcher;
+//! Represents a method of determining whether a potential item path is to be
+//! included in metadata lookup.
+
+mod matcher;
 
 use std::path::Path;
 use std::path::PathBuf;
 
+pub use self::matcher::Matcher;
+pub use self::matcher::Error as MatcherError;
+
 use crate::strum::IntoEnumIterator;
 
-use crate::config::selection::matcher::Matcher;
-use crate::config::selection::matcher::Error as MatcherError;
 use crate::config::sorter::Sorter;
 
 #[derive(Debug)]

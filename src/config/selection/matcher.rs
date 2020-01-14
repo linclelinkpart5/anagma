@@ -1,6 +1,3 @@
-//! Represents a method of determining whether a potential item path is to be
-//! included in metadata lookup.
-
 use std::path::Path;
 use std::convert::TryFrom;
 
