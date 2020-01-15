@@ -69,10 +69,10 @@ impl SerializeFormat {
     }
 
     pub fn from_str<S: AsRef<str>>(&self, s: S, mt: Target) -> Result<MetaStructure, Error> {
-        Ok(match self {
-            SerializeFormat::Yaml => yaml::read_str(s, mt)?,
-            SerializeFormat::Json => json::read_str(s, mt)?,
-        })
+        match self {
+            Self::Yaml => yaml::read_str(s, mt),
+            Self::Json => json::read_str(s, mt),
+        }
     }
 
     pub fn from_file<P: AsRef<Path>>(&self, p: P, mt: Target) -> Result<MetaStructure, Error> {
