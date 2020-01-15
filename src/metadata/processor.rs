@@ -7,13 +7,12 @@ use crate::strum::IntoEnumIterator;
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::serialize_format::SerializeFormat;
+use crate::config::serialize_format::Error as ReaderError;
 use crate::metadata::block::Block;
 use crate::metadata::target::Target;
 use crate::metadata::target::Error as TargetError;
-use crate::metadata::reader::Error as ReaderError;
 use crate::metadata::plexer::Plexer;
 use crate::metadata::plexer::Error as PlexerError;
-use crate::metadata::reader::MetaReader;
 
 #[derive(Debug)]
 pub enum Error {

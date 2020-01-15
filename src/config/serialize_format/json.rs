@@ -1,6 +1,7 @@
+use super::Error;
+
 use crate::metadata::structure::MetaStructure;
 use crate::metadata::structure::MetaStructureRepr;
-use crate::metadata::reader::Error;
 use crate::metadata::target::Target;
 
 pub(crate) fn read_str<S: AsRef<str>>(s: S, mt: Target) -> Result<MetaStructure, Error> {
