@@ -1,4 +1,4 @@
-//! Types for modeling and representing item metadata.
+//! Types for modeling and representing item metadata values.
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
@@ -7,7 +7,6 @@ use rust_decimal::Decimal;
 
 use crate::util::Number;
 
-/// Errors that can occur when working with `Value`.
 #[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum Error {
     Convert(ValueKind),
@@ -16,7 +15,8 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::Convert(ref source) => write!(f, "cannot convert value of kind {} into target type", source.as_ref()),
+            Self::Convert(ref source) =>
+                write!(f, "cannot convert value of kind {} into target type", source.as_ref()),
         }
     }
 }
@@ -32,7 +32,7 @@ pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
 pub type Mapping = BTreeMap<String, Value>;
 
-/// Represents the types of data that can be used as metadata.
+/// Represents the types of data that can be used as metadata values.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
 #[strum_discriminants(name(ValueKind), derive(Hash, AsRefStr))]
@@ -262,7 +262,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_deserialize() {
+    fn deserialize() {
         let inputs_and_expected = vec![
             ("null", Value::Null),
             (r#""string""#, Value::String(String::from("string"))),
@@ -350,7 +350,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_key_path() {
+    fn get_key_path() {
         let key_str_a = "key_a";
         let key_str_b = "key_b";
         let key_str_c = "key_c";
