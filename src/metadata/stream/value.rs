@@ -139,7 +139,7 @@ mod tests {
     use crate::metadata::value::Value;
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
-    use crate::config::serialize_format::SerializeFormat;
+    use crate::config::meta_format::MetaFormat;
     use crate::util::file_walkers::FileWalker;
     use crate::util::file_walkers::ParentFileWalker;
     use crate::util::file_walkers::ChildFileWalker;
@@ -157,7 +157,7 @@ mod tests {
 
         let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
-            SerializeFormat::Json,
+            MetaFormat::Json,
             &selection,
             Sorter::default(),
         ));
@@ -191,7 +191,7 @@ mod tests {
 
         let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
-            SerializeFormat::Json,
+            MetaFormat::Json,
             &selection,
             Sorter::default(),
         ));
@@ -215,7 +215,7 @@ mod tests {
 
         let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
-            SerializeFormat::Json,
+            MetaFormat::Json,
             &selection,
             Sorter::default(),
         ));
@@ -254,7 +254,7 @@ mod tests {
 
         let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
-            SerializeFormat::Json,
+            MetaFormat::Json,
             &selection,
             Sorter::default(),
         ));
@@ -276,7 +276,7 @@ mod tests {
 
         let block_stream = BlockStream::File(FileBlockStream::new(
             file_walker,
-            SerializeFormat::Json,
+            MetaFormat::Json,
             &selection,
             Sorter::default(),
         ));

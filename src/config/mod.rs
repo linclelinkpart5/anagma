@@ -1,10 +1,10 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
-pub mod serialize_format;
+pub mod meta_format;
 pub mod selection;
 pub mod sorter;
 
-use self::serialize_format::SerializeFormat;
+use self::meta_format::MetaFormat;
 use self::selection::Selection;
 use self::sorter::Sorter;
 
@@ -17,7 +17,7 @@ pub struct Config {
     #[serde(flatten)] pub sorter: Sorter,
     pub item_fn: String,
     pub self_fn: String,
-    pub serialize_format: SerializeFormat,
+    pub meta_format: MetaFormat,
 }
 
 impl Default for Config {
@@ -26,16 +26,16 @@ impl Default for Config {
         //       preserving defaulting behavior?
         let selection = Selection::default();
         let sorter = Sorter::default();
-        let serialize_format = SerializeFormat::default();
+        let meta_format = MetaFormat::default();
         let item_fn = format!(
             "{}.{}",
             Target::Siblings.default_file_name(),
-            serialize_format.file_extension(),
+            meta_format.file_extension(),
         );
         let self_fn = format!(
             "{}.{}",
             Target::Parent.default_file_name(),
-            serialize_format.file_extension(),
+            meta_format.file_extension(),
         );
 
         Self {
@@ -43,7 +43,7 @@ impl Default for Config {
             sorter,
             item_fn,
             self_fn,
-            serialize_format,
+            meta_format,
         }
     }
 }
@@ -73,7 +73,7 @@ mod tests {
         assert_eq!(config.sorter.sort_by, SortBy::Name);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
 
         let text_config = r#"
             include_files:
@@ -90,7 +90,7 @@ mod tests {
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
 
         let text_config = r#"
             include_files: '*'
@@ -105,14 +105,14 @@ mod tests {
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
         assert_eq!(config.item_fn, "item.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
 
         let text_config = r#"
             include_files: '*'
             exclude_files: '*.mp3'
             sort_by: name
             item_fn: item_meta.yml
-            serialize_format: yaml
+            meta_format: yaml
         "#;
 
         let config: Config = serde_yaml::from_str(&text_config).unwrap();
@@ -123,6 +123,6 @@ mod tests {
         assert_eq!(config.sorter.sort_by, SortBy::Name);
         assert_eq!(config.item_fn, "item_meta.yml");
         assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.serialize_format, SerializeFormat::Yaml);
+        assert_eq!(config.meta_format, MetaFormat::Yaml);
     }
 }

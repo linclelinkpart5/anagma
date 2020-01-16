@@ -6,8 +6,8 @@ use crate::strum::IntoEnumIterator;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-use crate::config::serialize_format::SerializeFormat;
-use crate::config::serialize_format::Error as ReaderError;
+use crate::config::meta_format::MetaFormat;
+use crate::config::meta_format::Error as ReaderError;
 use crate::metadata::block::Block;
 use crate::metadata::target::Target;
 use crate::metadata::target::Error as TargetError;
@@ -56,7 +56,7 @@ impl Processor {
     pub fn process_meta_file<'a, P>(
         meta_path: P,
         meta_target: Target,
-        serialize_format: SerializeFormat,
+        meta_format: MetaFormat,
         selection: &Selection,
         sorter: Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
@@ -64,7 +64,7 @@ impl Processor {
         P: AsRef<Path>,
     {
         let meta_structure =
-            serialize_format
+            meta_format
             .from_file(&meta_path, meta_target)
             .map_err(Error::CannotReadMetadata)?
         ;
@@ -98,7 +98,7 @@ impl Processor {
     /// as an earlier target, the later one wins and overwrites the earlier one.
     pub fn process_item_file<P>(
         item_path: P,
-        serialize_format: SerializeFormat,
+        meta_format: MetaFormat,
         selection: &Selection,
         sorter: Sorter,
     ) -> Result<Block, Error>
@@ -108,7 +108,7 @@ impl Processor {
         let mut comp_mb = Block::new();
 
         for meta_target in Target::iter() {
-            let meta_path = match meta_target.meta_path(item_path.as_ref(), serialize_format) {
+            let meta_path = match meta_target.meta_path(item_path.as_ref(), meta_format) {
                 Err(e) => {
                     if e.is_fatal() { return Err(e).map_err(Error::CannotFindMetaPath); }
                     else { continue; }
@@ -119,7 +119,7 @@ impl Processor {
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
                 meta_target,
-                serialize_format,
+                meta_format,
                 selection,
                 sorter,
             )?;
@@ -242,7 +242,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = Processor::process_meta_file(meta_path, meta_target, SerializeFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_meta_file(meta_path, meta_target, MetaFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -291,7 +291,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = Processor::process_item_file(item_path, SerializeFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_item_file(item_path, MetaFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }

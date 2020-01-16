@@ -44,7 +44,7 @@ impl std::error::Error for Error {
 //     pub fn get_metadata_with_config<P: AsRef<Path>>(item_path: P, config: &Config) -> Result<Block, Error> {
 //         let mb = Processor::process_item_file(
 //             item_path,
-//             config.serialize_format,
+//             config.meta_format,
 //             &config.selection,
 //             config.sort_order,
 //         ).map_err(Error::CannotProcessMetadata)?;

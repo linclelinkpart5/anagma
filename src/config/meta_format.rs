@@ -45,18 +45,18 @@ impl std::error::Error for Error {
 /// Represents all the different metadata formats that are supported.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
-pub enum SerializeFormat {
+pub enum MetaFormat {
     Yaml,
     Json,
 }
 
-impl Default for SerializeFormat {
+impl Default for MetaFormat {
     fn default() -> Self {
         Self::Yaml
     }
 }
 
-impl SerializeFormat {
+impl MetaFormat {
     /// Returns the expected file name extension for files in this format.
     // TODO: When `match` is allowed in `const fn`s, make this `const fn`.
     pub fn file_extension(&self) -> &'static str {
@@ -126,7 +126,7 @@ mod tests {
             key_c: val_c
             key_d: val_d
         "#;
-        assert_matches!(SerializeFormat::from_yaml_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Parent), Ok(MetaStructure::One(_)));
 
         let input = r#"
             key_a: val_a
@@ -139,7 +139,7 @@ mod tests {
                 -   val_a
                 -   val_b
         "#;
-        assert_matches!(SerializeFormat::from_yaml_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Parent), Ok(MetaStructure::One(_)));
 
         let input = r#"
             -   key_1_a: val_1_a
@@ -147,7 +147,7 @@ mod tests {
             -   key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert_matches!(SerializeFormat::from_yaml_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
 
         let input = r#"
             item_1:
@@ -157,7 +157,7 @@ mod tests {
                 key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert_matches!(SerializeFormat::from_yaml_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
             "key_d": "val_d"
         }
         "#;
-        assert_matches!(SerializeFormat::from_json_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Parent), Ok(MetaStructure::One(_)));
 
         let input = r#"
         {
@@ -193,7 +193,7 @@ mod tests {
             ]
         }
         "#;
-        assert_matches!(SerializeFormat::from_json_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Parent), Ok(MetaStructure::One(_)));
 
         let input = r#"
         [
@@ -207,7 +207,7 @@ mod tests {
             }
         ]
         "#;
-        assert_matches!(SerializeFormat::from_json_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
 
         let input = r#"
         {
@@ -221,6 +221,6 @@ mod tests {
             }
         }
         "#;
-        assert_matches!(SerializeFormat::from_json_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
     }
 }

@@ -5,7 +5,7 @@ use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
 
 use crate::config::selection::Selection;
-use crate::config::serialize_format::SerializeFormat;
+use crate::config::meta_format::MetaFormat;
 
 #[derive(Debug)]
 pub enum Error {
@@ -79,7 +79,7 @@ impl Target {
     pub fn meta_path<'a, P>(
         &'a self,
         item_path: P,
-        serialize_format: SerializeFormat,
+        meta_format: MetaFormat,
     ) -> Result<PathBuf, Error>
     where
         P: Into<Cow<'a, Path>>,
@@ -111,7 +111,7 @@ impl Target {
         };
 
         // Create the target meta file name.
-        let target_fn = format!("{}.{}", self.default_file_name(), serialize_format.file_extension());
+        let target_fn = format!("{}.{}", self.default_file_name(), meta_format.file_extension());
         let meta_path = meta_path_parent_dir.join(target_fn);
 
         // Get filesystem stat for meta path.

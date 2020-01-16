@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-use crate::config::serialize_format::SerializeFormat;
+use crate::config::meta_format::MetaFormat;
 use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
 use crate::metadata::processor::Error as ProcessorError;
@@ -102,7 +102,7 @@ impl<'p> Iterator for FixedBlockStream<'p> {
 #[derive(Debug)]
 pub struct FileBlockStream<'p> {
     file_walker: FileWalker<'p>,
-    serialize_format: SerializeFormat,
+    meta_format: MetaFormat,
     selection: &'p Selection,
     sorter: Sorter,
 }
@@ -110,7 +110,7 @@ pub struct FileBlockStream<'p> {
 impl<'p> FileBlockStream<'p> {
     pub fn new<FW>(
         file_walker: FW,
-        serialize_format: SerializeFormat,
+        meta_format: MetaFormat,
         selection: &'p Selection,
         sorter: Sorter,
     ) -> Self
@@ -119,7 +119,7 @@ impl<'p> FileBlockStream<'p> {
     {
         FileBlockStream {
             file_walker: file_walker.into(),
-            serialize_format,
+            meta_format,
             selection,
             sorter,
         }
@@ -137,7 +137,7 @@ impl<'p> Iterator for FileBlockStream<'p> {
                         Some(
                             Processor::process_item_file(
                                 &path,
-                                self.serialize_format,
+                                self.meta_format,
                                 self.selection,
                                 self.sorter,
                             )
@@ -172,7 +172,7 @@ mod tests {
     use crate::metadata::value::Value;
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
-    use crate::config::serialize_format::SerializeFormat;
+    use crate::config::meta_format::MetaFormat;
     use crate::util::file_walkers::FileWalker;
     use crate::util::file_walkers::ParentFileWalker;
     use crate::util::file_walkers::ChildFileWalker;
@@ -214,7 +214,7 @@ mod tests {
 
         let mut stream = FileBlockStream {
             file_walker: FileWalker::Parent(ParentFileWalker::new(&test_path)),
-            serialize_format: SerializeFormat::Json,
+            meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sorter: Sorter::default(),
         };
@@ -228,7 +228,7 @@ mod tests {
 
         let mut stream = FileBlockStream {
             file_walker: FileWalker::Child(ChildFileWalker::new(test_path)),
-            serialize_format: SerializeFormat::Json,
+            meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sorter: Sorter::default(),
         };
