@@ -23,8 +23,8 @@ pub(crate) enum MetaStructureRepr {
     Many(ManyMetaStructureRepr),
 }
 
-/// A data structure-level representation of all possible metadata types and their formats.
-/// This is intended to be independent of the text-level representation of the metadata.
+/// A data structure-level representation of all metadata structures.
+/// This is intended to be agnostic to the text-level format of the metadata.
 #[derive(Debug, Clone)]
 pub enum MetaStructure {
     One(Block),

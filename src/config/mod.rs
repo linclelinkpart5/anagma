@@ -8,6 +8,8 @@ use self::serialize_format::SerializeFormat;
 use self::selection::Selection;
 use self::sorter::Sorter;
 
+use crate::metadata::target::Target;
+
 #[derive(Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -20,16 +22,23 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        use crate::metadata::target::Target;
-
-        // TODO: Is there a way to intelligently populate this while also preserving defaulting behavior?
+        // TODO: Is there a way to intelligently populate this while also
+        //       preserving defaulting behavior?
         let selection = Selection::default();
         let sorter = Sorter::default();
         let serialize_format = SerializeFormat::default();
-        let item_fn = format!("{}.{}", Target::Siblings.default_file_name(), serialize_format.file_extension());
-        let self_fn = format!("{}.{}", Target::Parent.default_file_name(), serialize_format.file_extension());
+        let item_fn = format!(
+            "{}.{}",
+            Target::Siblings.default_file_name(),
+            serialize_format.file_extension(),
+        );
+        let self_fn = format!(
+            "{}.{}",
+            Target::Parent.default_file_name(),
+            serialize_format.file_extension(),
+        );
 
-        Config {
+        Self {
             selection,
             sorter,
             item_fn,
