@@ -97,7 +97,7 @@ impl Processor {
     /// "combine-last" fashion; if a later target produces the same metadata key
     /// as an earlier target, the later one wins and overwrites the earlier one.
     pub fn process_item_file<P>(
-        item_path: P,
+        item_path: &P,
         meta_format: MetaFormat,
         selection: &Selection,
         sorter: Sorter,
@@ -108,7 +108,7 @@ impl Processor {
         let mut comp_mb = Block::new();
 
         for meta_target in Target::iter() {
-            let meta_path = match meta_target.meta_path(item_path.as_ref(), meta_format) {
+            let meta_path = match meta_target.meta_path(item_path, meta_format) {
                 Err(e) => {
                     if e.is_fatal() { return Err(e).map_err(Error::CannotFindMetaPath); }
                     else { continue; }
@@ -291,7 +291,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = Processor::process_item_file(item_path, MetaFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_item_file(&item_path, MetaFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }

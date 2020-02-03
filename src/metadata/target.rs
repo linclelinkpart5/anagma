@@ -87,13 +87,13 @@ impl Target {
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
     pub fn meta_path<'a, P>(
         &'a self,
-        item_path: P,
+        item_path: &'a P,
         meta_format: MetaFormat,
     ) -> Result<PathBuf, Error>
     where
-        P: Into<Cow<'a, Path>>,
+        P: AsRef<Path>,
     {
-        let item_path = item_path.into();
+        let item_path = item_path.as_ref();
 
         // Get filesystem stat for item path.
         // This step is always done, even if the file/dir status does not need to be checked,
@@ -105,7 +105,7 @@ impl Target {
 
         let meta_path_parent_dir = match self {
             Self::Siblings => {
-                match item_path.as_ref().parent() {
+                match item_path.parent() {
                     Some(item_path_parent) => item_path_parent,
                     None => return Err(Error::NoItemPathParent(item_path.into())),
                 }
