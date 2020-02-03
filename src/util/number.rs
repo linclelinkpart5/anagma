@@ -143,7 +143,6 @@ impl Rem for Number {
 impl Neg for Number {
     type Output = Number;
 
-    // TODO: See what can be done about +/-0.0.
     fn neg(self) -> Self::Output {
         match self {
             Self::Integer(x) => Self::Integer(x.neg()),

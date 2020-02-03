@@ -23,15 +23,23 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::InvalidItemDirPath(ref p) => write!(f, "invalid item directory path: {}", p.display()),
-            Self::CannotAccessItemPath(ref p, ref err) => write!(f, r#"cannot access item path "{}", error: {}"#, p.display(), err),
-            Self::NoItemPathParent(ref p) => write!(f, "item path does not have a parent and/or is filesystem root: {}", p.display()),
-            Self::CannotReadItemDir(ref err) => write!(f, "unable to read entries in item directory: {}", err),
-            Self::CannotReadItemDirEntry(ref err) => write!(f, "unable to read item directory entry: {}", err),
+            Self::InvalidItemDirPath(ref p)
+                => write!(f, "invalid item directory path: {}", p.display()),
+            Self::CannotAccessItemPath(ref p, ref err)
+                => write!(f, r#"cannot access item path "{}", error: {}"#, p.display(), err),
+            Self::NoItemPathParent(ref p)
+                => write!(f, "item path does not have a parent: {}", p.display()),
+            Self::CannotReadItemDir(ref err)
+                => write!(f, "unable to read entries in item directory: {}", err),
+            Self::CannotReadItemDirEntry(ref err)
+                => write!(f, "unable to read item directory entry: {}", err),
 
-            Self::InvalidMetaFilePath(ref p) => write!(f, "invalid meta file path: {}", p.display()),
-            Self::CannotAccessMetaPath(ref p, ref err) => write!(f, r#"cannot access meta path "{}", error: {}"#, p.display(), err),
-            Self::NoMetaPathParent(ref p) => write!(f, "meta path does not have a parent and/or is filesystem root: {}", p.display()),
+            Self::InvalidMetaFilePath(ref p)
+                => write!(f, "invalid meta file path: {}", p.display()),
+            Self::CannotAccessMetaPath(ref p, ref err)
+                => write!(f, r#"cannot access meta path "{}", error: {}"#, p.display(), err),
+            Self::NoMetaPathParent(ref p)
+                => write!(f, "meta path does not have a parent: {}", p.display()),
         }
     }
 }
