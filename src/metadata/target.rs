@@ -85,11 +85,7 @@ impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
-    pub fn meta_path<'a, P>(
-        &'a self,
-        item_path: &'a P,
-        meta_format: MetaFormat,
-    ) -> Result<PathBuf, Error>
+    pub fn meta_path<P>(&self, item_path: &P, meta_format: MetaFormat) -> Result<PathBuf, Error>
     where
         P: AsRef<Path>,
     {
@@ -145,11 +141,11 @@ impl Target {
     /// could/should provide metadata for. Note that this does NOT parse meta
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
-    pub fn item_paths<'a, P>(&'a self, meta_path: P) -> Result<Vec<PathBuf>, Error>
+    pub fn item_paths<P>(&self, meta_path: &P) -> Result<Vec<PathBuf>, Error>
     where
-        P: Into<Cow<'a, Path>>,
+        P: AsRef<Path>,
     {
-        let meta_path = meta_path.into();
+        let meta_path = meta_path.as_ref();
 
         let meta_fs_stat = match std::fs::metadata(&meta_path) {
             Err(err) => return Err(Error::CannotAccessMetaPath(meta_path.into(), err)),
@@ -192,13 +188,9 @@ impl Target {
     }
 
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
-    pub fn selected_item_paths<'a, P>(
-        &'a self,
-        meta_path: P,
-        selection: &'a Selection,
-        ) -> Result<Vec<PathBuf>, Error>
+    pub fn selected_item_paths<P>(&self, meta_path: &P, selection: &Selection) -> Result<Vec<PathBuf>, Error>
     where
-        P: Into<Cow<'a, Path>>,
+        P: AsRef<Path>,
     {
         let mut item_paths = self.item_paths(meta_path)?;
 

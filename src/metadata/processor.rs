@@ -71,7 +71,7 @@ impl Processor {
 
         let selected_item_paths =
             meta_target
-            .selected_item_paths(meta_path.as_ref(), selection)
+            .selected_item_paths(&meta_path, selection)
             .map_err(Error::CannotFindItemPaths)?
         ;
 
