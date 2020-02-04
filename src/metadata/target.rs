@@ -141,7 +141,7 @@ impl Target {
     /// could/should provide metadata for. Note that this does NOT parse meta
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
-    pub fn item_paths<P>(&self, meta_path: &P) -> Result<Vec<PathBuf>, Error>
+    pub fn item_paths<'a, P>(&self, meta_path: &'a P) -> Result<Vec<Cow<'a, Path>>, Error>
     where
         P: AsRef<Path>,
     {
@@ -170,12 +170,12 @@ impl Target {
                     ;
 
                     for entry in read_dir {
-                        item_paths.push(entry.map_err(Error::CannotReadItemDirEntry)?.path());
+                        item_paths.push(Cow::Owned(entry.map_err(Error::CannotReadItemDirEntry)?.path()));
                     }
                 },
                 Self::Parent => {
                     // This is just the passed-in path, just push it on unchanged.
-                    item_paths.push(meta_parent_dir_path.into());
+                    item_paths.push(Cow::Borrowed(meta_parent_dir_path));
                 },
             }
 
@@ -188,7 +188,7 @@ impl Target {
     }
 
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
-    pub fn selected_item_paths<P>(&self, meta_path: &P, selection: &Selection) -> Result<Vec<PathBuf>, Error>
+    pub fn selected_item_paths<'a, P>(&self, meta_path: &'a P, selection: &Selection) -> Result<Vec<Cow<'a, Path>>, Error>
     where
         P: AsRef<Path>,
     {

@@ -54,7 +54,7 @@ impl Processor {
     /// This loads and plexes metadata, and produces a mapping of item file
     /// paths to metadata blocks.
     pub fn process_meta_file<'a, P>(
-        meta_path: P,
+        meta_path: &'a P,
         meta_target: Target,
         meta_format: MetaFormat,
         selection: &Selection,
@@ -63,15 +63,17 @@ impl Processor {
     where
         P: AsRef<Path>,
     {
+        // LEARN: Since `meta_path` is already a ref, no need to add `&`!
         let meta_structure =
             meta_format
-            .from_file(&meta_path, meta_target)
+            .from_file(meta_path, meta_target)
             .map_err(Error::CannotReadMetadata)?
         ;
 
+        // LEARN: Since `meta_path` is already a ref, no need to add `&`!
         let selected_item_paths =
             meta_target
-            .selected_item_paths(&meta_path, selection)
+            .selected_item_paths(meta_path, selection)
             .map_err(Error::CannotFindItemPaths)?
         ;
 
@@ -242,7 +244,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = Processor::process_meta_file(meta_path, meta_target, MetaFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_meta_file(&meta_path, meta_target, MetaFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
