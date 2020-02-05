@@ -43,20 +43,18 @@ impl std::error::Error for Error {
     }
 }
 
-pub enum Plexer<'a, I, P>
+pub enum Plexer<'a, I>
 where
-    I: Iterator<Item = P>,
-    P: Into<Cow<'a, Path>>,
+    I: Iterator<Item = Cow<'a, Path>>,
 {
     One(Option<Block>, I),
     Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<Cow<'a, Path>>),
     Map(BlockMapping, I),
 }
 
-impl<'a, I, P> Iterator for Plexer<'a, I, P>
+impl<'a, I> Iterator for Plexer<'a, I>
 where
-    I: Iterator<Item = P>,
-    P: Into<Cow<'a, Path>>,
+    I: Iterator<Item = Cow<'a, Path>>,
 {
     type Item = Result<(Cow<'a, Path>, Block), Error>;
 
@@ -71,7 +69,7 @@ where
                     (Some(block), Some(path)) => Some(Ok((path.into(), block))),
 
                     // Got a file path with no meta block, report an error.
-                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into().into()))),
+                    (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
 
                     // Got a meta block with no file path, report an error.
                     (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
@@ -97,7 +95,6 @@ where
                     Some(path) => {
                         // Try and obtain a file name from the path, and convert into a string for lookup.
                         // If this fails, return an error for this iteration and then skip the string.
-                        let path = path.into();
                         match path.file_name().and_then(|os| os.to_str()) {
                             None => Some(Err(Error::NamelessItemPath(path.into()))),
                             Some(file_name_str) => {
@@ -128,23 +125,21 @@ where
     }
 }
 
-impl<'a, I, P> FusedIterator for Plexer<'a, I, P>
+impl<'a, I> FusedIterator for Plexer<'a, I>
 where
-    I: Iterator<Item = P>,
-    P: Into<Cow<'a, Path>>,
+    I: Iterator<Item = Cow<'a, Path>>,
 {}
 
-impl<'a, I, P> Plexer<'a, I, P>
+impl<'a, I> Plexer<'a, I>
 where
-    I: Iterator<Item = P>,
-    P: Into<Cow<'a, Path>>,
+    I: Iterator<Item = Cow<'a, Path>>,
 {
     pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
             MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
             MetaStructure::Seq(mb_seq) => {
                 // Need to collect and pre-sort the file paths.
-                let mut file_paths = file_path_iter.map(Into::into).collect::<Vec<_>>();
+                let mut file_paths = file_path_iter.collect::<Vec<_>>();
                 file_paths.sort_by(|a, b| sorter.path_sort_cmp(a.as_ref(), b.as_ref()));
 
                 Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
@@ -191,13 +186,13 @@ mod tests {
         // Test single and sequence structures.
         let inputs_and_expected = vec![
             (
-                (ms_a.clone(), vec![PathBuf::from("item_a")]),
+                (ms_a.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
                 vec![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                 ],
             ),
             (
-                (ms_a.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b")]),
+                (ms_a.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b"))]),
                 vec![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_b"))),
@@ -210,7 +205,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_b.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c")]),
+                (ms_b.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c"))]),
                 vec![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
@@ -218,7 +213,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_b.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c"), PathBuf::from("item_d")]),
+                (ms_b.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
                 vec![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
@@ -227,7 +222,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_b.clone(), vec![PathBuf::from("item_a")]),
+                (ms_b.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
                 vec![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Err(Error::UnusedBlock(mb_b.clone(), None)),
@@ -245,7 +240,7 @@ mod tests {
         // Test mapping structures.
         let inputs_and_expected = vec![
             (
-                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c")]),
+                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c"))]),
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
@@ -253,7 +248,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b")]),
+                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b"))]),
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
@@ -261,7 +256,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_c"), PathBuf::from("item_d")]),
+                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
@@ -270,7 +265,7 @@ mod tests {
                 ],
             ),
             (
-                (ms_c.clone(), vec![PathBuf::from("item_a"), PathBuf::from("item_b"), PathBuf::from("item_d")]),
+                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_d"))]),
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
