@@ -159,74 +159,74 @@ mod tests {
 
     #[test]
     fn test_plex() {
-        let mb_a = btreemap![
+        let block_a = btreemap![
             String::from("key_1a") => TU::s("val_1a"),
             String::from("key_1b") => TU::s("val_1b"),
             String::from("key_1c") => TU::s("val_1c"),
         ];
-        let mb_b = btreemap![
+        let block_b = btreemap![
             String::from("key_2a") => TU::s("val_2a"),
             String::from("key_2b") => TU::s("val_2b"),
             String::from("key_2c") => TU::s("val_2c"),
         ];
-        let mb_c = btreemap![
+        let block_c = btreemap![
             String::from("key_3a") => TU::s("val_3a"),
             String::from("key_3b") => TU::s("val_3b"),
             String::from("key_3c") => TU::s("val_3c"),
         ];
 
-        let ms_a = MetaStructure::One(mb_a.clone());
-        let ms_b = MetaStructure::Seq(vec![mb_a.clone(), mb_b.clone(), mb_c.clone()]);
-        let ms_c = MetaStructure::Map(indexmap![
-            String::from("item_c") => mb_c.clone(),
-            String::from("item_a") => mb_a.clone(),
-            String::from("item_b") => mb_b.clone(),
+        let structure_a = MetaStructure::One(block_a.clone());
+        let structure_b = MetaStructure::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
+        let structure_c = MetaStructure::Map(indexmap![
+            String::from("item_c") => block_c.clone(),
+            String::from("item_a") => block_a.clone(),
+            String::from("item_b") => block_b.clone(),
         ]);
 
         // Test single and sequence structures.
         let inputs_and_expected = vec![
             (
-                (ms_a.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
+                (structure_a.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
                 vec![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
                 ],
             ),
             (
-                (ms_a.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b"))]),
+                (structure_a.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b"))]),
                 vec![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_b"))),
                 ],
             ),
             (
-                (ms_a.clone(), vec![]),
+                (structure_a.clone(), vec![]),
                 vec![
-                    Err(Error::UnusedBlock(mb_a.clone(), None)),
+                    Err(Error::UnusedBlock(block_a.clone(), None)),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c"))]),
+                (structure_b.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c"))]),
                 vec![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
+                (structure_b.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
                 vec![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
             (
-                (ms_b.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
+                (structure_b.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
                 vec![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Err(Error::UnusedBlock(mb_b.clone(), None)),
-                    Err(Error::UnusedBlock(mb_c.clone(), None)),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Err(Error::UnusedBlock(block_b.clone(), None)),
+                    Err(Error::UnusedBlock(block_c.clone(), None)),
                 ],
             ),
         ];
@@ -240,36 +240,36 @@ mod tests {
         // Test mapping structures.
         let inputs_and_expected = vec![
             (
-                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c"))]),
+                (structure_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c"))]),
                 hashset![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
                 ],
             ),
             (
-                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b"))]),
+                (structure_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b"))]),
                 hashset![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
-                    Err(Error::UnusedBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
+                    Err(Error::UnusedBlock(block_c.clone(), Some(String::from("item_c")))),
                 ],
             ),
             (
-                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
+                (structure_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
                 hashset![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_c")), mb_c.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
             (
-                (ms_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_d"))]),
+                (structure_c.clone(), vec![Cow::Owned(PathBuf::from("item_a")), Cow::Owned(PathBuf::from("item_b")), Cow::Owned(PathBuf::from("item_d"))]),
                 hashset![
-                    Ok((Cow::Owned(PathBuf::from("item_a")), mb_a.clone())),
-                    Ok((Cow::Owned(PathBuf::from("item_b")), mb_b.clone())),
-                    Err(Error::UnusedBlock(mb_c.clone(), Some(String::from("item_c")))),
+                    Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
+                    Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
+                    Err(Error::UnusedBlock(block_c.clone(), Some(String::from("item_c")))),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),
