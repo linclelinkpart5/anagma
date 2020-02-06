@@ -207,35 +207,3 @@ impl Target {
         }
     }
 }
-
-enum ItemPaths<'a> {
-    Siblings(ReadDir),
-    Parent(Option<&'a Path>),
-}
-
-impl<'a> Iterator for ItemPaths<'a> {
-    type Item = Result<Cow<'a, Path>, IoError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::Siblings(rd) => rd.next().map(|dir_res| {
-                dir_res.map(|entry| Cow::Owned(entry.path()))
-            }),
-            Self::Parent(o) => o.take().map(Cow::Borrowed).map(Result::Ok),
-        }
-    }
-}
-
-struct SelectedItemPaths<'a>(&'a Selection, ItemPaths<'a>);
-
-impl<'a> Iterator for SelectedItemPaths<'a> {
-    type Item = Result<Cow<'a, Path>, IoError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let selection = &self.0;
-        self.1.find(|res| match res {
-            Ok(p) => selection.is_selected(p),
-            Err(_) => true,
-        })
-    }
-}
