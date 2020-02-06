@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::borrow::Cow;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
-use std::fs::ReadDir;
 
 use crate::config::selection::Selection;
 use crate::config::meta_format::MetaFormat;
@@ -111,7 +110,7 @@ impl Target {
                     return Err(Error::InvalidItemDirPath(item_path.into()))
                 }
 
-                item_path.as_ref()
+                item_path
             },
         };
 
