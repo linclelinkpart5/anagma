@@ -14,7 +14,7 @@ pub(crate) struct Util;
 impl Util {
     /// Convenience method that gets the mod time of a path.
     /// Errors are coerced to `None`.
-    pub fn get_mtime<P: AsRef<Path>>(abs_path: P) -> Option<SystemTime> {
+    pub fn mtime<P: AsRef<Path>>(abs_path: P) -> Option<SystemTime> {
         abs_path.as_ref().metadata().and_then(|m| m.modified()).ok()
     }
 
@@ -57,9 +57,9 @@ mod tests {
 
     #[test]
     // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
-    fn test_get_mtime() {
+    fn mtime() {
         // Create temp directory.
-        let temp = Builder::new().suffix("test_get_mtime").tempdir().expect("unable to create temp directory");
+        let temp = Builder::new().suffix("test_mtime").tempdir().expect("unable to create temp directory");
         let tp = temp.path();
 
         let time_a = SystemTime::now();
@@ -74,12 +74,12 @@ mod tests {
 
         let time_b = SystemTime::now();
 
-        let file_time = Util::get_mtime(&path).unwrap();
+        let file_time = Util::mtime(&path).unwrap();
 
         assert_eq!(time_a < file_time, true);
         assert_eq!(file_time < time_b, true);
 
         // Test getting time of nonexistent file.
-        assert_eq!(None, Util::get_mtime(tp.join("DOES_NOT_EXIST")));
+        assert_eq!(None, Util::mtime(tp.join("DOES_NOT_EXIST")));
     }
 }

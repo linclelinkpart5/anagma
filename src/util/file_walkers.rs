@@ -28,7 +28,8 @@ impl std::error::Error for Error {
     }
 }
 
-/// Generic walker that supports either visiting parent or child files of an origin path.
+/// Generic file walker that supports visiting either parent or child files of
+/// an origin path.
 #[derive(Debug)]
 pub enum FileWalker<'p> {
     Parent(ParentFileWalker<'p>),
@@ -41,8 +42,8 @@ impl<'p> Iterator for FileWalker<'p> {
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             // Parent walkers cannot error, so this needs wrapping in a `Result`.
-            &mut Self::Parent(ref mut fw) => fw.next().map(Result::Ok),
-            &mut Self::Child(ref mut fw) => fw.next(),
+            Self::Parent(ref mut fw) => fw.next().map(Result::Ok),
+            Self::Child(ref mut fw) => fw.next(),
         }
     }
 }
@@ -51,8 +52,8 @@ impl<'p> FileWalker<'p> {
     pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
         match self {
             // Parent walkers do not have to delve, just no-op.
-            &mut Self::Parent(..) => Ok(()),
-            &mut Self::Child(ref mut fw) => fw.delve(selection, sorter),
+            Self::Parent(..) => Ok(()),
+            Self::Child(ref mut fw) => fw.delve(selection, sorter),
         }
     }
 }
@@ -69,14 +70,15 @@ impl<'p> From<ChildFileWalker<'p>> for FileWalker<'p> {
     }
 }
 
+/// A file walker that starts at an origin path, and walks up the directory tree.
 #[derive(Debug)]
 pub struct ParentFileWalker<'p>(Ancestors<'p>);
 
 impl<'p> ParentFileWalker<'p> {
     // LEARN: Since `PathBuf` impls `AsRef<Path>`, a caller could pass ownership
-    //        of a `PathBuf` here, so `&'p P` instead of just `P` is required.
-    //        This forces the input to be a borrow, so storing the result of
-    //        `.as_ref()` (which borrows its input) is valid.
+    // of a `PathBuf` here, so `&'p P` instead of just `P` is required.
+    // This forces the input to be a borrow, so storing the result of `.as_ref()`
+    // (which borrows its input) is valid.
     pub fn new<P: AsRef<Path>>(origin_item_path: &'p P) -> Self {
         Self(origin_item_path.as_ref().ancestors())
     }
@@ -90,6 +92,8 @@ impl<'p> Iterator for ParentFileWalker<'p> {
     }
 }
 
+/// A file walker that starts at an origin path, with the ability to delve
+/// recursively into its directory structure to visit its children, grandchildren, etc.
 #[derive(Debug)]
 pub struct ChildFileWalker<'p> {
     frontier: VecDeque<Result<Cow<'p, Path>, Error>>,
@@ -97,19 +101,15 @@ pub struct ChildFileWalker<'p> {
 }
 
 impl<'p> ChildFileWalker<'p> {
-    pub fn new<P>(origin_item_path: P) -> Self
-    where
-        P: Into<Cow<'p, Path>>,
-    {
+    pub fn new<P: AsRef<Path>>(origin_item_path: &'p P) -> Self {
         let mut frontier = VecDeque::new();
 
         // Initialize the frontier with the origin item.
-        frontier.push_back(Ok(origin_item_path.into()));
+        frontier.push_back(Ok(Cow::Borrowed(origin_item_path.as_ref())));
 
-        Self {
-            frontier,
-            last_processed_path: None,
-        }
+        let last_processed_path = None;
+
+        Self { frontier, last_processed_path, }
     }
 
     pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
@@ -164,7 +164,7 @@ mod tests {
     use crate::test_util::TestUtil;
 
     #[test]
-    fn test_parent_file_walker() {
+    fn parent_file_walker() {
         let root_dir = TestUtil::create_plain_fanout_test_dir("test_parent_file_walker", 3, 3);
 
         let start_path = root_dir.path().join("0").join("0_1").join("0_1_0");
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn test_child_file_walker() {
+    fn child_file_walker() {
         let root_dir = TestUtil::create_plain_fanout_test_dir("test_child_file_walker", 3, 3);
 
         let start_path = root_dir.path();
@@ -185,13 +185,11 @@ mod tests {
         // Skip the first file of each leaf directory.
         let selection = Selection::from_patterns(&["*_*"], &["*_0"], &["*"], &[] as &[&str]).unwrap();
         let sorter = Sorter::default();
-        let mut walker = ChildFileWalker::new(start_path);
+        let mut walker = ChildFileWalker::new(&start_path);
 
         // We should get just the root value, since no delving has happened.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
         assert!(walker.next().is_none());
-
-        // std::thread::sleep_ms(100000);
 
         walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0"));

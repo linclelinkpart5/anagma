@@ -29,8 +29,8 @@ impl SortBy {
                 file_name_a.cmp(&file_name_b)
             },
             Self::ModTime => {
-                let mtime_a = Util::get_mtime(abs_item_path_a);
-                let mtime_b = Util::get_mtime(abs_item_path_b);
+                let mtime_a = Util::mtime(abs_item_path_a);
+                let mtime_b = Util::mtime(abs_item_path_b);
                 mtime_a.cmp(&mtime_b)
             },
         }

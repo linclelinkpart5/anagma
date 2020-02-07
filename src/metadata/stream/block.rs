@@ -227,7 +227,7 @@ mod tests {
         let test_path = root_dir.clone();
 
         let mut stream = FileBlockStream {
-            file_walker: FileWalker::Child(ChildFileWalker::new(test_path)),
+            file_walker: FileWalker::Child(ChildFileWalker::new(&test_path)),
             meta_format: MetaFormat::Json,
             selection: &Selection::default(),
             sorter: Sorter::default(),

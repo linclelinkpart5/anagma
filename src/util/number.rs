@@ -1,5 +1,3 @@
-///! Wrapper type for items on the consumer stack that behave either as an integer or a decimal.
-
 use std::ops::Add;
 use std::ops::Sub;
 use std::ops::Mul;
@@ -10,6 +8,7 @@ use std::cmp::Ordering;
 
 use rust_decimal::Decimal;
 
+/// Wrapper type to smooth over the differences between integers and decimals.
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum Number {
     Integer(i64),
@@ -59,7 +58,7 @@ impl From<i64> for Number {
 
 impl From<&i64> for Number {
     fn from(n: &i64) -> Self {
-        Self::Integer(*n)
+        Self::from(*n)
     }
 }
 
@@ -71,7 +70,7 @@ impl From<Decimal> for Number {
 
 impl From<&Decimal> for Number {
     fn from(n: &Decimal) -> Self {
-        Self::Decimal(*n)
+        Self::from(*n)
     }
 }
 
@@ -161,7 +160,7 @@ mod tests {
     use rust_decimal::Decimal;
 
     #[test]
-    fn number_val_cmp() {
+    fn val_cmp() {
         for l in -3..=3 {
             let li = Number::Integer(l);
             let ld = Number::Decimal(l.into());
@@ -197,7 +196,7 @@ mod tests {
         }
 
         // Should be able to sort a list of numbers.
-        let expected = vec![
+        let expected = [
             Number::Decimal(dec!(-2.5)),
             Number::Integer(-2),
             Number::Decimal(dec!(-1.5)),
@@ -220,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn number_val_eq() {
+    fn val_eq() {
         for l in -3..=3 {
             for r in -3..=3 {
                 let li = Number::Integer(l);
@@ -244,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn number_val_max() {
+    fn val_max() {
         assert_eq!(Number::Integer(-1), Number::Integer(-1).val_max(Number::Integer(-2)));
         assert_eq!(Number::Integer(-1), Number::Integer(-2).val_max(Number::Integer(-1)));
         assert_eq!(Number::Integer(0), Number::Integer(0).val_max(Number::Integer(-1)));
@@ -268,7 +267,7 @@ mod tests {
     }
 
     #[test]
-    fn number_val_min() {
+    fn val_min() {
         assert_eq!(Number::Integer(-2), Number::Integer(-1).val_min(Number::Integer(-2)));
         assert_eq!(Number::Integer(-2), Number::Integer(-2).val_min(Number::Integer(-1)));
         assert_eq!(Number::Integer(-1), Number::Integer(0).val_min(Number::Integer(-1)));
@@ -292,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn number_from_i64() {
+    fn from_i64() {
         for i in -3i64..=3 {
             let expected = Number::Integer(i);
             let produced = Number::from(i);
@@ -302,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    fn number_from_decimal() {
+    fn from_decimal() {
         for i in -3i64..=3 {
             let d = Decimal::from(i) + dec!(0.5);
 
@@ -314,7 +313,7 @@ mod tests {
     }
 
     #[test]
-    fn number_add() {
+    fn add() {
         for l in -3..=3 {
             for r in -3..=3 {
                 let li = Number::Integer(l);
@@ -358,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn number_sub() {
+    fn sub() {
         for l in -3..=3 {
             for r in -3..=3 {
                 let li = Number::Integer(l);
@@ -402,7 +401,7 @@ mod tests {
     }
 
     #[test]
-    fn number_mul() {
+    fn mul() {
         for l in -3..=3 {
             for r in -3..=3 {
                 let li = Number::Integer(l);
@@ -446,7 +445,7 @@ mod tests {
     }
 
     #[test]
-    fn number_div() {
+    fn div() {
         for l in -3..=3 {
             for r in -3..=3 {
                 let li = Number::Integer(l);
@@ -497,7 +496,7 @@ mod tests {
     }
 
     #[test]
-    fn number_rem() {
+    fn rem() {
         for l in -3..=3 {
             for r in -3..=3 {
                 let li = Number::Integer(l);
@@ -548,7 +547,7 @@ mod tests {
     }
 
     #[test]
-    fn number_neg() {
+    fn neg() {
         for x in -3..=3 {
             let xi = Number::Integer(x);
             let xd = Number::Decimal(x.into());
