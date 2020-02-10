@@ -11,8 +11,8 @@ use crate::config::meta_format::MetaFormat;
 use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
 use crate::metadata::processor::Error as ProcessorError;
-use crate::util::file_walkers::FileWalker;
-use crate::util::file_walkers::Error as FileWalkerError;
+use crate::util::file_walker::FileWalker;
+use crate::util::file_walker::Error as FileWalkerError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -173,9 +173,9 @@ mod tests {
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
     use crate::config::meta_format::MetaFormat;
-    use crate::util::file_walkers::FileWalker;
-    use crate::util::file_walkers::ParentFileWalker;
-    use crate::util::file_walkers::ChildFileWalker;
+    use crate::util::file_walker::FileWalker;
+    use crate::util::file_walker::ParentFileWalker;
+    use crate::util::file_walker::ChildFileWalker;
 
     #[test]
     fn test_fixed_meta_block_stream() {

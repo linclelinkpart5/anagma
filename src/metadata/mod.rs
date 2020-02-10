@@ -12,13 +12,13 @@ use crate::metadata::processor::Error as ProcessorError;
 
 #[derive(Debug)]
 pub enum Error {
-    CannotProcessMetadata(ProcessorError),
+    Processor(ProcessorError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::CannotProcessMetadata(ref err) => write!(f, "cannot process metadata: {}", err),
+            Error::Processor(ref err) => write!(f, "cannot process metadata: {}", err),
         }
     }
 }
@@ -26,7 +26,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::CannotProcessMetadata(ref err) => Some(err),
+            Error::Processor(ref err) => Some(err),
         }
     }
 }
@@ -47,7 +47,7 @@ impl std::error::Error for Error {
 //             config.meta_format,
 //             &config.selection,
 //             config.sort_order,
-//         ).map_err(Error::CannotProcessMetadata)?;
+//         ).map_err(Error::Processor)?;
 
 //         Ok(mb)
 //     }

@@ -1,4 +1,4 @@
-pub mod file_walkers;
+pub mod file_walker;
 pub mod number;
 
 pub use number::Number;
