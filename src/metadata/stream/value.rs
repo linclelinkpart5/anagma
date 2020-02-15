@@ -2,30 +2,10 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::collections::VecDeque;
 
+use super::Error;
+
 use crate::metadata::value::Value;
 use crate::metadata::stream::block::BlockStream;
-use crate::metadata::stream::block::Error as BlockStreamError;
-
-#[derive(Debug)]
-pub enum Error {
-    BlockStream(BlockStreamError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::BlockStream(ref err) => write!(f, "meta block stream error: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::BlockStream(ref err) => Some(err),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum ValueStream<'p> {
@@ -101,7 +81,7 @@ impl<'p> Iterator for BlockValueStream<'p> {
         match self.meta_block_stream.next() {
             Some(mb_res) => {
                 match mb_res {
-                    Err(err) => Some(Err(Error::BlockStream(err))),
+                    Err(err) => Some(Err(err)),
                     Ok((path, mb)) => {
                         // Initalize the meta value by wrapping the entire meta block in a map.
                         // Having metadata keys be simple strings makes this easy and possible!
@@ -113,7 +93,7 @@ impl<'p> Iterator for BlockValueStream<'p> {
                                 // We need to delve here before proceeding.
                                 match self.meta_block_stream.delve() {
                                     Ok(()) => self.next(),
-                                    Err(err) => Some(Err(Error::BlockStream(err))),
+                                    Err(err) => Some(Err(err)),
                                 }
                             },
                             Some(val) => Some(Ok((path, val.clone()))),

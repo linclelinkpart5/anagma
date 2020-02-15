@@ -1,38 +1,14 @@
 use std::borrow::Cow;
 use std::path::Path;
 
+use super::Error;
+
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
 use crate::config::meta_format::MetaFormat;
 use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
-use crate::metadata::processor::Error as ProcessorError;
 use crate::util::file_walker::FileWalker;
-use crate::util::file_walker::Error as FileWalkerError;
-
-#[derive(Debug)]
-pub enum Error {
-    Processor(ProcessorError),
-    FileWalker(FileWalkerError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::Processor(ref err) => write!(f, "processor error: {}", err),
-            Self::FileWalker(ref err) => write!(f, "file walker error: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::Processor(ref err) => Some(err),
-            Self::FileWalker(ref err) => Some(err),
-        }
-    }
-}
 
 /// An iterator that yields metadata blocks. These provide a layer of abstraction
 /// for later processes that need a stream of meta blocks from various sources.
