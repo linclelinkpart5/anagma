@@ -6,7 +6,7 @@ pub mod processor;
 pub mod stream;
 pub mod block;
 pub mod value;
-pub mod structure;
+pub mod schema;
 
 use crate::metadata::processor::Error as ProcessorError;
 

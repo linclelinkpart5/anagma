@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use crate::config::sorter::Sorter;
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockMapping;
-use crate::metadata::structure::MetaStructure;
+use crate::metadata::schema::Schema;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Error {
@@ -134,17 +134,17 @@ impl<'a, I> Plexer<'a, I>
 where
     I: Iterator<Item = Cow<'a, Path>>,
 {
-    pub fn new(meta_structure: MetaStructure, file_path_iter: I, sorter: Sorter) -> Self {
+    pub fn new(meta_structure: Schema, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
-            MetaStructure::One(mb) => Self::One(Some(mb), file_path_iter),
-            MetaStructure::Seq(mb_seq) => {
+            Schema::One(mb) => Self::One(Some(mb), file_path_iter),
+            Schema::Seq(mb_seq) => {
                 // Need to collect and pre-sort the file paths.
                 let mut file_paths = file_path_iter.collect::<Vec<_>>();
                 file_paths.sort_by(|a, b| sorter.path_sort_cmp(a.as_ref(), b.as_ref()));
 
                 Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
             },
-            MetaStructure::Map(mb_map) => Self::Map(mb_map, file_path_iter),
+            Schema::Map(mb_map) => Self::Map(mb_map, file_path_iter),
         }
     }
 }
@@ -175,9 +175,9 @@ mod tests {
             String::from("key_3c") => TU::s("val_3c"),
         ];
 
-        let structure_a = MetaStructure::One(block_a.clone());
-        let structure_b = MetaStructure::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
-        let structure_c = MetaStructure::Map(indexmap![
+        let structure_a = Schema::One(block_a.clone());
+        let structure_b = Schema::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
+        let structure_c = Schema::Map(indexmap![
             String::from("item_c") => block_c.clone(),
             String::from("item_a") => block_a.clone(),
             String::from("item_b") => block_b.clone(),

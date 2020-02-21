@@ -5,8 +5,8 @@ use std::fs::File;
 use std::io::Read;
 
 use crate::metadata::target::Target;
-use crate::metadata::structure::MetaStructure;
-use crate::metadata::structure::MetaStructureRepr;
+use crate::metadata::schema::Schema;
+use crate::metadata::schema::SchemaRepr;
 
 #[derive(Debug)]
 pub enum Error {
@@ -66,44 +66,44 @@ impl MetaFormat {
         }
     }
 
-    fn from_yaml_str(s: &str, mt: Target) -> Result<MetaStructure, Error> {
+    fn from_yaml_str(s: &str, mt: Target) -> Result<Schema, Error> {
         match mt {
             Target::Parent => {
                 serde_yaml::from_str(s)
                 .map_err(Error::YamlDeserializeError)
-                .map(MetaStructureRepr::Unit)
+                .map(SchemaRepr::Unit)
             },
             Target::Siblings => {
                 serde_yaml::from_str(s)
                 .map_err(Error::YamlDeserializeError)
-                .map(MetaStructureRepr::Many)
+                .map(SchemaRepr::Many)
             },
         }.map(Into::into)
     }
 
-    fn from_json_str(s: &str, mt: Target) -> Result<MetaStructure, Error> {
+    fn from_json_str(s: &str, mt: Target) -> Result<Schema, Error> {
         match mt {
             Target::Parent => {
                 serde_json::from_str(s)
                 .map_err(Error::JsonDeserializeError)
-                .map(MetaStructureRepr::Unit)
+                .map(SchemaRepr::Unit)
             },
             Target::Siblings => {
                 serde_json::from_str(s)
                 .map_err(Error::JsonDeserializeError)
-                .map(MetaStructureRepr::Many)
+                .map(SchemaRepr::Many)
             },
         }.map(Into::into)
     }
 
-    pub fn from_str(&self, s: &str, mt: Target) -> Result<MetaStructure, Error> {
+    pub fn from_str(&self, s: &str, mt: Target) -> Result<Schema, Error> {
         match self {
             Self::Yaml => Self::from_yaml_str(s, mt),
             Self::Json => Self::from_json_str(s, mt),
         }
     }
 
-    pub fn from_file<P: AsRef<Path>>(&self, p: P, mt: Target) -> Result<MetaStructure, Error> {
+    pub fn from_file<P: AsRef<Path>>(&self, p: P, mt: Target) -> Result<Schema, Error> {
         let p = p.as_ref();
         let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
 
@@ -126,7 +126,7 @@ mod tests {
             key_c: val_c
             key_d: val_d
         "#;
-        assert_matches!(MetaFormat::from_yaml_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
             key_a: val_a
@@ -139,7 +139,7 @@ mod tests {
                 -   val_a
                 -   val_b
         "#;
-        assert_matches!(MetaFormat::from_yaml_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
             -   key_1_a: val_1_a
@@ -147,7 +147,7 @@ mod tests {
             -   key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert_matches!(MetaFormat::from_yaml_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Siblings), Ok(Schema::Seq(_)));
 
         let input = r#"
             item_1:
@@ -157,7 +157,7 @@ mod tests {
                 key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert_matches!(MetaFormat::from_yaml_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
+        assert_matches!(MetaFormat::from_yaml_str(input, Target::Siblings), Ok(Schema::Map(_)));
     }
 
     #[test]
@@ -170,7 +170,7 @@ mod tests {
             "key_d": "val_d"
         }
         "#;
-        assert_matches!(MetaFormat::from_json_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
         {
@@ -193,7 +193,7 @@ mod tests {
             ]
         }
         "#;
-        assert_matches!(MetaFormat::from_json_str(input, Target::Parent), Ok(MetaStructure::One(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
         [
@@ -207,7 +207,7 @@ mod tests {
             }
         ]
         "#;
-        assert_matches!(MetaFormat::from_json_str(input, Target::Siblings), Ok(MetaStructure::Seq(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Siblings), Ok(Schema::Seq(_)));
 
         let input = r#"
         {
@@ -221,6 +221,6 @@ mod tests {
             }
         }
         "#;
-        assert_matches!(MetaFormat::from_json_str(input, Target::Siblings), Ok(MetaStructure::Map(_)));
+        assert_matches!(MetaFormat::from_json_str(input, Target::Siblings), Ok(Schema::Map(_)));
     }
 }

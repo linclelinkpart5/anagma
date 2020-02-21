@@ -17,7 +17,7 @@ use crate::metadata::value::Value;
 use crate::metadata::value::Sequence;
 use crate::metadata::value::Mapping;
 use crate::metadata::block::Block;
-use crate::metadata::structure::MetaStructure;
+use crate::metadata::schema::Schema;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -207,11 +207,11 @@ trait TestSerialize {
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String;
 }
 
-impl TestSerialize for MetaStructure {
+impl TestSerialize for Schema {
     fn to_serialized_chunk(&self, meta_format: MetaFormat) -> String {
         match self {
-            &MetaStructure::One(ref mb) => Value::Mapping(mb.clone()).to_serialized_chunk(meta_format),
-            &MetaStructure::Seq(ref mb_seq) => {
+            &Schema::One(ref mb) => Value::Mapping(mb.clone()).to_serialized_chunk(meta_format),
+            &Schema::Seq(ref mb_seq) => {
                 Value::Sequence(
                     mb_seq
                         .into_iter()
@@ -219,7 +219,7 @@ impl TestSerialize for MetaStructure {
                         .collect()
                 ).to_serialized_chunk(meta_format)
             },
-            &MetaStructure::Map(ref mb_map) => {
+            &Schema::Map(ref mb_map) => {
                 Value::Mapping(
                     mb_map
                         .into_iter()
@@ -549,7 +549,7 @@ impl TestUtil {
             // Create self meta file.
             let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
-            let self_meta_struct = MetaStructure::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
+            let self_meta_struct = Schema::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
             let self_lines = self_meta_struct.to_serialized_chunk(MetaFormat::Json);
             writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
 
@@ -587,7 +587,7 @@ impl TestUtil {
             // Create item meta file.
             let mut item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
 
-            let item_meta_struct = MetaStructure::Seq(item_meta_blocks);
+            let item_meta_struct = Schema::Seq(item_meta_blocks);
             let item_lines = item_meta_struct.to_serialized_chunk(MetaFormat::Json);
             writeln!(item_meta_file, "{}", item_lines).expect("unable to write to item meta file");
         }
