@@ -9,13 +9,13 @@ use crate::util::Number;
 
 #[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub enum Error {
-    Convert(ValueKind),
+    CannotConvert(ValueKind),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::Convert(ref source) =>
+            Self::CannotConvert(ref source) =>
                 write!(f, "cannot convert value of kind {} into target type", source.as_ref()),
         }
     }
@@ -90,7 +90,7 @@ impl TryFrom<Value> for String {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::String(s) => Ok(s),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -101,7 +101,7 @@ impl<'k> TryFrom<&'k Value> for &'k str {
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::String(ref s) => Ok(s),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -118,7 +118,7 @@ impl TryFrom<Value> for Integer {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Integer(i) => Ok(i),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -129,7 +129,7 @@ impl<'k> TryFrom<&'k Value> for Integer {
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Integer(i) => Ok(i),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -146,7 +146,7 @@ impl TryFrom<Value> for Boolean {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Boolean(b) => Ok(b),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -157,7 +157,7 @@ impl<'k> TryFrom<&'k Value> for Boolean {
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Boolean(b) => Ok(b),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -174,7 +174,7 @@ impl TryFrom<Value> for Decimal {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Decimal(d) => Ok(d),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -185,7 +185,7 @@ impl<'k> TryFrom<&'k Value> for Decimal {
     fn try_from(value: &'k Value) -> Result<Self, Self::Error> {
         match value {
             &Value::Decimal(d) => Ok(d),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -202,7 +202,7 @@ impl TryFrom<Value> for Sequence {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Sequence(s) => Ok(s),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -219,7 +219,7 @@ impl TryFrom<Value> for Mapping {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Mapping(m) => Ok(m),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -240,7 +240,7 @@ impl TryFrom<Value> for Number {
         match value {
             Value::Integer(i) => Ok(Self::from(i)),
             Value::Decimal(d) => Ok(Self::from(d)),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
@@ -252,7 +252,7 @@ impl<'k> TryFrom<&'k Value> for Number {
         match value {
             &Value::Integer(i) => Ok(Self::Integer(i)),
             &Value::Decimal(d) => Ok(Self::Decimal(d)),
-            _ => Err(Error::Convert(value.into())),
+            _ => Err(Error::CannotConvert(value.into())),
         }
     }
 }
