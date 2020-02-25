@@ -186,6 +186,8 @@ impl Target {
         }
     }
 
+    /// Similar to `item_paths`, but also performs selection filtering on the
+    /// produced item paths.
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
     pub fn selected_item_paths<'a, P>(&self, meta_path: &'a P, selection: &Selection) -> Result<Vec<Cow<'a, Path>>, Error>
     where

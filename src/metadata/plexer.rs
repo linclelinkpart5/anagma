@@ -134,6 +134,9 @@ impl<'a, I> Plexer<'a, I>
 where
     I: Iterator<Item = Cow<'a, Path>>,
 {
+    /// Creates a new `Plexer`.
+    // NOTE: The `Sorter` is not always used, is there a way around needing to
+    //       provide it all the time?
     pub fn new(meta_structure: Schema, file_path_iter: I, sorter: Sorter) -> Self {
         match meta_structure {
             Schema::One(mb) => Self::One(Some(mb), file_path_iter),
