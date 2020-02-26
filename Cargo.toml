@@ -1,7 +1,7 @@
 [package]
 name = "anagma"
 version = "0.1.0"
-authors = ["Mark LeMoine <thatsgobbles@gmail.com>"]
+authors = ["Mark LeMoine <linclelinkpart5@gmail.com>"]
 edition = "2018"
 
 [dependencies]
