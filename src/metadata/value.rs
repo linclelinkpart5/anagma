@@ -1,4 +1,4 @@
-//! Types for modeling and representing item metadata values.
+//! Primitive metadata value types.
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;

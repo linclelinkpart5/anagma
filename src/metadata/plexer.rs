@@ -1,3 +1,4 @@
+//! Methods to assign blocks of metadata to their corresponding item file paths.
 
 use std::path::Path;
 use std::path::PathBuf;

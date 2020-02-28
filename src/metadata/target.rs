@@ -1,3 +1,5 @@
+//! Methods to find item file paths given a meta file path, and vice versa.
+
 use std::path::Path;
 use std::path::PathBuf;
 use std::borrow::Cow;

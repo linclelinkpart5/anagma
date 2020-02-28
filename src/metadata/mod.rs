@@ -1,4 +1,4 @@
-//! This is intended to be the main public API of the library.
+//! Primitives and methods for accessing and working with item metadata.
 
 pub mod target;
 pub mod plexer;

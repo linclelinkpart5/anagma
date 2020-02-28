@@ -1,3 +1,5 @@
+//! High-level methods for processing meta files and loading item file metadata.
+
 use std::path::Path;
 use std::collections::HashMap;
 use std::borrow::Cow;
