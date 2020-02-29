@@ -92,6 +92,10 @@ impl<'p> FileBlockStream<'p> {
             sorter,
         }
     }
+
+    pub fn delve(&mut self) -> Result<(), Error> {
+        self.file_walker.delve(&self.selection, self.sorter).map_err(Error::FileWalker)
+    }
 }
 
 impl<'p> Iterator for FileBlockStream<'p> {
@@ -113,12 +117,6 @@ impl<'p> Iterator for FileBlockStream<'p> {
             },
             Err(err) => Some(Err(Error::FileWalker(err))),
         }
-    }
-}
-
-impl<'p> FileBlockStream<'p> {
-    pub fn delve(&mut self) -> Result<(), Error> {
-        self.file_walker.delve(&self.selection, self.sorter).map_err(Error::FileWalker)
     }
 }
 
