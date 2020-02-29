@@ -85,7 +85,7 @@ impl<'p> FileBlockStream<'p> {
         sorter: Sorter,
     ) -> Self
     {
-        FileBlockStream {
+        Self {
             file_walker,
             meta_format,
             selection,
@@ -120,6 +120,59 @@ impl<'p> Iterator for FileBlockStream<'p> {
     }
 }
 
+#[cfg_attr(test, faux::create)]
+pub struct NewBlockStream<'p> {
+    file_walker: FileWalker<'p>,
+    meta_format: MetaFormat,
+    selection: &'p Selection,
+    sorter: Sorter,
+}
+
+#[cfg_attr(test, faux::methods)]
+impl<'p> NewBlockStream<'p> {
+    pub fn new(
+        file_walker: FileWalker<'p>,
+        meta_format: MetaFormat,
+        selection: &'p Selection,
+        sorter: Sorter,
+    ) -> Self
+    {
+        Self {
+            file_walker,
+            meta_format,
+            selection,
+            sorter,
+        }
+    }
+
+    pub fn delve(&mut self) -> Result<(), Error> {
+        self.file_walker.delve(&self.selection, self.sorter).map_err(Error::FileWalker)
+    }
+}
+
+#[cfg_attr(test, faux::methods)]
+impl<'p> Iterator for NewBlockStream<'p> {
+    type Item = Result<(Cow<'p, Path>, Block), Error>;
+
+    fn next(&mut self) -> Option<<NewBlockStream<'p> as Iterator>::Item> {
+        match self.file_walker.next()? {
+            Ok(path) => {
+                Some(
+                    Processor::process_item_file(
+                        &path,
+                        self.meta_format,
+                        self.selection,
+                        self.sorter,
+                    )
+                    .map(|mb| (path, mb))
+                    .map_err(Error::Processor)
+                )
+            },
+            Err(err) => Some(Err(Error::FileWalker(err))),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,6 +185,38 @@ mod tests {
     use crate::metadata::value::Value;
     use crate::util::file_walker::ParentFileWalker;
     use crate::util::file_walker::ChildFileWalker;
+
+    #[test]
+    fn mock_block_stream() {
+        let mb_a = btreemap![
+            String::from("key_a") => Value::Boolean(true),
+            String::from("key_b") => Value::Decimal(dec!(3.1415)),
+        ];
+        let mb_b = btreemap![
+            String::from("key_a") => Value::Integer(-1),
+            String::from("key_b") => Value::Null,
+        ];
+
+        let stream = vec![
+            (Cow::Borrowed(Path::new("dummy_a")), mb_a.clone()),
+            (Cow::Borrowed(Path::new("dummy_b")), mb_b.clone()),
+        ];
+        let mut stream_iter = stream.into_iter().map(Result::Ok);
+
+        let mut mock_block_stream = NewBlockStream::faux();
+
+        faux::when!(mock_block_stream.next).safe_then(move |_| stream_iter.next());
+
+        assert_eq!(
+            mock_block_stream.next().unwrap().unwrap(),
+            (Cow::Borrowed(Path::new("dummy_a")), mb_a),
+        );
+        assert_eq!(
+            mock_block_stream.next().unwrap().unwrap(),
+            (Cow::Borrowed(Path::new("dummy_b")), mb_b),
+        );
+        assert!(mock_block_stream.next().is_none());
+    }
 
     #[test]
     fn fixed_meta_block_stream() {
