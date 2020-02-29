@@ -159,6 +159,8 @@ mod tests {
     use rand::seq::SliceRandom;
     use rust_decimal::Decimal;
 
+    use rust_decimal_macros::dec;
+
     #[test]
     fn val_cmp() {
         for l in -3..=3 {

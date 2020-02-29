@@ -4,6 +4,8 @@ pub mod meta_format;
 pub mod selection;
 pub mod sorter;
 
+use serde::Deserialize;
+
 use self::meta_format::MetaFormat;
 use self::selection::Selection;
 use self::sorter::Sorter;

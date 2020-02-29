@@ -5,6 +5,7 @@ use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
 use globset::Error as GlobError;
+use serde::Deserialize;
 
 #[derive(Debug)]
 pub enum Error {

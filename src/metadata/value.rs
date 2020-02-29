@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 use rust_decimal::Decimal;
+use serde::Deserialize;
+use strum_macros::{EnumDiscriminants, AsRefStr};
 
 use crate::util::Number;
 
@@ -260,6 +262,9 @@ impl<'k> TryFrom<&'k Value> for Number {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use maplit::btreemap;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn deserialize() {

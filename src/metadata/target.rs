@@ -6,6 +6,8 @@ use std::borrow::Cow;
 use std::io::Error as IoError;
 use std::io::ErrorKind as IoErrorKind;
 
+use strum_macros::EnumIter;
+
 use crate::config::selection::Selection;
 use crate::config::meta_format::MetaFormat;
 

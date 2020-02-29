@@ -6,12 +6,13 @@ mod matcher;
 use std::path::Path;
 use std::path::PathBuf;
 
-pub use self::matcher::Matcher;
-pub use self::matcher::Error as MatcherError;
-
-use crate::strum::IntoEnumIterator;
+use strum::IntoEnumIterator;
+use serde::Deserialize;
 
 use crate::config::sorter::Sorter;
+
+pub use self::matcher::Matcher;
+pub use self::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -201,6 +202,8 @@ mod tests {
 
     use tempfile::Builder;
     use tempfile::TempDir;
+
+    use maplit::hashset;
 
     use crate::config::sorter::Sorter;
 

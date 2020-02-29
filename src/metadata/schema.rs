@@ -1,5 +1,7 @@
 //! Data representations of meta files.
 
+use serde::Deserialize;
+
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
 use crate::metadata::block::BlockMapping;

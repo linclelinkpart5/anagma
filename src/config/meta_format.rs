@@ -4,6 +4,8 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 
+use serde::Deserialize;
+
 use crate::metadata::target::Target;
 use crate::metadata::schema::Schema;
 use crate::metadata::schema::SchemaRepr;
@@ -117,6 +119,8 @@ impl MetaFormat {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use matches::assert_matches;
 
     #[test]
     fn test_from_yaml_str() {

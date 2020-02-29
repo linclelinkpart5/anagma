@@ -159,6 +159,9 @@ mod tests {
 
     use std::collections::HashSet;
 
+    use maplit::{hashset, btreemap};
+    use indexmap::indexmap;
+
     use crate::test_util::TestUtil as TU;
 
     #[test]

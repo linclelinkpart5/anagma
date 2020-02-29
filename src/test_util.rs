@@ -11,6 +11,9 @@ use tempfile::TempDir;
 use rust_decimal::Decimal;
 use rand::seq::SliceRandom;
 
+use maplit::btreemap;
+use rust_decimal_macros::dec;
+
 use crate::config::meta_format::MetaFormat;
 use crate::metadata::target::Target;
 use crate::metadata::value::Value;
@@ -619,13 +622,7 @@ impl TestUtil {
 
 #[cfg(test)]
 mod tests {
-    use super::TestUtil;
-    use super::TestSerialize;
-
-    use rust_decimal::Decimal;
-
-    use crate::config::meta_format::MetaFormat;
-    use crate::metadata::value::Value;
+    use super::*;
 
     #[test]
     fn test_create_meta_fanout_test_dir() {

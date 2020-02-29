@@ -4,7 +4,7 @@ use std::path::Path;
 use std::collections::HashMap;
 use std::borrow::Cow;
 
-use crate::strum::IntoEnumIterator;
+use strum::IntoEnumIterator;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
@@ -146,6 +146,8 @@ impl Processor {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use maplit::{hashmap, btreemap};
 
     use crate::test_util::create_temp_media_test_dir;
 

@@ -1,10 +1,12 @@
 use std::path::Path;
 use std::cmp::Ordering;
 
+use serde::Deserialize;
+
 use crate::util::Util;
 
 /// Represents all criteria that can be used for sorting item files.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum SortBy {
     Name,

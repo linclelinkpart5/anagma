@@ -126,6 +126,9 @@ impl<'p> FileBlockStream<'p> {
 mod tests {
     use super::*;
 
+    use maplit::btreemap;
+    use rust_decimal_macros::dec;
+
     use crate::test_util::TestUtil;
 
     use crate::metadata::value::Value;

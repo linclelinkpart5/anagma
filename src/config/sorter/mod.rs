@@ -5,10 +5,12 @@ pub mod sort_by;
 use std::path::Path;
 use std::cmp::Ordering;
 
+use serde::Deserialize;
+
 pub use self::sort_by::SortBy;
 
 /// Represents direction of ordering: ascending or descending.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum SortOrder {
     Ascending,
@@ -23,7 +25,7 @@ impl Default for SortOrder {
 
 /// A struct that contains all of the information needed to sort item file paths
 /// in a desired order.
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, Deserialize, PartialEq, Eq, Hash, Default)]
 #[serde(default)]
 #[serde(deny_unknown_fields)]
 pub struct Sorter {
