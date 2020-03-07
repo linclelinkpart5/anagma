@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::path::Path;
-use std::collections::VecDeque;
 
 use super::Error;
 
@@ -8,77 +7,22 @@ use crate::metadata::value::Value;
 use crate::metadata::stream::block::BlockStream;
 
 #[derive(Debug)]
-pub enum ValueStream<'p> {
-    Fixed(FixedValueStream<'p>),
-    Block(BlockValueStream<'p>),
+pub struct ValueStream<'p> {
+    target_key_path: Vec<String>,
+    block_stream: BlockStream<'p>,
+}
+
+impl<'p> ValueStream<'p> {
+    pub fn new(target_key_path: Vec<String>, block_stream: BlockStream<'p>) -> Self {
+        Self { target_key_path, block_stream, }
+    }
 }
 
 impl<'p> Iterator for ValueStream<'p> {
     type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            &mut Self::Fixed(ref mut it) => it.next(),
-            &mut Self::Block(ref mut it) => it.next(),
-        }
-    }
-}
-
-impl<'p> From<FixedValueStream<'p>> for ValueStream<'p> {
-    fn from(other: FixedValueStream<'p>) -> Self {
-        Self::Fixed(other)
-    }
-}
-
-impl<'p> From<BlockValueStream<'p>> for ValueStream<'p> {
-    fn from(other: BlockValueStream<'p>) -> Self {
-        Self::Block(other)
-    }
-}
-
-#[derive(Debug)]
-pub struct FixedValueStream<'p>(VecDeque<(Cow<'p, Path>, Value)>);
-
-impl<'p> FixedValueStream<'p> {
-    pub fn new<II>(items: II) -> Self
-    where
-        II: IntoIterator<Item = (Cow<'p, Path>, Value)>,
-    {
-        FixedValueStream(items.into_iter().collect())
-    }
-}
-
-impl<'p> Iterator for FixedValueStream<'p> {
-    type Item = Result<(Cow<'p, Path>, Value), Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.pop_front().map(Result::Ok)
-    }
-}
-
-#[derive(Debug)]
-pub struct BlockValueStream<'p> {
-    target_key_path: Vec<String>,
-    meta_block_stream: BlockStream<'p>,
-}
-
-impl<'p> BlockValueStream<'p> {
-    pub fn new<MBS>(target_key_path: Vec<String>, meta_block_stream: MBS) -> Self
-    where
-        MBS: Into<BlockStream<'p>>,
-    {
-        Self {
-            target_key_path,
-            meta_block_stream: meta_block_stream.into(),
-        }
-    }
-}
-
-impl<'p> Iterator for BlockValueStream<'p> {
-    type Item = Result<(Cow<'p, Path>, Value), Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.meta_block_stream.next() {
+        match self.block_stream.next() {
             Some(mb_res) => {
                 match mb_res {
                     Err(err) => Some(Err(err)),
@@ -91,7 +35,7 @@ impl<'p> Iterator for BlockValueStream<'p> {
                             // Not found here, delegate to the next iteration.
                             None => {
                                 // We need to delve here before proceeding.
-                                match self.meta_block_stream.delve() {
+                                match self.block_stream.delve() {
                                     Ok(()) => self.next(),
                                     Err(err) => Some(Err(err)),
                                 }
@@ -108,13 +52,12 @@ impl<'p> Iterator for BlockValueStream<'p> {
 
 #[cfg(test)]
 mod tests {
-    use super::BlockValueStream;
+    use super::ValueStream;
 
     use std::borrow::Cow;
     use crate::test_util::TestUtil;
 
     use crate::metadata::stream::block::BlockStream;
-    use crate::metadata::stream::block::FileBlockStream;
 
     use crate::metadata::value::Value;
     use crate::config::selection::Selection;
@@ -125,7 +68,7 @@ mod tests {
     use crate::util::file_walker::ChildFileWalker;
 
     #[test]
-    fn test_meta_field_stream_all() {
+    fn meta_field_stream_all() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_stream_all", 3, 3, TestUtil::flag_set_by_all);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
@@ -135,12 +78,12 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = BlockStream::File(FileBlockStream::new(
+        let block_stream = BlockStream::new(
             file_walker,
             MetaFormat::Json,
             &selection,
             Sorter::default(),
-        ));
+        );
 
         let expected = vec![
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
@@ -149,7 +92,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), Value::from("ROOT")),
         ];
         let produced = {
-            BlockValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -159,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn test_meta_field_stream_default() {
+    fn meta_field_stream_default() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_stream_default", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
@@ -169,18 +112,18 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = BlockStream::File(FileBlockStream::new(
+        let block_stream = BlockStream::new(
             file_walker,
             MetaFormat::Json,
             &selection,
             Sorter::default(),
-        ));
+        );
 
         let expected = vec![
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
         ];
         let produced = {
-            BlockValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -193,12 +136,12 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = BlockStream::File(FileBlockStream::new(
+        let block_stream = BlockStream::new(
             file_walker,
             MetaFormat::Json,
             &selection,
             Sorter::default(),
-        ));
+        );
 
         let expected = vec![
             (Cow::Owned(root_dir.join("0").join("0_0").join("0_0_0")), Value::from("0_0_0")),
@@ -212,7 +155,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), Value::from("0_2_2")),
         ];
         let produced = {
-            BlockValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -232,16 +175,16 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = BlockStream::File(FileBlockStream::new(
+        let block_stream = BlockStream::new(
             file_walker,
             MetaFormat::Json,
             &selection,
             Sorter::default(),
-        ));
+        );
 
         let expected: Vec<(Cow<'_, _>, Value)> = vec![];
         let produced = {
-            BlockValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -254,16 +197,16 @@ mod tests {
 
         let target_key_path = vec![String::from("flag_key")];
 
-        let block_stream = BlockStream::File(FileBlockStream::new(
+        let block_stream = BlockStream::new(
             file_walker,
             MetaFormat::Json,
             &selection,
             Sorter::default(),
-        ));
+        );
 
         let expected: Vec<(Cow<'_, _>, Value)> = vec![];
         let produced = {
-            BlockValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
