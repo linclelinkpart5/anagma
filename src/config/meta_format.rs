@@ -12,23 +12,17 @@ use crate::metadata::schema::SchemaRepr;
 
 #[derive(Debug)]
 pub enum Error {
-    CannotOpenFile(std::io::Error),
-    CannotReadFile(std::io::Error),
-    YamlDeserializeError(serde_yaml::Error),
-    JsonDeserializeError(serde_json::Error),
+    Io(std::io::Error),
+    Yaml(serde_yaml::Error),
+    Json(serde_json::Error),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::CannotOpenFile(ref err) =>
-                write!(f, "cannot open metadata file: {}", err),
-            Self::CannotReadFile(ref err) =>
-                write!(f, "cannot read metadata file: {}", err),
-            Self::YamlDeserializeError(ref err) =>
-                write!(f, "cannot deserialize YAML: {}", err),
-            Self::JsonDeserializeError(ref err) =>
-                write!(f, "cannot deserialize JSON: {}", err),
+            Self::Io(ref err) => write!(f, "io error: {}", err),
+            Self::Yaml(ref err) => write!(f, "cannot deserialize YAML: {}", err),
+            Self::Json(ref err) => write!(f, "cannot deserialize JSON: {}", err),
         }
     }
 }
@@ -36,10 +30,9 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::CannotOpenFile(ref err) => Some(err),
-            Self::CannotReadFile(ref err) => Some(err),
-            Self::YamlDeserializeError(ref err) => Some(err),
-            Self::JsonDeserializeError(ref err) => Some(err),
+            Self::Io(ref err) => Some(err),
+            Self::Yaml(ref err) => Some(err),
+            Self::Json(ref err) => Some(err),
         }
     }
 }
@@ -72,12 +65,12 @@ impl MetaFormat {
         match mt {
             Target::Parent => {
                 serde_yaml::from_str(s)
-                .map_err(Error::YamlDeserializeError)
+                .map_err(Error::Yaml)
                 .map(SchemaRepr::Unit)
             },
             Target::Siblings => {
                 serde_yaml::from_str(s)
-                .map_err(Error::YamlDeserializeError)
+                .map_err(Error::Yaml)
                 .map(SchemaRepr::Many)
             },
         }.map(Into::into)
@@ -87,12 +80,12 @@ impl MetaFormat {
         match mt {
             Target::Parent => {
                 serde_json::from_str(s)
-                .map_err(Error::JsonDeserializeError)
+                .map_err(Error::Json)
                 .map(SchemaRepr::Unit)
             },
             Target::Siblings => {
                 serde_json::from_str(s)
-                .map_err(Error::JsonDeserializeError)
+                .map_err(Error::Json)
                 .map(SchemaRepr::Many)
             },
         }.map(Into::into)
@@ -107,10 +100,10 @@ impl MetaFormat {
 
     pub fn from_file<P: AsRef<Path>>(&self, p: P, mt: Target) -> Result<Schema, Error> {
         let p = p.as_ref();
-        let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
+        let mut f = File::open(p).map_err(Error::Io)?;
 
         let mut buffer = String::new();
-        f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
+        f.read_to_string(&mut buffer).map_err(Error::Io)?;
 
         self.from_str(&buffer, mt)
     }

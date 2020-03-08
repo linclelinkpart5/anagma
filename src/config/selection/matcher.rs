@@ -7,30 +7,6 @@ use globset::GlobSetBuilder;
 use globset::Error as GlobError;
 use serde::Deserialize;
 
-#[derive(Debug)]
-pub enum Error {
-    InvalidPattern(GlobError),
-    BuildFailure(GlobError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
-            Self::BuildFailure(ref err) => write!(f, "cannot build matcher: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::InvalidPattern(ref err) => Some(err),
-            Self::BuildFailure(ref err) => Some(err),
-        }
-    }
-}
-
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum OneOrManyPatterns {
@@ -39,7 +15,7 @@ enum OneOrManyPatterns {
 }
 
 impl TryFrom<OneOrManyPatterns> for Matcher {
-    type Error = Error;
+    type Error = GlobError;
 
     fn try_from(oom: OneOrManyPatterns) -> Result<Self, Self::Error> {
         match oom {
@@ -56,7 +32,7 @@ pub struct Matcher(GlobSet);
 
 impl Matcher {
     /// Attempts to build a matcher out of an iterable of string-likes.
-    pub fn build<II, S>(pattern_strs: II) -> Result<Self, Error>
+    pub fn build<II, S>(pattern_strs: II) -> Result<Self, GlobError>
     where
         II: IntoIterator<Item = S>,
         S: AsRef<str>,
@@ -65,11 +41,11 @@ impl Matcher {
 
         for pattern_str in pattern_strs.into_iter() {
             let pattern_str = pattern_str.as_ref();
-            let pattern = Glob::new(&pattern_str).map_err(Error::InvalidPattern)?;
+            let pattern = Glob::new(&pattern_str)?;
             builder.add(pattern);
         }
 
-        let matcher = builder.build().map_err(Error::BuildFailure)?;
+        let matcher = builder.build()?;
 
         Ok(Self(matcher))
     }
