@@ -8,25 +8,27 @@ use std::path::PathBuf;
 
 use strum::IntoEnumIterator;
 use serde::Deserialize;
-use globset::Error as GlobError;
 
 use crate::config::sorter::Sorter;
 
 pub use self::matcher::Matcher;
+pub use self::matcher::Error as MatcherError;
 
 #[derive(Debug)]
 pub enum Error {
     InvalidDirPath(PathBuf),
-    Glob(GlobError),
-    Io(std::io::Error),
+    CannotBuildMatcher(MatcherError),
+    CannotReadDir(std::io::Error),
+    CannotReadDirEntry(std::io::Error),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::InvalidDirPath(ref p) => write!(f, "not a valid directory: {}", p.display()),
-            Error::Glob(ref err) => write!(f, "cannot build matcher: {}", err),
-            Error::Io(ref err) => write!(f, "io error: {}", err),
+            Error::CannotBuildMatcher(ref err) => write!(f, "cannot build matcher: {}", err),
+            Error::CannotReadDir(ref err) => write!(f, "cannot read directory: {}", err),
+            Error::CannotReadDirEntry(ref err) => write!(f, "cannot read directory entry: {}", err),
         }
     }
 }
@@ -35,8 +37,9 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::InvalidDirPath(..) => None,
-            Error::Glob(ref err) => Some(err),
-            Error::Io(ref err) => Some(err),
+            Error::CannotBuildMatcher(ref err) => Some(err),
+            Error::CannotReadDir(ref err) => Some(err),
+            Error::CannotReadDirEntry(ref err) => Some(err),
         }
     }
 }
@@ -102,10 +105,10 @@ impl Selection {
         DE: IntoIterator<Item = DES>,
         DES: AsRef<str>,
     {
-        let include_files = Matcher::build(include_files_pattern_strs).map_err(Error::Glob)?;
-        let exclude_files = Matcher::build(exclude_files_pattern_strs).map_err(Error::Glob)?;
-        let include_dirs = Matcher::build(include_dirs_pattern_strs).map_err(Error::Glob)?;
-        let exclude_dirs = Matcher::build(exclude_dirs_pattern_strs).map_err(Error::Glob)?;
+        let include_files = Matcher::build(include_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_files = Matcher::build(exclude_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let include_dirs = Matcher::build(include_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let exclude_dirs = Matcher::build(exclude_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
 
         Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
     }
@@ -172,8 +175,8 @@ impl Selection {
         }
 
         let item_entries = dir_path
-            .read_dir().map_err(Error::Io)?
-            .collect::<Result<Vec<_>, _>>().map_err(Error::Io)?;
+            .read_dir().map_err(Error::CannotReadDir)?
+            .collect::<Result<Vec<_>, _>>().map_err(Error::CannotReadDirEntry)?;
 
         let sel_item_paths = self.select::<'a>(item_entries.into_iter().map(|entry| entry.path()));
 
