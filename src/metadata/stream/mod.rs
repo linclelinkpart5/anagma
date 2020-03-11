@@ -4,6 +4,9 @@ pub mod value;
 use crate::metadata::processor::Error as ProcessorError;
 use crate::util::file_walker::Error as FileWalkerError;
 
+pub use self::block::BlockStream;
+pub use self::value::ValueStream;
+
 #[derive(Debug)]
 pub enum Error {
     Processor(ProcessorError),
