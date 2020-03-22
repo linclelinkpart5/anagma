@@ -62,7 +62,7 @@ mod tests {
     use crate::metadata::value::Value;
     use crate::config::selection::Selection;
     use crate::config::sorter::Sorter;
-    use crate::config::meta_format::MetaFormat;
+    use crate::metadata::schema::SchemaFormat;
     use crate::util::file_walker::FileWalker;
     use crate::util::file_walker::ParentFileWalker;
     use crate::util::file_walker::ChildFileWalker;
@@ -80,7 +80,7 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );
@@ -114,7 +114,7 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );
@@ -138,7 +138,7 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );
@@ -177,7 +177,7 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );
@@ -199,7 +199,7 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );

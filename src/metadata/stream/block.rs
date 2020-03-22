@@ -5,7 +5,7 @@ use super::Error;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-use crate::config::meta_format::MetaFormat;
+use crate::metadata::schema::SchemaFormat;
 use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
 use crate::util::file_walker::FileWalker;
@@ -14,7 +14,7 @@ use crate::util::file_walker::FileWalker;
 #[derive(Debug)]
 pub struct BlockStream<'p> {
     file_walker: FileWalker<'p>,
-    meta_format: MetaFormat,
+    schema_format: SchemaFormat,
     selection: &'p Selection,
     sorter: Sorter,
 }
@@ -22,14 +22,14 @@ pub struct BlockStream<'p> {
 impl<'p> BlockStream<'p> {
     pub fn new(
         file_walker: FileWalker<'p>,
-        meta_format: MetaFormat,
+        schema_format: SchemaFormat,
         selection: &'p Selection,
         sorter: Sorter,
     ) -> Self
     {
         Self {
             file_walker,
-            meta_format,
+            schema_format,
             selection,
             sorter,
         }
@@ -49,7 +49,7 @@ impl<'p> Iterator for BlockStream<'p> {
                 Some(
                     Processor::process_item_file(
                         &path,
-                        self.meta_format,
+                        self.schema_format,
                         self.selection,
                         self.sorter,
                     )
@@ -83,7 +83,7 @@ mod tests {
 
         let mut stream = BlockStream::new(
             ParentFileWalker::new(&test_path).into(),
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );
@@ -97,7 +97,7 @@ mod tests {
 
         let mut stream = BlockStream::new(
             ChildFileWalker::new(&test_path).into(),
-            MetaFormat::Json,
+            SchemaFormat::Json,
             &selection,
             Sorter::default(),
         );

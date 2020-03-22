@@ -9,7 +9,7 @@ use std::io::ErrorKind as IoErrorKind;
 use strum_macros::EnumIter;
 
 use crate::config::selection::Selection;
-use crate::config::meta_format::MetaFormat;
+use crate::metadata::schema::SchemaFormat;
 
 #[derive(Debug)]
 pub enum Error {
@@ -88,7 +88,7 @@ impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
-    pub fn meta_path<P>(&self, item_path: &P, meta_format: MetaFormat) -> Result<PathBuf, Error>
+    pub fn meta_path<P>(&self, item_path: &P, schema_format: SchemaFormat) -> Result<PathBuf, Error>
     where
         P: AsRef<Path>,
     {
@@ -119,7 +119,7 @@ impl Target {
         };
 
         // Create the target meta file name.
-        let target_fn = format!("{}.{}", self.default_file_name(), meta_format.file_extension());
+        let target_fn = format!("{}.{}", self.default_file_name(), schema_format.file_extension());
         let meta_path = meta_path_parent_dir.join(target_fn);
 
         // Get filesystem stat for meta path.

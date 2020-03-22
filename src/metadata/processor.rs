@@ -8,8 +8,9 @@ use strum::IntoEnumIterator;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-use crate::config::meta_format::MetaFormat;
-use crate::config::meta_format::Error as ReaderError;
+use crate::metadata::schema::Schema;
+use crate::metadata::schema::SchemaFormat;
+use crate::metadata::schema::Error as SchemaError;
 use crate::metadata::block::Block;
 use crate::metadata::target::Target;
 use crate::metadata::target::Error as TargetError;
@@ -18,7 +19,7 @@ use crate::metadata::plexer::Error as PlexerError;
 
 #[derive(Debug)]
 pub enum Error {
-    CannotReadMetadata(ReaderError),
+    CannotReadMetadata(SchemaError),
     CannotFindItemPaths(TargetError),
     CannotFindMetaPath(TargetError),
     PlexerError(PlexerError),
@@ -58,7 +59,7 @@ impl Processor {
     pub fn process_meta_file<'a, P>(
         meta_path: &'a P,
         meta_target: Target,
-        meta_format: MetaFormat,
+        schema_format: SchemaFormat,
         selection: &Selection,
         sorter: Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
@@ -67,8 +68,7 @@ impl Processor {
     {
         // LEARN: Since `meta_path` is already a ref, no need to add `&`!
         let meta_structure =
-            meta_format
-            .from_file(meta_path, meta_target)
+            Schema::from_file(schema_format, meta_path, meta_target)
             .map_err(Error::CannotReadMetadata)?
         ;
 
@@ -102,7 +102,7 @@ impl Processor {
     /// as an earlier target, the later one wins and overwrites the earlier one.
     pub fn process_item_file<P>(
         item_path: &P,
-        meta_format: MetaFormat,
+        schema_format: SchemaFormat,
         selection: &Selection,
         sorter: Sorter,
     ) -> Result<Block, Error>
@@ -112,7 +112,7 @@ impl Processor {
         let mut comp_mb = Block::new();
 
         for meta_target in Target::iter() {
-            let meta_path = match meta_target.meta_path(item_path, meta_format) {
+            let meta_path = match meta_target.meta_path(item_path, schema_format) {
                 Err(e) => {
                     if e.is_fatal() { return Err(e).map_err(Error::CannotFindMetaPath); }
                     else { continue; }
@@ -123,7 +123,7 @@ impl Processor {
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
                 meta_target,
-                meta_format,
+                schema_format,
                 selection,
                 sorter,
             )?;
@@ -248,7 +248,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = Processor::process_meta_file(&meta_path, meta_target, MetaFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_meta_file(&meta_path, meta_target, SchemaFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -297,7 +297,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = Processor::process_item_file(&item_path, MetaFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_item_file(&item_path, SchemaFormat::Yaml, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
