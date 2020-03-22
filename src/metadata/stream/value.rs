@@ -165,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_meta_field_stream_none() {
+    fn meta_field_stream_none() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_stream_none", 3, 3, TestUtil::flag_set_by_none);
         let root_dir = temp_dir.path();
         let selection = Selection::default();

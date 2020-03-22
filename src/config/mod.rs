@@ -58,7 +58,7 @@ mod tests {
     use super::sorter::sort_by::SortBy;
 
     #[test]
-    fn test_deserialization() {
+    fn deserialization() {
         let text_config = r#"
             include_files: '*.flac'
             sort_by: name

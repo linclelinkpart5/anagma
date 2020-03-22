@@ -237,7 +237,7 @@ mod tests {
     }
 
     #[test]
-    fn test_default() {
+    fn default() {
         let selection = Selection::default();
 
         assert!(selection.is_file_pattern_match("all"));
@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn test_deserialization() {
+    fn deserialization() {
         // A single pattern for each of include and exclude.
         let text = "{ include_files: '*.flac', exclude_files: '*.mp3' }";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
@@ -306,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_pattern_match() {
+    fn is_pattern_match() {
         let selection = Selection::from_patterns(&["*.flac"], &["*.mp3"], &["*"], &[] as &[&str]).unwrap();
 
         assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[test]
-    fn test_select_in_dir() {
+    fn select_in_dir() {
         let temp_dir = create_test_dir("test_select_in_dir");
         let path = temp_dir.path();
 
@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    fn test_select_in_dir_sorted() {
+    fn select_in_dir_sorted() {
         let temp_dir = create_test_dir("test_select_in_dir_sorted");
         let path = temp_dir.path();
 

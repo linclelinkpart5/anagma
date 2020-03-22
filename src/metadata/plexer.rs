@@ -165,7 +165,7 @@ mod tests {
     use crate::test_util::TestUtil as TU;
 
     #[test]
-    fn test_plex() {
+    fn plex() {
         let block_a = btreemap![
             String::from("key_1a") => TU::s("val_1a"),
             String::from("key_1b") => TU::s("val_1b"),

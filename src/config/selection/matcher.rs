@@ -98,7 +98,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_deserialization() {
+    fn deserialization() {
         let text = "'*.flac'";
         let matcher: Matcher = serde_yaml::from_str(&text).unwrap();
 
@@ -115,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn test_build() {
+    fn build() {
         // Positive test cases.
         assert!(Matcher::build(&["*"]).is_ok());
         assert!(Matcher::build(&["*.a", "*.b"]).is_ok());
@@ -150,7 +150,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_match() {
+    fn is_match() {
         let matcher = Matcher::build(&["*.a", "*.b"]).unwrap();
         assert_eq!(matcher.is_match("path.a"), true);
         assert_eq!(matcher.is_match("path.b"), true);
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_any() {
+    fn any() {
         let matcher = Matcher::any();
         assert_eq!(matcher.is_match("path"), true);
         assert_eq!(matcher.is_match("path.a"), true);
@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty() {
+    fn empty() {
         let matcher = Matcher::empty();
         assert_eq!(matcher.is_match("path"), false);
         assert_eq!(matcher.is_match("path.a"), false);

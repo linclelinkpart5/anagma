@@ -625,12 +625,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_meta_fanout_test_dir() {
+    fn create_meta_fanout_test_dir() {
         TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3, |_, _| true);
     }
 
     #[test]
-    fn test_sample_number_sequence() {
+    fn sample_number_sequence() {
         let i = TestUtil::i;
         let d = TestUtil::d;
 
@@ -659,7 +659,7 @@ mod tests {
     }
 
     #[test]
-    fn test_to_serialized_chunk() {
+    fn to_serialized_chunk() {
         let dec = Decimal::new(31415.into(), 4);
 
         let seq_a = Value::Sequence(vec![Value::Integer(27), Value::String("string".into())]);

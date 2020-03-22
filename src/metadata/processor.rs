@@ -154,7 +154,7 @@ mod tests {
     use crate::test_util::TestUtil as TU;
 
     #[test]
-    fn test_process_meta_file() {
+    fn process_meta_file() {
         let temp_dir = create_temp_media_test_dir("test_process_meta_file");
         let path = temp_dir.path();
 
@@ -254,7 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn test_process_item_file() {
+    fn process_item_file() {
         let temp_dir = create_temp_media_test_dir("test_process_item_file");
         let path = temp_dir.path();
 
