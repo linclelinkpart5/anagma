@@ -112,21 +112,18 @@ impl<'p> ChildFileWalker<'p> {
         Self { frontier, last_processed_path, }
     }
 
+    /// Manually delves into a directory, and adds its subitems to the frontier.
+    /// Note that this is a no-op if the most recent processed path is not a
+    /// directory, and not an error.
     pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
-        // Manually delves into a directory, and adds its subitems to the frontier.
         if let Some(lpp) = self.last_processed_path.take() {
             // If the last processed path is a directory, add its children to the frontier.
             if lpp.is_dir() {
-                match selection.select_in_dir_sorted(&lpp, sorter) {
-                    Err(err) => {
-                        return Err(Error::Selection(err));
-                    },
-                    Ok(mut sub_item_paths) => {
-                        // NOTE: Reversing and pushing onto the front of the queue is needed.
-                        for p in sub_item_paths.drain(..).rev() {
-                            self.frontier.push_front(Ok(Cow::Owned(p)));
-                        }
-                    },
+                let mut sub_item_paths = selection.select_in_dir_sorted(&lpp, sorter).map_err(Error::Selection)?;
+
+                // NOTE: Reversing and pushing onto the front of the queue is needed.
+                for p in sub_item_paths.drain(..).rev() {
+                    self.frontier.push_front(Ok(Cow::Owned(p)));
                 }
             }
         }
@@ -139,17 +136,14 @@ impl<'p> Iterator for ChildFileWalker<'p> {
     type Item = Result<Cow<'p, Path>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(frontier_item_result) = self.frontier.pop_front() {
-            // Save the most recently processed item path, if any.
-            if let Ok(frontier_item_path) = frontier_item_result.as_ref() {
-                self.last_processed_path = Some(frontier_item_path.clone());
-            }
+        let frontier_item_result = self.frontier.pop_front()?;
 
-            Some(frontier_item_result)
+        // Save the most recently processed item path, if any.
+        if let Ok(frontier_item_path) = frontier_item_result.as_ref() {
+            self.last_processed_path = Some(frontier_item_path.clone());
         }
-        else {
-            None
-        }
+
+        Some(frontier_item_result)
     }
 }
 
