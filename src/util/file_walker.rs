@@ -75,6 +75,7 @@ impl<'p> From<ChildFileWalker<'p>> for FileWalker<'p> {
 pub struct ParentFileWalker<'p>(Ancestors<'p>);
 
 impl<'p> ParentFileWalker<'p> {
+    /// Constructs a new `ParentFileWalker` starting at a specified item path.
     // LEARN: Since `PathBuf` impls `AsRef<Path>`, a caller could pass ownership
     // of a `PathBuf` here, so `&'p P` instead of just `P` is required.
     // This forces the input to be a borrow, so storing the result of `.as_ref()`
@@ -101,6 +102,7 @@ pub struct ChildFileWalker<'p> {
 }
 
 impl<'p> ChildFileWalker<'p> {
+    /// Constructs a new `ChildFileWalker` starting at a specified item path.
     pub fn new<P: AsRef<Path>>(origin_item_path: &'p P) -> Self {
         let mut frontier = VecDeque::new();
 
@@ -204,7 +206,7 @@ mod tests {
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_2"));
 
-        // Delving on a file does nothing.
+        // Delving on a file does nothing, and does not error.
         walker.delve(&selection, sorter).unwrap();
 
         // Right back to where we were before delving into depth 3.
