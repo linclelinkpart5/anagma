@@ -89,26 +89,19 @@ impl Selection {
         Self { include_files, exclude_files, include_dirs, exclude_dirs, }
     }
 
-    pub fn from_patterns<FI, FIS, FE, FES, DI, DIS, DE, DES>(
-        include_files_pattern_strs: FI,
-        exclude_files_pattern_strs: FE,
-        include_dirs_pattern_strs: DI,
-        exclude_dirs_pattern_strs: DE,
+    pub fn from_patterns<S>(
+        include_file_patterns: &[S],
+        exclude_file_patterns: &[S],
+        include_dir_patterns: &[S],
+        exclude_dir_patterns: &[S],
     ) -> Result<Self, Error>
     where
-        FI: IntoIterator<Item = FIS>,
-        FIS: AsRef<str>,
-        FE: IntoIterator<Item = FES>,
-        FES: AsRef<str>,
-        DI: IntoIterator<Item = DIS>,
-        DIS: AsRef<str>,
-        DE: IntoIterator<Item = DES>,
-        DES: AsRef<str>,
+        S: AsRef<str>,
     {
-        let include_files = Matcher::build(include_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let exclude_files = Matcher::build(exclude_files_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let include_dirs = Matcher::build(include_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
-        let exclude_dirs = Matcher::build(exclude_dirs_pattern_strs).map_err(Error::CannotBuildMatcher)?;
+        let include_files = Matcher::build(include_file_patterns).map_err(Error::CannotBuildMatcher)?;
+        let exclude_files = Matcher::build(exclude_file_patterns).map_err(Error::CannotBuildMatcher)?;
+        let include_dirs = Matcher::build(include_dir_patterns).map_err(Error::CannotBuildMatcher)?;
+        let exclude_dirs = Matcher::build(exclude_dir_patterns).map_err(Error::CannotBuildMatcher)?;
 
         Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
     }
@@ -385,7 +378,12 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns) = input;
 
-            let selection = Selection::from_patterns(include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns).unwrap();
+            let selection = Selection::from_patterns(
+                &include_file_patterns,
+                &exclude_file_patterns,
+                &include_dir_patterns,
+                &exclude_dir_patterns,
+            ).unwrap();
             let produced = selection.select_in_dir(&path).unwrap().collect();
             assert_eq!(expected, produced);
         }
@@ -434,7 +432,12 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns, sort_order) = input;
 
-            let selection = Selection::from_patterns(include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns).unwrap();
+            let selection = Selection::from_patterns(
+                &include_file_patterns,
+                &exclude_file_patterns,
+                &include_dir_patterns,
+                &exclude_dir_patterns,
+            ).unwrap();
             let produced = selection.select_in_dir_sorted(&path, sort_order).expect("unable to select in dir");
             assert_eq!(expected, produced);
         }
