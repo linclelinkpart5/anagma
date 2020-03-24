@@ -44,6 +44,19 @@ impl Util {
 
         p.as_os_str() == s_path.as_os_str()
     }
+
+    pub fn _separate_err<T, E>(results: Vec<Result<T, E>>) -> (Vec<T>, Vec<E>)
+    where
+        T: std::fmt::Debug,
+        E: std::fmt::Debug,
+    {
+        let (values, errors): (Vec<_>, Vec<_>) = results.into_iter().partition(Result::is_ok);
+
+        let values: Vec<_> = values.into_iter().map(Result::unwrap).collect();
+        let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
+
+        (values, errors)
+    }
 }
 
 #[cfg(test)]
