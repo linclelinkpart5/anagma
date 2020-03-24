@@ -1,5 +1,3 @@
-//! Represents a method of determining whether a potential item path is to be
-//! included in metadata lookup.
 
 mod matcher;
 
@@ -10,6 +8,7 @@ use strum::IntoEnumIterator;
 use serde::Deserialize;
 
 use crate::config::sorter::Sorter;
+use crate::metadata::target::Target;
 
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
@@ -25,10 +24,10 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Error::InvalidDirPath(ref p) => write!(f, "not a valid directory: {}", p.display()),
-            Error::CannotBuildMatcher(ref err) => write!(f, "cannot build matcher: {}", err),
-            Error::CannotReadDir(ref err) => write!(f, "cannot read directory: {}", err),
-            Error::CannotReadDirEntry(ref err) => write!(f, "cannot read directory entry: {}", err),
+            Self::InvalidDirPath(ref p) => write!(f, "not a valid directory: {}", p.display()),
+            Self::CannotBuildMatcher(ref err) => write!(f, "cannot build matcher: {}", err),
+            Self::CannotReadDir(ref err) => write!(f, "cannot read directory: {}", err),
+            Self::CannotReadDirEntry(ref err) => write!(f, "cannot read directory entry: {}", err),
         }
     }
 }
@@ -36,10 +35,10 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
-            Error::InvalidDirPath(..) => None,
-            Error::CannotBuildMatcher(ref err) => Some(err),
-            Error::CannotReadDir(ref err) => Some(err),
-            Error::CannotReadDirEntry(ref err) => Some(err),
+            Self::InvalidDirPath(..) => None,
+            Self::CannotBuildMatcher(ref err) => Some(err),
+            Self::CannotReadDir(ref err) => Some(err),
+            Self::CannotReadDirEntry(ref err) => Some(err),
         }
     }
 }
@@ -49,6 +48,7 @@ enum FileOrDir {
     Dir,
 }
 
+/// A type that represents included/excluded item files and directories.
 #[derive(Deserialize, Debug)]
 #[serde(default)]
 #[serde(deny_unknown_fields)]
@@ -61,11 +61,9 @@ pub struct Selection {
 
 impl Default for Selection {
     fn default() -> Self {
-        use crate::metadata::target::Target;
-
         // TODO: Replace with `StaticVec` once released for stable Rust.
         let excluded_patterns = Target::iter()
-            .map(|ml| format!("{}{}", ml.default_file_name(), "*"))
+            .map(|ml| format!("{}*", ml.default_file_name()))
             .collect::<Vec<_>>()
         ;
 
@@ -74,7 +72,7 @@ impl Default for Selection {
         let include_dirs = Matcher::any();
         let exclude_dirs = Matcher::empty();
 
-        Self { include_files, exclude_files, include_dirs, exclude_dirs, }
+        Self::new(include_files, exclude_files, include_dirs, exclude_dirs)
     }
 }
 
@@ -143,46 +141,36 @@ impl Selection {
         }
     }
 
-    /// Returns items from the input iterable that are selected.
-    pub fn select<'a, II, P>(&'a self, item_paths: II) -> impl Iterator<Item = P> + 'a
-    where
-        II: IntoIterator<Item = P>,
-        II::IntoIter: 'a,
-        P: AsRef<Path>,
-    {
-        let filtered = item_paths
-            .into_iter()
-            .filter(move |ip| self.is_selected(ip));
-
-        filtered
-    }
-
-    pub fn select_in_dir<'a, P>(&'a self, dir_path: P) -> Result<impl Iterator<Item = PathBuf> + 'a, Error>
+    pub fn select_in_dir<P>(&self, dir_path: P) -> Result<Vec<PathBuf>, Error>
     where
         P: AsRef<Path>,
     {
         let dir_path = dir_path.as_ref();
 
+        // Simple short-circuit check.
         if !dir_path.is_dir() {
             return Err(Error::InvalidDirPath(dir_path.to_path_buf()));
         }
 
-        let item_entries = dir_path
-            .read_dir().map_err(Error::CannotReadDir)?
-            .collect::<Result<Vec<_>, _>>().map_err(Error::CannotReadDirEntry)?;
+        let mut selected_paths = Vec::new();
 
-        let sel_item_paths = self.select::<'a>(item_entries.into_iter().map(|entry| entry.path()));
+        for item_entry_res in dir_path.read_dir().map_err(Error::CannotReadDir)? {
+            let item_path = item_entry_res.map(|e| e.path()).map_err(Error::CannotReadDirEntry)?;
 
-        Ok(sel_item_paths)
+            if self.is_selected(&item_path) {
+                selected_paths.push(item_path);
+            }
+        }
+
+        Ok(selected_paths)
     }
 
     pub fn select_in_dir_sorted<P>(&self, dir_path: P, sorter: Sorter) -> Result<Vec<PathBuf>, Error>
     where
         P: AsRef<Path>,
     {
-        let mut sel_item_paths: Vec<_> = self.select_in_dir(dir_path)?.collect();
+        let mut sel_item_paths = self.select_in_dir(dir_path)?;
         sel_item_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
-
         Ok(sel_item_paths)
     }
 }
@@ -384,7 +372,13 @@ mod tests {
                 &include_dir_patterns,
                 &exclude_dir_patterns,
             ).unwrap();
-            let produced = selection.select_in_dir(&path).unwrap().collect();
+
+            let produced = selection
+                .select_in_dir(&path).unwrap()
+                .into_iter()
+                .collect()
+            ;
+
             assert_eq!(expected, produced);
         }
     }
@@ -438,7 +432,9 @@ mod tests {
                 &include_dir_patterns,
                 &exclude_dir_patterns,
             ).unwrap();
-            let produced = selection.select_in_dir_sorted(&path, sort_order).expect("unable to select in dir");
+
+            let produced = selection.select_in_dir_sorted(&path, sort_order).unwrap();
+
             assert_eq!(expected, produced);
         }
     }
