@@ -135,10 +135,12 @@ impl Selection {
     /// This accesses the filesystem to tell if the path is a file or directory.
     pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
         // TODO: Change this into a call to `std::fs::metadata` and handle the error.
-        match path.as_ref().is_dir() {
-            false => self.is_file_pattern_match(path),
-            true => self.is_dir_pattern_match(path),
+        if let Ok(file_info) = std::fs::metadata(&path) {
+            if file_info.is_file() { self.is_file_pattern_match(path) }
+            else if file_info.is_dir() { self.is_dir_pattern_match(path) }
+            else { false }
         }
+        else { false }
     }
 
     pub fn select_in_dir<P>(&self, dir_path: P) -> Result<Vec<PathBuf>, Error>
