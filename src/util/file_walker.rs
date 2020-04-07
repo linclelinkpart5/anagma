@@ -1,32 +1,34 @@
 use std::borrow::Cow;
 use std::path::Path;
+use std::path::PathBuf;
 use std::collections::VecDeque;
 use std::path::Ancestors;
+use std::io::Error as IoError;
 
 use crate::config::selection::Selection;
-use crate::config::selection::Error as SelectionError;
 use crate::config::sorter::Sorter;
 
-#[derive(Debug)]
-pub enum Error {
-    Selection(SelectionError),
-}
+// #[derive(Debug)]
+// pub enum Error {
+//     CannotBulkSelect(IoError, Vec<IoError>),
+// }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::Selection(ref err) => write!(f, "selection error: {}", err),
-        }
-    }
-}
+// impl std::fmt::Display for Error {
+//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+//         match *self {
+//             Self::CannotBulkSelect(_, ref other_errs)
+//                 => write!(f, "errors when bulk selecting: {}", 1 + other_errs.len()),
+//         }
+//     }
+// }
 
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::Selection(ref err) => Some(err),
-        }
-    }
-}
+// impl std::error::Error for Error {
+//     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+//         match *self {
+//             Self::CannotBulkSelect(ref err, _) => Some(err),
+//         }
+//     }
+// }
 
 /// Generic file walker that supports visiting either parent or child files of
 /// an origin path.
@@ -37,7 +39,7 @@ pub enum FileWalker<'p> {
 }
 
 impl<'p> Iterator for FileWalker<'p> {
-    type Item = Result<Cow<'p, Path>, Error>;
+    type Item = Result<Cow<'p, Path>, IoError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -49,7 +51,7 @@ impl<'p> Iterator for FileWalker<'p> {
 }
 
 impl<'p> FileWalker<'p> {
-    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), IoError> {
         match self {
             // Parent walkers do not have to delve, just no-op.
             Self::Parent(..) => Ok(()),
@@ -97,7 +99,7 @@ impl<'p> Iterator for ParentFileWalker<'p> {
 /// recursively into its directory structure to visit its children, grandchildren, etc.
 #[derive(Debug)]
 pub struct ChildFileWalker<'p> {
-    frontier: VecDeque<Result<Cow<'p, Path>, Error>>,
+    frontier: VecDeque<Result<Cow<'p, Path>, IoError>>,
     last_processed_path: Option<Cow<'p, Path>>,
 }
 
@@ -117,15 +119,20 @@ impl<'p> ChildFileWalker<'p> {
     /// Manually delves into a directory, and adds its subitems to the frontier.
     /// Note that this is a no-op if the most recent processed path is not a
     /// directory, and not an error.
-    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), Error> {
+    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), IoError> {
+        // If there is a last processed path, delve into it.
+        // If not, just no-op.
         if let Some(lpp) = self.last_processed_path.take() {
-            // If the last processed path is a directory, add its children to the frontier.
-            if lpp.is_dir() {
-                let mut sub_item_paths = selection.select_in_dir_sorted(&lpp, sorter).map_err(Error::Selection)?;
+            // Get file info for the last processed path.
+            let file_info = std::fs::metadata(&lpp)?;
+
+            // Only work on directories.
+            if file_info.is_dir() {
+                let mut sub_item_paths = selection.select_in_dir_sorted(&lpp, sorter)?;
 
                 // NOTE: Reversing and pushing onto the front of the queue is needed.
                 for p in sub_item_paths.drain(..).rev() {
-                    self.frontier.push_front(Ok(Cow::Owned(p)));
+                    self.frontier.push_front(p.map(Cow::Owned));
                 }
             }
         }
@@ -135,7 +142,7 @@ impl<'p> ChildFileWalker<'p> {
 }
 
 impl<'p> Iterator for ChildFileWalker<'p> {
-    type Item = Result<Cow<'p, Path>, Error>;
+    type Item = Result<Cow<'p, Path>, IoError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let frontier_item_result = self.frontier.pop_front()?;
@@ -187,27 +194,27 @@ mod tests {
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
         assert!(walker.next().is_none());
 
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, sorter);
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2"));
         assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, sorter);
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1"));
 
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, sorter);
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0"));
 
         // Once files are found, observe the results of the selection.
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, sorter);
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_2"));
 
         // Delving on a file does nothing, and does not error.
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, sorter);
 
         // Right back to where we were before delving into depth 3.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_1"));

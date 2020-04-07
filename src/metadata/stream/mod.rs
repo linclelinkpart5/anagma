@@ -1,8 +1,9 @@
 pub mod block;
 pub mod value;
 
+use std::io::Error as IoError;
+
 use crate::metadata::processor::Error as ProcessorError;
-use crate::util::file_walker::Error as FileWalkerError;
 
 pub use self::block::BlockStream;
 pub use self::value::ValueStream;
@@ -10,7 +11,7 @@ pub use self::value::ValueStream;
 #[derive(Debug)]
 pub enum Error {
     Processor(ProcessorError),
-    FileWalker(FileWalkerError),
+    FileWalker(IoError),
 }
 
 impl std::fmt::Display for Error {

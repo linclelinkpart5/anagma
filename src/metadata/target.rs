@@ -22,6 +22,8 @@ pub enum Error {
     InvalidMetaFilePath(PathBuf),
     CannotAccessMetaPath(PathBuf, IoError),
     NoMetaPathParent(PathBuf),
+
+    BulkSelectionError(IoError, Vec<IoError>),
 }
 
 impl std::fmt::Display for Error {
@@ -44,6 +46,8 @@ impl std::fmt::Display for Error {
                 => write!(f, r#"cannot access meta path "{}", error: {}"#, p.display(), err),
             Self::NoMetaPathParent(ref p)
                 => write!(f, "meta path does not have a parent: {}", p.display()),
+            Self::BulkSelectionError(_, ref other_errs)
+                => write!(f, "errors encountered when doing a bulk selection: {}", 1 + other_errs.len()),
         }
     }
 }
@@ -55,6 +59,7 @@ impl std::error::Error for Error {
             Self::CannotAccessMetaPath(_, ref err) => Some(err),
             Self::CannotReadItemDir(ref err) => Some(err),
             Self::CannotReadItemDirEntry(ref err) => Some(err),
+            Self::BulkSelectionError(ref err, _) => Some(err),
             _ => None,
         }
     }
@@ -197,11 +202,27 @@ impl Target {
     where
         P: AsRef<Path>,
     {
-        let mut item_paths = self.item_paths(meta_path)?;
+        let item_paths = self.item_paths(meta_path)?;
 
-        item_paths.retain(|p| selection.is_selected(p));
+        let mut sel_item_paths = Vec::new();
+        let mut first_error = None;
+        let mut other_errors = Vec::new();
 
-        Ok(item_paths)
+        for item_path in item_paths {
+            match selection.is_selected(&item_path) {
+                Ok(true) => { sel_item_paths.push(item_path); },
+                Ok(false) => {},
+                Err(err) => {
+                    if first_error.is_none() { first_error.replace(err); }
+                    else { other_errors.push(err); }
+                },
+            }
+        }
+
+        match first_error {
+            None => Ok(sel_item_paths),
+            Some(err) => Err(Error::BulkSelectionError(err, other_errors)),
+        }
     }
 
     /// Returns the expected filename stub for a given target.

@@ -3,6 +3,9 @@ mod matcher;
 
 use std::path::Path;
 use std::path::PathBuf;
+use std::io::Error as IoError;
+use std::io::Result as IoResult;
+use std::cmp::Ordering;
 
 use strum::IntoEnumIterator;
 use serde::Deserialize;
@@ -17,17 +20,21 @@ pub use self::matcher::Error as MatcherError;
 pub enum Error {
     InvalidDirPath(PathBuf),
     CannotBuildMatcher(MatcherError),
-    CannotReadDir(std::io::Error),
-    CannotReadDirEntry(std::io::Error),
+    // CannotReadDir(std::io::Error),
+    // CannotReadDirEntry(std::io::Error),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            Self::InvalidDirPath(ref p) => write!(f, "not a valid directory: {}", p.display()),
-            Self::CannotBuildMatcher(ref err) => write!(f, "cannot build matcher: {}", err),
-            Self::CannotReadDir(ref err) => write!(f, "cannot read directory: {}", err),
-            Self::CannotReadDirEntry(ref err) => write!(f, "cannot read directory entry: {}", err),
+            Self::InvalidDirPath(ref p)
+                => write!(f, "not a valid directory: {}", p.display()),
+            Self::CannotBuildMatcher(ref err)
+                => write!(f, "cannot build matcher: {}", err),
+            // Self::CannotReadDir(ref err)
+            //     => write!(f, "cannot read directory: {}", err),
+            // Self::CannotReadDirEntry(ref err)
+            //     => write!(f, "cannot read directory entry: {}", err),
         }
     }
 }
@@ -37,8 +44,8 @@ impl std::error::Error for Error {
         match *self {
             Self::InvalidDirPath(..) => None,
             Self::CannotBuildMatcher(ref err) => Some(err),
-            Self::CannotReadDir(ref err) => Some(err),
-            Self::CannotReadDirEntry(ref err) => Some(err),
+            // Self::CannotReadDir(ref err) => Some(err),
+            // Self::CannotReadDirEntry(ref err) => Some(err),
         }
     }
 }
@@ -133,46 +140,57 @@ impl Selection {
 
     /// Returns true if a path is selected.
     /// This accesses the filesystem to tell if the path is a file or directory.
-    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> bool {
-        // TODO: Change this into a call to `std::fs::metadata` and handle the error.
-        if let Ok(file_info) = std::fs::metadata(&path) {
+    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> Result<bool, std::io::Error> {
+        let file_info = std::fs::metadata(&path)?;
+
+        Ok(
             if file_info.is_file() { self.is_file_pattern_match(path) }
             else if file_info.is_dir() { self.is_dir_pattern_match(path) }
             else { false }
-        }
-        else { false }
+        )
     }
 
-    pub fn select_in_dir<P>(&self, dir_path: P) -> Result<Vec<PathBuf>, Error>
-    where
-        P: AsRef<Path>,
-    {
-        let dir_path = dir_path.as_ref();
+    /// Selects paths inside a directory that match this `Selection`.
+    // NOTE: This returns two "levels" of `Error`, a top-level one for any error
+    //       relating to accessing the pass-in directory path, and a `Vec` of
+    //       `Result`s for errors encountered when iterating.
+    pub fn select_in_dir(&self, dir_path: &Path) -> IoResult<Vec<IoResult<PathBuf>>> {
+        // Try to open the path as a directory, handle the error as appropriate.
+        let dir_reader = dir_path.read_dir()?;
 
-        // Simple short-circuit check.
-        if !dir_path.is_dir() {
-            return Err(Error::InvalidDirPath(dir_path.to_path_buf()));
-        }
+        let sub_path_results =
+            dir_reader
+            .filter_map(|res| {
+                match res {
+                    Ok(dir_entry) => {
+                        let sub_item_path = dir_entry.path();
+                        match self.is_selected(&sub_item_path) {
+                            Ok(true) => Some(Ok(sub_item_path)),
+                            Ok(false) => None,
+                            Err(err) => Some(Err(err)),
+                        }
+                    }
+                    Err(err) => Some(Err(err)),
+                }
+            })
+            .collect()
+        ;
 
-        let mut selected_paths = Vec::new();
-
-        for item_entry_res in dir_path.read_dir().map_err(Error::CannotReadDir)? {
-            let item_path = item_entry_res.map(|e| e.path()).map_err(Error::CannotReadDirEntry)?;
-
-            if self.is_selected(&item_path) {
-                selected_paths.push(item_path);
-            }
-        }
-
-        Ok(selected_paths)
+        Ok(sub_path_results)
     }
 
-    pub fn select_in_dir_sorted<P>(&self, dir_path: P, sorter: Sorter) -> Result<Vec<PathBuf>, Error>
-    where
-        P: AsRef<Path>,
-    {
+    /// Selects paths inside a directory that match this `Selection`, and sorts them.
+    pub fn select_in_dir_sorted(&self, dir_path: &Path, sorter: Sorter) -> IoResult<Vec<IoResult<PathBuf>>> {
         let mut sel_item_paths = self.select_in_dir(dir_path)?;
-        sel_item_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
+
+        sel_item_paths.sort_by(|x, y| {
+            match (x, y) {
+                (Err(err), _) => Ordering::Less,
+                (_, Err(err)) => Ordering::Greater,
+                (Ok(a), Ok(b)) => sorter.path_sort_cmp(&a, &b),
+            }
+        });
+
         Ok(sel_item_paths)
     }
 }
@@ -375,9 +393,11 @@ mod tests {
                 &exclude_dir_patterns,
             ).unwrap();
 
-            let produced = selection
+            let produced =
+                selection
                 .select_in_dir(&path).unwrap()
                 .into_iter()
+                .map(|res| res.expect("unexpected IO error"))
                 .collect()
             ;
 
@@ -435,7 +455,13 @@ mod tests {
                 &exclude_dir_patterns,
             ).unwrap();
 
-            let produced = selection.select_in_dir_sorted(&path, sort_order).unwrap();
+            let produced =
+                selection
+                .select_in_dir_sorted(&path, sort_order).unwrap()
+                .into_iter()
+                .map(|res| res.expect("unexpected IO error"))
+                .collect::<Vec<_>>()
+            ;
 
             assert_eq!(expected, produced);
         }
