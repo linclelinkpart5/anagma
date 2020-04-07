@@ -1,34 +1,11 @@
 use std::borrow::Cow;
 use std::path::Path;
-use std::path::PathBuf;
 use std::collections::VecDeque;
 use std::path::Ancestors;
 use std::io::Error as IoError;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-
-// #[derive(Debug)]
-// pub enum Error {
-//     CannotBulkSelect(IoError, Vec<IoError>),
-// }
-
-// impl std::fmt::Display for Error {
-//     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-//         match *self {
-//             Self::CannotBulkSelect(_, ref other_errs)
-//                 => write!(f, "errors when bulk selecting: {}", 1 + other_errs.len()),
-//         }
-//     }
-// }
-
-// impl std::error::Error for Error {
-//     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-//         match *self {
-//             Self::CannotBulkSelect(ref err, _) => Some(err),
-//         }
-//     }
-// }
 
 /// Generic file walker that supports visiting either parent or child files of
 /// an origin path.
@@ -194,27 +171,27 @@ mod tests {
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
         assert!(walker.next().is_none());
 
-        walker.delve(&selection, sorter);
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2"));
         assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
-        walker.delve(&selection, sorter);
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1"));
 
-        walker.delve(&selection, sorter);
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0"));
 
         // Once files are found, observe the results of the selection.
-        walker.delve(&selection, sorter);
+        walker.delve(&selection, sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_2"));
 
         // Delving on a file does nothing, and does not error.
-        walker.delve(&selection, sorter);
+        walker.delve(&selection, sorter).unwrap();
 
         // Right back to where we were before delving into depth 3.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_1"));

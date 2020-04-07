@@ -3,7 +3,6 @@ mod matcher;
 
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::Error as IoError;
 use std::io::Result as IoResult;
 use std::cmp::Ordering;
 
@@ -185,8 +184,8 @@ impl Selection {
 
         sel_item_paths.sort_by(|x, y| {
             match (x, y) {
-                (Err(err), _) => Ordering::Less,
-                (_, Err(err)) => Ordering::Greater,
+                (Err(_), _) => Ordering::Less,
+                (_, Err(_)) => Ordering::Greater,
                 (Ok(a), Ok(b)) => sorter.path_sort_cmp(&a, &b),
             }
         });
