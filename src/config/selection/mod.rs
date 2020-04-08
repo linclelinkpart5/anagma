@@ -151,8 +151,8 @@ impl Selection {
 
     /// Selects paths inside a directory that match this `Selection`.
     // NOTE: This returns two "levels" of `Error`, a top-level one for any error
-    //       relating to accessing the pass-in directory path, and a `Vec` of
-    //       `Result`s for errors encountered when iterating.
+    //       relating to accessing the passed-in directory path, and a `Vec` of
+    //       `Result`s for errors encountered when iterating over sub-paths.
     pub fn select_in_dir(&self, dir_path: &Path) -> IoResult<Vec<IoResult<PathBuf>>> {
         // Try to open the path as a directory, handle the error as appropriate.
         let dir_reader = dir_path.read_dir()?;
@@ -168,7 +168,7 @@ impl Selection {
                             Ok(false) => None,
                             Err(err) => Some(Err(err)),
                         }
-                    }
+                    },
                     Err(err) => Some(Err(err)),
                 }
             })
@@ -184,9 +184,10 @@ impl Selection {
 
         sel_item_paths.sort_by(|x, y| {
             match (x, y) {
-                (Err(_), _) => Ordering::Less,
-                (_, Err(_)) => Ordering::Greater,
                 (Ok(a), Ok(b)) => sorter.path_sort_cmp(&a, &b),
+                (Err(_), Ok(_)) => Ordering::Less,
+                (Ok(_), Err(_)) => Ordering::Greater,
+                (Err(_), Err(_)) => Ordering::Equal,
             }
         });
 
