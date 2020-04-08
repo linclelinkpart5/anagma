@@ -351,14 +351,14 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], vec!["*"], Vec::<&str>::new()),
+                (&["music*"] as &[&str], &["*.mp3", "*.ogg", "*.aac"] as &[&str], &["*"] as &[&str], &[] as &[&str]),
                 hashset![
                     path.join("music.flac"),
                     path.join("music.wav"),
                 ],
             ),
             (
-                (vec!["*.flac"], vec![], vec!["*"], Vec::<&str>::new()),
+                (&["*.flac"], &[], &["*"], &[]),
                 hashset![
                     path.join("music.flac"),
                     path.join("item.flac"),
@@ -366,7 +366,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["music*"], vec![], vec!["*"], Vec::<&str>::new()),
+                (&["music*"], &[], &["*"], &[]),
                 hashset![
                     path.join("music.flac"),
                     path.join("music.wav"),
@@ -376,7 +376,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["item.*", "self.*"], vec!["*.flac"], vec!["*"], Vec::<&str>::new()),
+                (&["item.*", "self.*"], &["*.flac"], &["*"], &[]),
                 hashset![
                     path.join("item.yml"),
                     path.join("self.yml"),
@@ -385,13 +385,18 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns) = input;
+            let (
+                inc_file_pats,
+                exc_file_pats,
+                inc_dir_pats,
+                exc_dir_pats,
+            ) = input;
 
             let selection = Selection::from_patterns(
-                &include_file_patterns,
-                &exclude_file_patterns,
-                &include_dir_patterns,
-                &exclude_dir_patterns,
+                &inc_file_pats,
+                &exc_file_pats,
+                &inc_dir_pats,
+                &exc_dir_pats,
             ).unwrap();
 
             let produced =
@@ -413,14 +418,14 @@ mod tests {
 
         let inputs_and_expected = vec![
             (
-                (vec!["music*"], vec!["*.mp3", "*.ogg", "*.aac"], vec!["*"], Vec::<&str>::new(), Sorter::default()),
+                (&["music*"] as &[&str], &["*.mp3", "*.ogg", "*.aac"] as &[&str], &["*"] as &[&str], &[] as &[&str], Sorter::default()),
                 vec![
                     path.join("music.flac"),
                     path.join("music.wav"),
                 ],
             ),
             (
-                (vec!["*.flac"], vec![], vec!["*"], Vec::<&str>::new(), Sorter::default()),
+                (&["*.flac"], &[], &["*"], &[], Sorter::default()),
                 vec![
                     path.join("item.flac"),
                     path.join("music.flac"),
@@ -428,7 +433,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["music*"], vec![], vec!["*"], Vec::<&str>::new(), Sorter::default()),
+                (&["music*"], &[], &["*"], &[], Sorter::default()),
                 vec![
                     path.join("music.aac"),
                     path.join("music.flac"),
@@ -438,7 +443,7 @@ mod tests {
                 ],
             ),
             (
-                (vec!["item.*", "self.*"], vec!["*.flac"], vec!["*"], Vec::<&str>::new(), Sorter::default()),
+                (&["item.*", "self.*"], &["*.flac"], &["*"], &[], Sorter::default()),
                 vec![
                     path.join("item.yml"),
                     path.join("self.yml"),
@@ -447,13 +452,19 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (include_file_patterns, exclude_file_patterns, include_dir_patterns, exclude_dir_patterns, sort_order) = input;
+            let (
+                inc_file_pats,
+                exc_file_pats,
+                inc_dir_pats,
+                exc_dir_pats,
+                sort_order,
+            ) = input;
 
             let selection = Selection::from_patterns(
-                &include_file_patterns,
-                &exclude_file_patterns,
-                &include_dir_patterns,
-                &exclude_dir_patterns,
+                &inc_file_pats,
+                &exc_file_pats,
+                &inc_dir_pats,
+                &exc_dir_pats,
             ).unwrap();
 
             let produced =
