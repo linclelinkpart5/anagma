@@ -5,6 +5,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::io::Result as IoResult;
 use std::cmp::Ordering;
+use std::fs::ReadDir;
 
 use strum::IntoEnumIterator;
 use serde::Deserialize;
@@ -19,8 +20,6 @@ pub use self::matcher::Error as MatcherError;
 pub enum Error {
     InvalidDirPath(PathBuf),
     CannotBuildMatcher(MatcherError),
-    // CannotReadDir(std::io::Error),
-    // CannotReadDirEntry(std::io::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -30,10 +29,6 @@ impl std::fmt::Display for Error {
                 => write!(f, "not a valid directory: {}", p.display()),
             Self::CannotBuildMatcher(ref err)
                 => write!(f, "cannot build matcher: {}", err),
-            // Self::CannotReadDir(ref err)
-            //     => write!(f, "cannot read directory: {}", err),
-            // Self::CannotReadDirEntry(ref err)
-            //     => write!(f, "cannot read directory entry: {}", err),
         }
     }
 }
@@ -43,8 +38,6 @@ impl std::error::Error for Error {
         match *self {
             Self::InvalidDirPath(..) => None,
             Self::CannotBuildMatcher(ref err) => Some(err),
-            // Self::CannotReadDir(ref err) => Some(err),
-            // Self::CannotReadDirEntry(ref err) => Some(err),
         }
     }
 }
@@ -52,6 +45,32 @@ impl std::error::Error for Error {
 enum FileOrDir {
     File,
     Dir,
+}
+
+pub struct SelectedSubPaths<'a>(ReadDir, &'a Selection);
+
+impl<'a> Iterator for SelectedSubPaths<'a> {
+    type Item = IoResult<PathBuf>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let read_dir = &mut self.0;
+        let selection = &self.1;
+
+        // Get next entry from the directory reader.
+        read_dir.find_map(|res| {
+            match res {
+                Ok(dir_entry) => {
+                    let sub_path = dir_entry.path();
+                    match selection.is_selected(&sub_path) {
+                        Ok(true) => Some(Ok(sub_path)),
+                        Ok(false) => None,
+                        Err(err) => Some(Err(err)),
+                    }
+                },
+                Err(err) => Some(Err(err)),
+            }
+        })
+    }
 }
 
 /// A type that represents included/excluded item files and directories.
@@ -139,7 +158,7 @@ impl Selection {
 
     /// Returns true if a path is selected.
     /// This accesses the filesystem to tell if the path is a file or directory.
-    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> Result<bool, std::io::Error> {
+    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> IoResult<bool> {
         let file_info = std::fs::metadata(&path)?;
 
         Ok(
@@ -153,34 +172,16 @@ impl Selection {
     // NOTE: This returns two "levels" of `Error`, a top-level one for any error
     //       relating to accessing the passed-in directory path, and a `Vec` of
     //       `Result`s for errors encountered when iterating over sub-paths.
-    pub fn select_in_dir(&self, dir_path: &Path) -> IoResult<Vec<IoResult<PathBuf>>> {
+    pub fn select_in_dir(&self, dir_path: &Path) -> IoResult<SelectedSubPaths> {
         // Try to open the path as a directory, handle the error as appropriate.
         let dir_reader = dir_path.read_dir()?;
 
-        let sub_path_results =
-            dir_reader
-            .filter_map(|res| {
-                match res {
-                    Ok(dir_entry) => {
-                        let sub_item_path = dir_entry.path();
-                        match self.is_selected(&sub_item_path) {
-                            Ok(true) => Some(Ok(sub_item_path)),
-                            Ok(false) => None,
-                            Err(err) => Some(Err(err)),
-                        }
-                    },
-                    Err(err) => Some(Err(err)),
-                }
-            })
-            .collect()
-        ;
-
-        Ok(sub_path_results)
+        Ok(SelectedSubPaths(dir_reader, &self))
     }
 
     /// Selects paths inside a directory that match this `Selection`, and sorts them.
     pub fn select_in_dir_sorted(&self, dir_path: &Path, sorter: Sorter) -> IoResult<Vec<IoResult<PathBuf>>> {
-        let mut sel_item_paths = self.select_in_dir(dir_path)?;
+        let mut sel_item_paths = self.select_in_dir(dir_path)?.collect::<Vec<_>>();
 
         sel_item_paths.sort_by(|x, y| {
             match (x, y) {
