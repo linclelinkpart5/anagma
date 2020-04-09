@@ -29,6 +29,7 @@ impl std::error::Error for Error {
     }
 }
 
+// NOTE: Re-exporting to allow downstream users to ensure usage of the correct types.
 pub type Integer = i64;
 pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
@@ -114,6 +115,12 @@ impl From<Integer> for Value {
     }
 }
 
+impl From<&Integer> for Value {
+    fn from(i: &Integer) -> Self {
+        Self::from(*i)
+    }
+}
+
 impl TryFrom<Value> for Integer {
     type Error = Error;
 
@@ -142,6 +149,12 @@ impl From<Boolean> for Value {
     }
 }
 
+impl From<&Boolean> for Value {
+    fn from(b: &Boolean) -> Self {
+        Self::from(*b)
+    }
+}
+
 impl TryFrom<Value> for Boolean {
     type Error = Error;
 
@@ -167,6 +180,12 @@ impl<'k> TryFrom<&'k Value> for Boolean {
 impl From<Decimal> for Value {
     fn from(d: Decimal) -> Self {
         Self::Decimal(d)
+    }
+}
+
+impl From<&Decimal> for Value {
+    fn from(d: &Decimal) -> Self {
+        Self::from(*d)
     }
 }
 
@@ -232,6 +251,12 @@ impl From<Number> for Value {
             Number::Integer(i) => Self::from(i),
             Number::Decimal(d) => Self::from(d),
         }
+    }
+}
+
+impl From<&Number> for Value {
+    fn from(nl: &Number) -> Value {
+        Self::from(*nl)
     }
 }
 
