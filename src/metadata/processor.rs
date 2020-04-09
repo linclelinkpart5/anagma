@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn process_meta_file() {
-        let temp_dir = create_temp_media_test_dir("test_process_meta_file");
+        let temp_dir = create_temp_media_test_dir("process_meta_file");
         let path = temp_dir.path();
 
         let selection = Selection::default();
@@ -255,7 +255,7 @@ mod tests {
 
     #[test]
     fn process_item_file() {
-        let temp_dir = create_temp_media_test_dir("test_process_item_file");
+        let temp_dir = create_temp_media_test_dir("process_item_file");
         let path = temp_dir.path();
 
         let selection = Selection::default();

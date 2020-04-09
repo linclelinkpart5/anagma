@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn meta_field_stream_all() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_stream_all", 3, 3, TestUtil::flag_set_by_all);
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("meta_field_stream_all", 3, 3, TestUtil::flag_set_by_all);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn meta_field_stream_default() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_stream_default", 3, 3, TestUtil::flag_set_by_default);
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("meta_field_stream_default", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn meta_field_stream_none() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("test_meta_field_stream_none", 3, 3, TestUtil::flag_set_by_none);
+        let temp_dir = TestUtil::create_meta_fanout_test_dir("meta_field_stream_none", 3, 3, TestUtil::flag_set_by_none);
         let root_dir = temp_dir.path();
         let selection = Selection::default();
 

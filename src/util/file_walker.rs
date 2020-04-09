@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn parent_file_walker() {
-        let root_dir = TestUtil::create_plain_fanout_test_dir("test_parent_file_walker", 3, 3);
+        let root_dir = TestUtil::create_plain_fanout_test_dir("parent_file_walker", 3, 3);
 
         let start_path = root_dir.path().join("0").join("0_1").join("0_1_0");
         let mut walker = ParentFileWalker::new(&start_path);
@@ -158,7 +158,7 @@ mod tests {
 
     #[test]
     fn child_file_walker() {
-        let root_dir = TestUtil::create_plain_fanout_test_dir("test_child_file_walker", 3, 3);
+        let root_dir = TestUtil::create_plain_fanout_test_dir("child_file_walker", 3, 3);
 
         let start_path = root_dir.path();
 

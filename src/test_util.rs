@@ -626,7 +626,7 @@ mod tests {
 
     #[test]
     fn create_meta_fanout_test_dir() {
-        TestUtil::create_meta_fanout_test_dir("test_create_meta_fanout_test_dir", 3, 3, |_, _| true);
+        TestUtil::create_meta_fanout_test_dir("create_meta_fanout_test_dir", 3, 3, |_, _| true);
     }
 
     #[test]

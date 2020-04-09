@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn select_in_dir() {
-        let temp_dir = create_test_dir("test_select_in_dir");
+        let temp_dir = create_test_dir("select_in_dir");
         let path = temp_dir.path();
 
         let inputs_and_expected = vec![
@@ -413,7 +413,7 @@ mod tests {
 
     #[test]
     fn select_in_dir_sorted() {
-        let temp_dir = create_test_dir("test_select_in_dir_sorted");
+        let temp_dir = create_test_dir("select_in_dir_sorted");
         let path = temp_dir.path();
 
         let inputs_and_expected = vec![

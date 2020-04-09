@@ -72,7 +72,7 @@ mod tests {
     // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
     fn mtime() {
         // Create temp directory.
-        let temp = Builder::new().suffix("test_mtime").tempdir().expect("unable to create temp directory");
+        let temp = Builder::new().suffix("mtime").tempdir().expect("unable to create temp directory");
         let tp = temp.path();
 
         let time_a = SystemTime::now();
