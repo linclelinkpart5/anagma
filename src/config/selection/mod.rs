@@ -53,6 +53,7 @@ impl<'a> Iterator for SelectedSubPaths<'a> {
     type Item = IoResult<PathBuf>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // LEARN: Unable to inline these, had to use `let`, why is that?
         let read_dir = &mut self.0;
         let selection = &self.1;
 
@@ -73,7 +74,7 @@ impl<'a> Iterator for SelectedSubPaths<'a> {
     }
 }
 
-/// A type that represents included/excluded item files and directories.
+/// A type that represents included and excluded item files and directories.
 #[derive(Deserialize, Debug)]
 #[serde(default)]
 #[serde(deny_unknown_fields)]
@@ -87,7 +88,8 @@ pub struct Selection {
 impl Default for Selection {
     fn default() -> Self {
         // TODO: Replace with `StaticVec` once released for stable Rust.
-        let excluded_patterns = Target::iter()
+        let excluded_patterns =
+            Target::iter()
             .map(|ml| format!("{}*", ml.default_file_name()))
             .collect::<Vec<_>>()
         ;
@@ -112,14 +114,12 @@ impl Selection {
         Self { include_files, exclude_files, include_dirs, exclude_dirs, }
     }
 
-    pub fn from_patterns<S>(
+    pub fn from_patterns<S: AsRef<str>>(
         include_file_patterns: &[S],
         exclude_file_patterns: &[S],
         include_dir_patterns: &[S],
         exclude_dir_patterns: &[S],
     ) -> Result<Self, Error>
-    where
-        S: AsRef<str>,
     {
         let include_files = Matcher::build(include_file_patterns).map_err(Error::CannotBuildMatcher)?;
         let exclude_files = Matcher::build(exclude_file_patterns).map_err(Error::CannotBuildMatcher)?;
