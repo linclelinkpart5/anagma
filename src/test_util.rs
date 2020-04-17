@@ -29,16 +29,16 @@ enum TEntry<'a> {
 
 impl<'a> TEntry<'a> {
     pub fn name(&self) -> &str {
-        match *self {
-            TEntry::Dir(ref name, ..) => name,
-            TEntry::File(ref name, ..) => name,
+        match self {
+            Self::Dir(ref name, ..) => name,
+            Self::File(ref name, ..) => name,
         }
     }
 
     pub fn include_spelunk_str(&self) -> bool {
-        match *self {
-            TEntry::Dir(_, b, ..) => b,
-            TEntry::File(_, b, ..) => b,
+        match self {
+            Self::Dir(_, b, ..) => *b,
+            Self::File(_, b, ..) => *b,
         }
     }
 }
@@ -115,41 +115,41 @@ const TEST_DIR_ENTRIES: &[TEntry] = &[
 
 const MEDIA_FILE_EXT: &str = "flac";
 
-// LEARN: Why unable to use IntoIterator<Item = Entry>?
-fn create_test_dir_entries<'a, P, S>(identifier: S, target_dir_path: P, subentries: &[TEntry<'a>], db: &DirBuilder, staggered: bool)
-where P: AsRef<Path>,
-      S: AsRef<str>,
+fn create_test_dir_entries<'a>(
+    name: &str,
+    target_dir_path: &Path,
+    subentries: &[TEntry<'a>],
+    db: &DirBuilder,
+    staggered: bool,
+)
 {
-    let identifier = identifier.as_ref();
-    let target_dir_path = target_dir_path.as_ref();
-
     // Create self meta file for this directory.
-    let mut self_meta_file = File::create(target_dir_path.join("self.yml")).expect("unable to create self meta file");
-    writeln!(self_meta_file, "const_key: const_val\nself_key: self_val\n{}_self_key: {}_self_val\noverridden: {}_self", identifier, identifier, identifier).expect("unable to write to self meta file");
-    // writeln!(self_meta_file, "const_key: const_val").expect("unable to write to self meta file");
-    // writeln!(self_meta_file, "self_key: self_val").expect("unable to write to self meta file");
-    // writeln!(self_meta_file, "{}_self_key: {}_self_val", identifier, identifier).expect("unable to write to self meta file");
-    // writeln!(self_meta_file, "overridden: {}_self", identifier).expect("unable to write to self meta file");
+    let mut self_meta_file = File::create(target_dir_path.join("self.yml")).unwrap();
+    writeln!(self_meta_file, "const_key: const_val").unwrap();
+    writeln!(self_meta_file, "self_key: self_val").unwrap();
+    writeln!(self_meta_file, "{}_self_key: {}_self_val", name, name).unwrap();
+    writeln!(self_meta_file, "overridden: {}_self", name).unwrap();
 
     // Create all sub-entries, and collect info to create item metadata.
     let mut item_meta_contents = String::new();
     for subentry in subentries.into_iter() {
-        // helper(&subentry, &target_dir_path, db /*, imt*/);
-
-        match *subentry {
+        match subentry {
             TEntry::File(name, ..) => {
-                File::create(target_dir_path.join(name).with_extension(MEDIA_FILE_EXT)).expect("unable to create file");
+                File::create(target_dir_path.join(name).with_extension(MEDIA_FILE_EXT)).unwrap();
             },
             TEntry::Dir(name, _, new_subentries) => {
                 let new_dir_path = target_dir_path.join(name);
-                db.create(&new_dir_path).expect("unable to create dir");
+                db.create(&new_dir_path).unwrap();
 
-                create_test_dir_entries(name, new_dir_path, new_subentries, db, staggered);
+                create_test_dir_entries(name, &new_dir_path, new_subentries, db, staggered);
             }
         }
 
-        let entry_string = format!("- const_key: const_val\n  item_key: item_val\n  {}_item_key: {}_item_val\n  overridden: {}_item\n", subentry.name(), subentry.name(), subentry.name());
-        item_meta_contents.push_str(&entry_string);
+        // Write meta file contents for this new sub item.
+        item_meta_contents.push_str("- const_key: const_val\n");
+        item_meta_contents.push_str("  item_key: item_val\n");
+        item_meta_contents.push_str(&format!("  {}_item_key: {}_item_val\n", subentry.name(), subentry.name()));
+        item_meta_contents.push_str(&format!("  overridden: {}_item\n", subentry.name()));
 
         if staggered && subentry.include_spelunk_str() {
             // Add unique meta keys that are intended for child aggregating tests.

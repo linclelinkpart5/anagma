@@ -55,12 +55,8 @@ pub struct ParentFileWalker<'p>(Ancestors<'p>);
 
 impl<'p> ParentFileWalker<'p> {
     /// Constructs a new `ParentFileWalker` starting at a specified item path.
-    // LEARN: Since `PathBuf` impls `AsRef<Path>`, a caller could pass ownership
-    // of a `PathBuf` here, so `&'p P` instead of just `P` is required.
-    // This forces the input to be a borrow, so storing the result of `.as_ref()`
-    // (which borrows its input) is valid.
-    pub fn new<P: AsRef<Path>>(origin_item_path: &'p P) -> Self {
-        Self(origin_item_path.as_ref().ancestors())
+    pub fn new(origin_item_path: &'p Path) -> Self {
+        Self(origin_item_path.ancestors())
     }
 }
 
@@ -82,11 +78,11 @@ pub struct ChildFileWalker<'p> {
 
 impl<'p> ChildFileWalker<'p> {
     /// Constructs a new `ChildFileWalker` starting at a specified item path.
-    pub fn new<P: AsRef<Path>>(origin_item_path: &'p P) -> Self {
-        let mut frontier = VecDeque::new();
+    pub fn new(origin_item_path: &'p Path) -> Self {
+        let mut frontier = VecDeque::with_capacity(1);
 
         // Initialize the frontier with the origin item.
-        frontier.push_back(Ok(Cow::Borrowed(origin_item_path.as_ref())));
+        frontier.push_back(Ok(Cow::Borrowed(origin_item_path)));
 
         let last_processed_path = None;
 
