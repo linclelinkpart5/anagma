@@ -48,13 +48,6 @@ enum NEntry<'a> {
 }
 
 impl<'a> NEntry<'a> {
-    pub fn name(&self) -> &str {
-        match self {
-            Self::Dir(ref name, _) => name,
-            Self::File(ref name) => name,
-        }
-    }
-
     /// Create this entry and its metadata recursively in a target directory.
     pub fn realize_and_emit(&self, root_dir: &Path, flagger: &mut Flagger) -> Json {
         // Create the actual entry (file or directory).
@@ -114,7 +107,7 @@ impl<'a> NLibrary<'a> {
     pub fn realize(&self, root_dir: &Path, flagger: &mut Flagger) {
         // Create a self metadata file for the root directory.
         let meta_file_path = root_dir.join("self.json");
-        let mut meta_file = File::create(&meta_file_path).unwrap();
+        let meta_file = File::create(&meta_file_path).unwrap();
         let json = create_meta_json(
             self.name,
             Target::Parent,
