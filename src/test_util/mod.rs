@@ -27,8 +27,6 @@ use crate::metadata::value::Mapping;
 use crate::metadata::block::Block;
 use crate::metadata::schema::Schema;
 
-use self::entry::NEntry;
-use self::entry::NLibrary;
 use self::entry::Flagger;
 use self::entry::MEDIA_FILE_EXT;
 
@@ -52,6 +50,7 @@ impl<'a> TEntry<'a> {
         }
     }
 }
+
 
 const TEST_DIR_ENTRIES: &[TEntry] = &[
     // Well-behaved album.
