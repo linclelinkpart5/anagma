@@ -27,8 +27,9 @@ use crate::metadata::value::Mapping;
 use crate::metadata::block::Block;
 use crate::metadata::schema::Schema;
 
-use self::entry::Flagger;
 use self::entry::MEDIA_FILE_EXT;
+use self::entry::DEFAULT_FLAGGER;
+use self::entry::DEFAULT_LIBRARY;
 
 enum TEntry<'a> {
     Dir(&'a str, bool, &'a [TEntry<'a>]),
@@ -346,6 +347,15 @@ impl TestUtil {
     pub const NULL_KEY: &'static str = "null_key";
     pub const SEQUENCE_KEY: &'static str = "sequence_key";
     pub const MAPPING_KEY: &'static str = "mapping_key";
+
+    pub fn create_temp_media_test_dir(name: &str) -> TempDir {
+        let temp_dir = Builder::new().suffix(name).tempdir().unwrap();
+
+        DEFAULT_LIBRARY.realize(&temp_dir.path(), &DEFAULT_FLAGGER);
+
+        std::thread::sleep(Duration::from_millis(1));
+        temp_dir
+    }
 
     pub fn sample_string() -> Value {
         Value::String(String::from("string"))

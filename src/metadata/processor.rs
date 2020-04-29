@@ -149,13 +149,11 @@ mod tests {
 
     use maplit::{hashmap, btreemap};
 
-    use crate::test_util::create_temp_media_test_dir;
-
     use crate::test_util::TestUtil as TU;
 
     #[test]
     fn process_meta_file() {
-        let temp_dir = create_temp_media_test_dir("process_meta_file");
+        let temp_dir = TU::create_temp_media_test_dir("process_meta_file");
         let path = temp_dir.path();
 
         let selection = Selection::default();
@@ -164,7 +162,7 @@ mod tests {
         // Success cases
         let inputs_and_expected = vec![
             // (
-            //     (path.join("self.yml"), Target::Parent),
+            //     (path.join("self.json"), Target::Parent),
             //     hashmap![
             //         path.to_owned() => btreemap![
             //             "ROOT_self_key".to_owned() => TU::s("ROOT_self_val"),
@@ -175,7 +173,7 @@ mod tests {
             //     ],
             // ),
             (
-                (path.join("item.yml"), Target::Siblings),
+                (path.join("item.json"), Target::Siblings),
                 hashmap![
                     Cow::Owned(path.join("ALBUM_01")) => btreemap![
                         String::from("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
@@ -210,7 +208,7 @@ mod tests {
                 ],
             ),
             // (
-            //     (path.join("ALBUM_01").join("self.yml"), Target::Parent),
+            //     (path.join("ALBUM_01").join("self.json"), Target::Parent),
             //     hashmap![
             //         path.join("ALBUM_01") => btreemap![
             //             "ALBUM_01_self_key".to_owned() => TU::s("ALBUM_01_self_val"),
@@ -221,7 +219,7 @@ mod tests {
             //     ],
             // ),
             // (
-            //     (path.join("ALBUM_01").join("DISC_01").join("item.yml"), Target::Siblings),
+            //     (path.join("ALBUM_01").join("DISC_01").join("item.json"), Target::Siblings),
             //     hashmap![
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac") => btreemap![
             //             "TRACK_01_item_key".to_owned() => TU::s("TRACK_01_item_val"),
@@ -248,14 +246,14 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = Processor::process_meta_file(&meta_path, meta_target, SchemaFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_meta_file(&meta_path, meta_target, SchemaFormat::Json, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
 
     #[test]
     fn process_item_file() {
-        let temp_dir = create_temp_media_test_dir("process_item_file");
+        let temp_dir = TU::create_temp_media_test_dir("process_item_file");
         let path = temp_dir.path();
 
         let selection = Selection::default();
@@ -297,7 +295,7 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = Processor::process_item_file(&item_path, SchemaFormat::Yaml, &selection, sorter).unwrap();
+            let produced = Processor::process_item_file(&item_path, SchemaFormat::Json, &selection, sorter).unwrap();
             assert_eq!(expected, produced);
         }
     }
