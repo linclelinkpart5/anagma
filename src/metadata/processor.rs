@@ -161,17 +161,17 @@ mod tests {
 
         // Success cases
         let inputs_and_expected = vec![
-            // (
-            //     (path.join("self.json"), Target::Parent),
-            //     hashmap![
-            //         path.to_owned() => btreemap![
-            //             "ROOT_self_key".to_owned() => TU::s("ROOT_self_val"),
-            //             "const_key".to_owned() => TU::s("const_val"),
-            //             "self_key".to_owned() => TU::s("self_val"),
-            //             "overridden".to_owned() => TU::s("ROOT_self"),
-            //         ],
-            //     ],
-            // ),
+            (
+                (path.join("self.json"), Target::Parent),
+                hashmap![
+                    Cow::Owned(path.to_owned()) => btreemap![
+                        "ROOT_self_key".to_owned() => TU::s("ROOT_self_val"),
+                        "const_key".to_owned() => TU::s("const_val"),
+                        "self_key".to_owned() => TU::s("self_val"),
+                        "overridden".to_owned() => TU::s("ROOT_self"),
+                    ],
+                ],
+            ),
             (
                 (path.join("item.json"), Target::Siblings),
                 hashmap![
