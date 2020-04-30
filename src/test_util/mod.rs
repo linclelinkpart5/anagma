@@ -5,7 +5,6 @@ mod entry;
 use std::fs::DirBuilder;
 use std::fs::File;
 use std::path::Path;
-use std::path::PathBuf;
 use std::io::Write;
 use std::time::Duration;
 
@@ -13,11 +12,9 @@ use tempfile::Builder;
 use tempfile::TempDir;
 use rust_decimal::Decimal;
 use rand::seq::SliceRandom;
-use serde_json::Value as Json;
 
 use maplit::btreemap;
 use rust_decimal_macros::dec;
-use serde_json::json;
 
 use crate::metadata::schema::SchemaFormat;
 use crate::metadata::target::Target;
@@ -27,167 +24,8 @@ use crate::metadata::value::Mapping;
 use crate::metadata::block::Block;
 use crate::metadata::schema::Schema;
 
-use self::entry::MEDIA_FILE_EXT;
 use self::entry::DEFAULT_FLAGGER;
 use self::entry::DEFAULT_LIBRARY;
-
-enum TEntry<'a> {
-    Dir(&'a str, bool, &'a [TEntry<'a>]),
-    File(&'a str, bool)
-}
-
-impl<'a> TEntry<'a> {
-    pub fn name(&self) -> &str {
-        match self {
-            Self::Dir(ref name, ..) => name,
-            Self::File(ref name, ..) => name,
-        }
-    }
-
-    pub fn include_spelunk_str(&self) -> bool {
-        match self {
-            Self::Dir(_, b, ..) => *b,
-            Self::File(_, b, ..) => *b,
-        }
-    }
-}
-
-
-const TEST_DIR_ENTRIES: &[TEntry] = &[
-    // Well-behaved album.
-    TEntry::Dir("ALBUM_01", false, &[
-        TEntry::Dir("DISC_01", false, &[
-            TEntry::File("TRACK_01", false),
-            TEntry::File("TRACK_02", true),
-            TEntry::File("TRACK_03", false),
-        ]),
-        TEntry::Dir("DISC_02", true, &[
-            TEntry::File("TRACK_01", false),
-            TEntry::File("TRACK_02", false),
-            TEntry::File("TRACK_03", false),
-        ]),
-    ]),
-
-    // Album with a disc and tracks, and loose tracks not on a disc.
-    TEntry::Dir("ALBUM_02", false, &[
-        TEntry::Dir("DISC_01", true, &[
-            TEntry::File("TRACK_01", false),
-            TEntry::File("TRACK_02", false),
-            TEntry::File("TRACK_03", false),
-        ]),
-        TEntry::File("TRACK_01", false),
-        TEntry::File("TRACK_02", true),
-        TEntry::File("TRACK_03", false),
-    ]),
-
-    // Album with discs and tracks, and subtracks on one disc.
-    TEntry::Dir("ALBUM_03", true, &[
-        TEntry::Dir("DISC_01", true, &[
-            TEntry::File("TRACK_01", true),
-            TEntry::File("TRACK_02", true),
-            TEntry::File("TRACK_03", true),
-        ]),
-        TEntry::Dir("DISC_02", true, &[
-            TEntry::Dir("TRACK_01", true, &[
-                TEntry::File("SUBTRACK_01", true),
-                TEntry::File("SUBTRACK_02", true),
-            ]),
-            TEntry::Dir("TRACK_02", true, &[
-                TEntry::File("SUBTRACK_01", true),
-                TEntry::File("SUBTRACK_02", true),
-            ]),
-            TEntry::File("TRACK_03", true),
-            TEntry::File("TRACK_04", true),
-        ]),
-    ]),
-
-    // Album that consists of one file.
-    TEntry::File("ALBUM_04", false),
-
-    // A very messed-up album.
-    TEntry::Dir("ALBUM_05", false, &[
-        TEntry::Dir("DISC_01", true, &[
-            TEntry::File("SUBTRACK_01", true),
-            TEntry::File("SUBTRACK_02", false),
-            TEntry::File("SUBTRACK_03", false),
-        ]),
-        TEntry::Dir("DISC_02", false, &[
-            TEntry::Dir("TRACK_01", false, &[
-                TEntry::File("SUBTRACK_01", true),
-                TEntry::File("SUBTRACK_02", false),
-            ]),
-        ]),
-        TEntry::File("TRACK_01", true),
-        TEntry::File("TRACK_02", false),
-        TEntry::File("TRACK_03", false),
-    ]),
-];
-
-fn create_test_dir_entries<'a>(
-    name: &str,
-    target_dir_path: &Path,
-    subentries: &[TEntry<'a>],
-    db: &DirBuilder,
-    staggered: bool,
-)
-{
-    // Create self meta file for this directory.
-    let mut self_meta_file = File::create(target_dir_path.join("self.yml")).unwrap();
-    writeln!(self_meta_file, "const_key: const_val").unwrap();
-    writeln!(self_meta_file, "self_key: self_val").unwrap();
-    writeln!(self_meta_file, "{}_self_key: {}_self_val", name, name).unwrap();
-    writeln!(self_meta_file, "overridden: {}_self", name).unwrap();
-
-    // Create all sub-entries, and collect info to create item metadata.
-    let mut item_meta_contents = String::new();
-    for subentry in subentries.into_iter() {
-        match subentry {
-            TEntry::File(name, ..) => {
-                File::create(target_dir_path.join(name).with_extension(MEDIA_FILE_EXT)).unwrap();
-            },
-            TEntry::Dir(name, _, new_subentries) => {
-                let new_dir_path = target_dir_path.join(name);
-                db.create(&new_dir_path).unwrap();
-
-                create_test_dir_entries(name, &new_dir_path, new_subentries, db, staggered);
-            }
-        }
-
-        // Write meta file contents for this new sub item.
-        item_meta_contents.push_str("- const_key: const_val\n");
-        item_meta_contents.push_str("  item_key: item_val\n");
-        item_meta_contents.push_str(&format!("  {}_item_key: {}_item_val\n", subentry.name(), subentry.name()));
-        item_meta_contents.push_str(&format!("  overridden: {}_item\n", subentry.name()));
-
-        if staggered && subentry.include_spelunk_str() {
-            // Add unique meta keys that are intended for child aggregating tests.
-            item_meta_contents.push_str(&format!("  staggered_key:\n"));
-            item_meta_contents.push_str(&format!("    sub_key_a: {}_sub_val_a\n", subentry.name()));
-            item_meta_contents.push_str(&format!("    sub_key_b: {}_sub_val_b\n", subentry.name()));
-            item_meta_contents.push_str(&format!("    sub_key_c:\n"));
-            item_meta_contents.push_str(&format!("      sub_sub_key_a: {}_sub_sub_val_a\n", subentry.name()));
-            item_meta_contents.push_str(&format!("      sub_sub_key_b: {}_sub_sub_val_b\n", subentry.name()));
-        }
-    }
-
-    // Create item meta file for all items in this directory.
-    let mut item_meta_file = File::create(target_dir_path.join("item.yml")).expect("unable to create item meta file");
-    item_meta_file.write_all(item_meta_contents.as_bytes()).expect("unable to write to item meta file");
-}
-
-fn create_temp_media_test_dir_helper(name: &str, staggered: bool) -> TempDir {
-    let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
-    let db = DirBuilder::new();
-
-    create_test_dir_entries("ROOT", root_dir.path(), TEST_DIR_ENTRIES, &db, staggered);
-
-    std::thread::sleep(Duration::from_millis(1));
-    root_dir
-}
-
-pub fn create_temp_media_test_dir(name: &str) -> TempDir {
-    create_temp_media_test_dir_helper(name, false)
-}
 
 trait TestSerialize {
     const INDENT: &'static str = "  ";

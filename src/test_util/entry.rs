@@ -7,8 +7,6 @@ use std::path::Path;
 use serde_json::Value as Json;
 use serde_json::Map as JsonMap;
 
-use serde_json::json;
-
 use crate::metadata::target::Target;
 
 pub(crate) const MEDIA_FILE_EXT: &str = "flac";
