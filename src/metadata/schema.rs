@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::Read;
 
 use serde::Deserialize;
+use serde::Serialize;
 
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
@@ -68,7 +69,8 @@ pub(crate) enum SchemaRepr {
 
 /// A data structure-level representation of all metadata structures.
 /// This is intended to be agnostic to the text-level format of the metadata.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
 pub enum Schema {
     One(Block),
     Seq(BlockSequence),

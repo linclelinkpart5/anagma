@@ -5,6 +5,7 @@ use std::convert::TryFrom;
 
 use rust_decimal::Decimal;
 use serde::Deserialize;
+use serde::Serialize;
 use strum_macros::{EnumDiscriminants, AsRefStr};
 
 use crate::util::Number;
@@ -36,7 +37,7 @@ pub type Sequence = Vec<Value>;
 pub type Mapping = BTreeMap<String, Value>;
 
 /// Represents the types of data that can be used as metadata values.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, EnumDiscriminants)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, Serialize, EnumDiscriminants)]
 #[serde(untagged)]
 #[strum_discriminants(name(ValueKind), derive(Hash, AsRefStr))]
 pub enum Value {
