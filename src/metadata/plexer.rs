@@ -23,8 +23,8 @@ impl std::fmt::Display for Error {
             Self::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
             Self::UnusedBlock(_, ref opt_tag) => {
                 let tag_desc = match opt_tag {
-                    Some(tag) => format!(", with tag: {}", tag),
-                    None => String::from(""),
+                    Some(tag) => Cow::Owned(format!(", with tag: {}", tag)),
+                    None => Cow::Borrowed(""),
                 };
 
                 write!(f, "meta block was unused in plexing{}", tag_desc)
