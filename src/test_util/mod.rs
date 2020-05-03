@@ -103,7 +103,7 @@ impl TestUtil {
     }
 
     pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Sequence {
-        let mut nums = vec![];
+        let mut nums = Vec::new();
 
         for i in 1..=int_max {
             nums.push(Value::Integer(i));
@@ -197,7 +197,7 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, fanout, vec![], max_depth);
+        fill_dir(root_dir.path(), &db, fanout, Vec::new(), max_depth);
 
         root_dir
     }
@@ -226,7 +226,7 @@ impl TestUtil {
             let self_meta_struct = Schema::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
             serde_json::to_writer_pretty(self_meta_file, &self_meta_struct).unwrap();
 
-            let mut item_meta_blocks = vec![];
+            let mut item_meta_blocks = Vec::new();
 
             for i in 0..fanout {
                 let mut new_breadcrumbs = breadcrumbs.clone();
@@ -266,7 +266,7 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, "ROOT", fanout, vec![], max_depth, flag_set_by);
+        fill_dir(root_dir.path(), &db, "ROOT", fanout, Vec::new(), max_depth, flag_set_by);
 
         std::thread::sleep(Duration::from_millis(1));
         root_dir

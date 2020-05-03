@@ -182,7 +182,7 @@ mod tests {
             Sorter::default(),
         );
 
-        let expected: Vec<(Cow<'_, _>, Value)> = vec![];
+        let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
         let produced = {
             ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()
@@ -204,7 +204,7 @@ mod tests {
             Sorter::default(),
         );
 
-        let expected: Vec<(Cow<'_, _>, Value)> = vec![];
+        let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
         let produced = {
             ValueStream::new(target_key_path.clone(), block_stream)
                 .into_iter()

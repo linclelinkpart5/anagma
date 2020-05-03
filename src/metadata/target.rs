@@ -167,7 +167,7 @@ impl Target {
         // Get the parent directory of the meta file.
         // NOTE: This is only outside the pattern match because all branches currently use it.
         if let Some(meta_parent_dir_path) = meta_path.parent() {
-            let mut item_paths = vec![];
+            let mut item_paths = Vec::new();
 
             match self {
                 Self::Siblings => {
