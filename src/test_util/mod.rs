@@ -5,175 +5,25 @@ mod entry;
 use std::fs::DirBuilder;
 use std::fs::File;
 use std::path::Path;
-use std::io::Write;
 use std::time::Duration;
 
+use rand::seq::SliceRandom;
+use rust_decimal::Decimal;
 use tempfile::Builder;
 use tempfile::TempDir;
-use rust_decimal::Decimal;
-use rand::seq::SliceRandom;
 
 use maplit::btreemap;
 use rust_decimal_macros::dec;
 
-use crate::metadata::schema::SchemaFormat;
+use crate::metadata::block::Block;
+use crate::metadata::schema::Schema;
 use crate::metadata::target::Target;
 use crate::metadata::value::Value;
 use crate::metadata::value::Sequence;
 use crate::metadata::value::Mapping;
-use crate::metadata::block::Block;
-use crate::metadata::schema::Schema;
 
 use self::entry::DEFAULT_FLAGGER;
 use self::entry::DEFAULT_LIBRARY;
-
-trait TestSerialize {
-    const INDENT: &'static str = "  ";
-    const YAML_LIST_ITEM: &'static str = "- ";
-
-    fn indent_chunk(s: String) -> String {
-        let mut to_join = vec![];
-
-        for line in s.lines() {
-            to_join.push(format!("{}{}", Self::INDENT, line));
-        }
-
-        to_join.join("\n")
-    }
-
-    fn indent_yaml_list_chunk(s: String) -> String {
-        let mut to_join = vec![];
-
-        for (i, line) in s.lines().enumerate() {
-            let prefix = if i == 0 { Self::YAML_LIST_ITEM } else { Self::INDENT };
-
-            to_join.push(format!("{}{}", prefix, line));
-        }
-
-        to_join.join("\n")
-    }
-
-    fn to_serialized_chunk(&self, schema_format: SchemaFormat) -> String;
-}
-
-impl TestSerialize for Schema {
-    fn to_serialized_chunk(&self, schema_format: SchemaFormat) -> String {
-        match self {
-            &Schema::One(ref mb) => Value::Mapping(mb.clone()).to_serialized_chunk(schema_format),
-            &Schema::Seq(ref mb_seq) => {
-                Value::Sequence(
-                    mb_seq
-                        .into_iter()
-                        .map(|v| Value::Mapping(v.clone()))
-                        .collect()
-                ).to_serialized_chunk(schema_format)
-            },
-            &Schema::Map(ref mb_map) => {
-                Value::Mapping(
-                    mb_map
-                        .into_iter()
-                        .map(|(k, v)| (k.clone(), Value::Mapping(v.clone())))
-                        .collect()
-                ).to_serialized_chunk(schema_format)
-            },
-        }
-    }
-}
-
-impl TestSerialize for Value {
-    fn to_serialized_chunk(&self, schema_format: SchemaFormat) -> String {
-        match (schema_format, self) {
-            (SchemaFormat::Json, &Self::Null) => "null".into(),
-            (SchemaFormat::Yaml, &Self::Null) => "~".into(),
-            (SchemaFormat::Json, &Self::String(ref s)) => format!(r#""{}""#, s),
-            (SchemaFormat::Yaml, &Self::String(ref s)) => s.clone(),
-            (_, &Self::Integer(i)) => format!("{}", i),
-            (_, &Self::Decimal(ref d)) => format!("{}", d),
-            (_, &Self::Boolean(b)) => format!("{}", b),
-            (SchemaFormat::Json, &Self::Sequence(ref seq)) => {
-                let mut val_chunks = vec![];
-
-                for val in seq {
-                    let val_chunk = val.to_serialized_chunk(schema_format);
-
-                    let val_chunk = Self::indent_chunk(val_chunk);
-
-                    val_chunks.push(val_chunk);
-                }
-
-                if val_chunks.len() > 0 {
-                    format!("[\n{}\n]", val_chunks.join(",\n"))
-                }
-                else {
-                    String::from("[]")
-                }
-            },
-            (SchemaFormat::Yaml, &Self::Sequence(ref seq)) => {
-                let mut val_chunks = vec![];
-
-                for val in seq {
-                    let val_chunk = val.to_serialized_chunk(schema_format);
-
-                    let val_chunk = Self::indent_yaml_list_chunk(val_chunk);
-
-                    val_chunks.push(val_chunk);
-                }
-
-                if val_chunks.len() > 0 {
-                    format!("{}", val_chunks.join("\n"))
-                }
-                else {
-                    String::from("[]")
-                }
-            },
-            (SchemaFormat::Json, &Self::Mapping(ref map)) => {
-                let mut kv_pair_chunks = vec![];
-
-                for (key, val) in map {
-                    let val_chunk = val.to_serialized_chunk(schema_format);
-
-                    let kv_pair_chunk = format!(r#""{}": {}"#, key, val_chunk);
-
-                    let kv_pair_chunk = Self::indent_chunk(kv_pair_chunk);
-
-                    kv_pair_chunks.push(kv_pair_chunk);
-                }
-
-                if kv_pair_chunks.len() > 0 {
-                    format!("{{\n{}\n}}", kv_pair_chunks.join(",\n"))
-                }
-                else {
-                    String::from("{}")
-                }
-            },
-            (SchemaFormat::Yaml, &Self::Mapping(ref map)) => {
-                let mut kv_pair_chunks = vec![];
-
-                for (key, val) in map {
-                    let val_chunk = {
-                        let val_chunk = val.to_serialized_chunk(schema_format);
-
-                        match val {
-                            Self::Sequence(..) | Self::Mapping(..) => format!("\n{}", Self::indent_chunk(val_chunk)),
-                            _ => format!(" {}", val_chunk),
-                        }
-                    };
-
-                    let kv_pair_chunk = format!("{}:{}", key, val_chunk);
-
-                    kv_pair_chunks.push(kv_pair_chunk);
-                }
-
-                if kv_pair_chunks.len() > 0 {
-                    format!("{}", kv_pair_chunks.join("\n"))
-                }
-                else {
-                    String::from("{}")
-                }
-            },
-        }
-    }
-}
 
 pub(crate) struct TestUtil;
 
@@ -287,14 +137,6 @@ impl TestUtil {
         Value::Sequence(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
     }
 
-    // pub fn sample_nested_sequence() -> Value {
-    //     Value::Sequence(Self::core_nested_sequence())
-    // }
-
-    // pub fn sample_nested_mapping() -> Value {
-    //     Value::Mapping(Self::core_nested_mapping())
-    // }
-
     pub fn sample_meta_block(meta_target: Target, target_name: &str, include_flag_key: bool) -> Block {
         let mut map = Self::core_nested_mapping();
 
@@ -322,32 +164,6 @@ impl TestUtil {
 
         map
     }
-
-    // /// Used for test scenarios where a target is not needed.
-    // pub fn sample_naive_meta_block(target_name: &str, include_flag_key: bool) -> Block {
-    //     let mut map = Self::core_nested_mapping();
-
-    //     map.insert(
-    //         String::from("target_file_name"),
-    //         Value::String(String::from(target_name)),
-    //     );
-
-    //     if include_flag_key {
-    //         map.insert(
-    //             String::from("flag_key"),
-    //             Value::String(String::from(target_name)),
-    //         );
-    //     }
-
-    //     map
-    // }
-
-    // pub fn create_fixed_value_stream<'a, II>(mvs: II) -> FixedValueStream<'a>
-    // where
-    //     II: IntoIterator<Item = Value<'a>>,
-    // {
-    //     FixedValueStream::new(mvs.into_iter().map(|mv| (Cow::Borrowed(Path::new("dummy")), mv)))
-    // }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
@@ -405,11 +221,10 @@ impl TestUtil {
         fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize, flag_set_by: fn(usize, usize) -> bool)
         {
             // Create self meta file.
-            let mut self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
+            let self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
 
             let self_meta_struct = Schema::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
-            let self_lines = self_meta_struct.to_serialized_chunk(SchemaFormat::Json);
-            writeln!(self_meta_file, "{}", self_lines).expect("unable to write to self meta file");
+            serde_json::to_writer_pretty(self_meta_file, &self_meta_struct).unwrap();
 
             let mut item_meta_blocks = vec![];
 
@@ -443,11 +258,10 @@ impl TestUtil {
             }
 
             // Create item meta file.
-            let mut item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
+            let item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
 
             let item_meta_struct = Schema::Seq(item_meta_blocks);
-            let item_lines = item_meta_struct.to_serialized_chunk(SchemaFormat::Json);
-            writeln!(item_meta_file, "{}", item_lines).expect("unable to write to item meta file");
+            serde_json::to_writer_pretty(item_meta_file, &item_meta_struct).unwrap();
         }
 
         let db = DirBuilder::new();
@@ -462,12 +276,8 @@ impl TestUtil {
         Value::Integer(i)
     }
 
-    pub fn d_raw(i: i64, e: u32) -> Decimal {
-        Decimal::new(i.into(), e)
-    }
-
-    pub fn d(i: i64, e: u32) -> Value {
-        Value::Decimal(Self::d_raw(i, e))
+    pub fn d(d: Decimal) -> Value {
+        Value::Decimal(d)
     }
 
     pub fn s<I: Into<String>>(s: I) -> Value {
@@ -479,6 +289,10 @@ impl TestUtil {
 mod tests {
     use super::*;
 
+    use super::TestUtil as TU;
+
+    use rust_decimal_macros::dec;
+
     #[test]
     fn create_meta_fanout_test_dir() {
         TestUtil::create_meta_fanout_test_dir("create_meta_fanout_test_dir", 3, 3, |_, _| true);
@@ -486,81 +300,42 @@ mod tests {
 
     #[test]
     fn sample_number_sequence() {
-        let i = TestUtil::i;
-        let d = TestUtil::d;
-
         let test_cases = vec![
             (
                 TestUtil::sample_number_sequence(2, false, false, false),
-                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1)]),
+                Value::Sequence(vec![
+                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
+                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
+                ]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, false),
-                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1)]),
+                Value::Sequence(vec![
+                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
+                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
+                    TU::d(dec!(2.5)), TU::d(dec!(-2.5)),
+                ]),
             ),
             (
                 TestUtil::sample_number_sequence(2, false, false, true),
-                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), i(0)]),
+                Value::Sequence(vec![
+                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
+                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
+                    TU::i(0),
+                ]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, true),
-                Value::Sequence(vec![i(1), i(-1), d(5, 1), d(-5, 1), i(2), i(-2), d(15, 1), d(-15, 1), d(25, 1), d(-25, 1), i(0)]),
+                Value::Sequence(vec![
+                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
+                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
+                    TU::d(dec!(2.5)), TU::d(dec!(-2.5)), TU::i(0),
+                ]),
             ),
         ];
 
         for (input, expected) in test_cases {
             assert_eq!(input, expected);
-        }
-    }
-
-    #[test]
-    fn to_serialized_chunk() {
-        let dec = Decimal::new(31415.into(), 4);
-
-        let seq_a = Value::Sequence(vec![Value::Integer(27), Value::String("string".into())]);
-        let seq_b = Value::Sequence(vec![Value::Boolean(false), Value::Null, Value::Decimal(dec)]);
-
-        let seq_seq = Value::Sequence(vec![seq_a.clone(), seq_b.clone()]);
-
-        let map = Value::Mapping(btreemap![
-            "key_a".into() => seq_a.clone(),
-            "key_b".into() => seq_b.clone(),
-            "key_c".into() => seq_seq.clone(),
-        ]);
-
-        let inputs_and_expected = vec![
-            (
-                (seq_a.clone(), SchemaFormat::Json),
-                "[\n  27,\n  \"string\"\n]",
-            ),
-            (
-                (seq_a.clone(), SchemaFormat::Yaml),
-                "- 27\n- string",
-            ),
-            (
-                (seq_seq.clone(), SchemaFormat::Json),
-                "[\n  [\n    27,\n    \"string\"\n  ],\n  [\n    false,\n    null,\n    3.1415\n  ]\n]",
-            ),
-            (
-                (seq_seq.clone(), SchemaFormat::Yaml),
-                "- - 27\n  - string\n- - false\n  - ~\n  - 3.1415",
-            ),
-            (
-                (map.clone(), SchemaFormat::Json),
-                "{\n  \"key_a\": [\n    27,\n    \"string\"\n  ],\n  \"key_b\": [\n    false,\n    null,\n    3.1415\n  ],\n  \"key_c\": [\n    [\n      27,\n      \"string\"\n    ],\n    [\n      false,\n      null,\n      3.1415\n    ]\n  ]\n}",
-            ),
-            (
-                (map.clone(), SchemaFormat::Yaml),
-                "key_a:\n  - 27\n  - string\nkey_b:\n  - false\n  - ~\n  - 3.1415\nkey_c:\n  - - 27\n    - string\n  - - false\n    - ~\n    - 3.1415",
-            ),
-        ];
-
-        for (inputs, expected) in inputs_and_expected {
-            let (mv, schema_format) = inputs;
-
-            let produced = mv.to_serialized_chunk(schema_format);
-
-            assert_eq!(expected, produced);
         }
     }
 }
