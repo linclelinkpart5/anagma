@@ -36,11 +36,7 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::UnusedItemPath(..) => None,
-            Self::UnusedBlock(..) => None,
-            Self::NamelessItemPath(..) => None,
-        }
+        None
     }
 }
 
@@ -67,7 +63,7 @@ where
                     (None, None) => None,
 
                     // Both iterators produced a result, emit a successful plex result.
-                    (Some(block), Some(path)) => Some(Ok((path.into(), block))),
+                    (Some(block), Some(path)) => Some(Ok((path, block))),
 
                     // Got a file path with no meta block, report an error.
                     (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
