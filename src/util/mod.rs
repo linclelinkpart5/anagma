@@ -19,9 +19,9 @@ impl Util {
     }
 
     /// Tests a string to see if it would be a valid item file name.
-    pub fn _is_valid_item_name(name: &str) -> bool {
+    pub fn is_valid_item_name(name: &str) -> bool {
+        // Re-create this name as a file path, and iterate over its components.
         let name_path = Path::new(name);
-
         let mut components = name_path.components();
 
         match (components.next(), components.next()) {
@@ -81,5 +81,33 @@ mod tests {
 
         // Test getting time of nonexistent file.
         assert_eq!(None, Util::mtime(&tp.join("DOES_NOT_EXIST")));
+    }
+
+    #[test]
+    fn is_valid_item_name() {
+        assert_eq!(Util::is_valid_item_name("name"), true);
+        assert_eq!(Util::is_valid_item_name(".name"), true);
+        assert_eq!(Util::is_valid_item_name("name."), true);
+        assert_eq!(Util::is_valid_item_name("name.ext"), true);
+
+        assert_eq!(Util::is_valid_item_name("."), false);
+        assert_eq!(Util::is_valid_item_name(".."), false);
+        assert_eq!(Util::is_valid_item_name("/"), false);
+        assert_eq!(Util::is_valid_item_name("/."), false);
+        assert_eq!(Util::is_valid_item_name("/.."), false);
+        assert_eq!(Util::is_valid_item_name("./"), false);
+        assert_eq!(Util::is_valid_item_name("../"), false);
+        assert_eq!(Util::is_valid_item_name("/name"), false);
+        assert_eq!(Util::is_valid_item_name("name/"), false);
+        assert_eq!(Util::is_valid_item_name("./name"), false);
+        assert_eq!(Util::is_valid_item_name("name/."), false);
+        assert_eq!(Util::is_valid_item_name("../name"), false);
+        assert_eq!(Util::is_valid_item_name("name/.."), false);
+        assert_eq!(Util::is_valid_item_name("/name.ext"), false);
+        assert_eq!(Util::is_valid_item_name("name.ext/"), false);
+        assert_eq!(Util::is_valid_item_name("./name.ext"), false);
+        assert_eq!(Util::is_valid_item_name("name.ext/."), false);
+        assert_eq!(Util::is_valid_item_name("../name.ext"), false);
+        assert_eq!(Util::is_valid_item_name("name.ext/.."), false);
     }
 }
