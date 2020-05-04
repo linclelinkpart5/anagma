@@ -3,8 +3,8 @@ pub mod number;
 
 pub use number::Number;
 
+use std::ffi::OsStr;
 use std::path::Path;
-use std::path::PathBuf;
 use std::path::Component;
 use std::time::SystemTime;
 
@@ -14,35 +14,22 @@ pub(crate) struct Util;
 impl Util {
     /// Convenience method that gets the mod time of a path.
     /// Errors are coerced to `None`.
-    pub fn mtime<P: AsRef<Path>>(abs_path: P) -> Option<SystemTime> {
-        abs_path.as_ref().metadata().and_then(|m| m.modified()).ok()
+    pub fn mtime(abs_path: &Path) -> Option<SystemTime> {
+        abs_path.metadata().and_then(|m| m.modified()).ok()
     }
 
     /// Tests a string to see if it would be a valid item file name.
-    pub fn _is_valid_item_name<S: AsRef<str>>(s: S) -> bool {
-        let s = s.as_ref();
-        let s_path = Path::new(s);
-        let components: Vec<_> = s_path.components().collect();
+    pub fn _is_valid_item_name(name: &str) -> bool {
+        let name_path = Path::new(name);
 
-        // If an item name does not have exactly one component, it is invalid.
-        if components.len() != 1 {
-            return false;
+        let mut components = name_path.components();
+
+        match (components.next(), components.next()) {
+            // A valid path must have exactly one normal component.
+            // It must also match the original name.
+            (Some(Component::Normal(c)), None) => c == OsStr::new(name),
+            _ => false,
         }
-
-        // The single component must be normal.
-        match components[0] {
-            Component::Normal(_) => {},
-            _ => { return false; },
-        }
-
-        // Recreating the path from the component must match the original.
-        // If not, the item name is invalid.
-        let mut p = PathBuf::new();
-        for c in components {
-            p.push(c.as_os_str());
-        }
-
-        p.as_os_str() == s_path.as_os_str()
     }
 
     pub fn _separate_err<T, E>(results: Vec<Result<T, E>>) -> (Vec<T>, Vec<E>)
@@ -93,6 +80,6 @@ mod tests {
         assert_eq!(file_time < time_b, true);
 
         // Test getting time of nonexistent file.
-        assert_eq!(None, Util::mtime(tp.join("DOES_NOT_EXIST")));
+        assert_eq!(None, Util::mtime(&tp.join("DOES_NOT_EXIST")));
     }
 }
