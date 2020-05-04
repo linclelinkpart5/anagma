@@ -6,6 +6,8 @@ use std::io::Read;
 
 use serde::Deserialize;
 use serde::Serialize;
+use serde_yaml::Error as YamlError;
+use serde_json::Error as JsonError;
 
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
@@ -16,8 +18,8 @@ use crate::metadata::target::Target;
 pub enum Error {
     CannotOpenFile(std::io::Error),
     CannotReadFile(std::io::Error),
-    YamlDeserializeError(serde_yaml::Error),
-    JsonDeserializeError(serde_json::Error),
+    YamlDeserializeError(YamlError),
+    JsonDeserializeError(JsonError),
 }
 
 impl std::fmt::Display for Error {
@@ -88,40 +90,24 @@ impl From<SchemaRepr> for Schema {
 }
 
 impl Schema {
-    fn from_yaml_str(s: &str, target: Target) -> Result<Self, Error> {
+    fn from_yaml_str(s: &str, target: Target) -> Result<Self, YamlError> {
         match target {
-            Target::Parent => {
-                serde_yaml::from_str(s)
-                .map_err(Error::YamlDeserializeError)
-                .map(SchemaRepr::Unit)
-            },
-            Target::Siblings => {
-                serde_yaml::from_str(s)
-                .map_err(Error::YamlDeserializeError)
-                .map(SchemaRepr::Many)
-            },
+            Target::Parent => serde_yaml::from_str(s).map(SchemaRepr::Unit),
+            Target::Siblings => serde_yaml::from_str(s).map(SchemaRepr::Many),
         }.map(Into::into)
     }
 
-    fn from_json_str(s: &str, target: Target) -> Result<Self, Error> {
+    fn from_json_str(s: &str, target: Target) -> Result<Self, JsonError> {
         match target {
-            Target::Parent => {
-                serde_json::from_str(s)
-                .map_err(Error::JsonDeserializeError)
-                .map(SchemaRepr::Unit)
-            },
-            Target::Siblings => {
-                serde_json::from_str(s)
-                .map_err(Error::JsonDeserializeError)
-                .map(SchemaRepr::Many)
-            },
+            Target::Parent => serde_json::from_str(s).map(SchemaRepr::Unit),
+            Target::Siblings => serde_json::from_str(s).map(SchemaRepr::Many),
         }.map(Into::into)
     }
 
     pub fn from_str(format: SchemaFormat, s: &str, mt: Target) -> Result<Schema, Error> {
         match format {
-            SchemaFormat::Yaml => Self::from_yaml_str(s, mt),
-            SchemaFormat::Json => Self::from_json_str(s, mt),
+            SchemaFormat::Yaml => Self::from_yaml_str(s, mt).map_err(Error::YamlDeserializeError),
+            SchemaFormat::Json => Self::from_json_str(s, mt).map_err(Error::JsonDeserializeError),
         }
     }
 
