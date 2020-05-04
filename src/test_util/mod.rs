@@ -166,7 +166,7 @@ impl TestUtil {
     }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
-        let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+        let root_dir = Builder::new().suffix(name).tempdir().unwrap();
 
         fn fill_dir(p: &Path, db: &DirBuilder, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
             for i in 0..fanout {
@@ -185,11 +185,11 @@ impl TestUtil {
 
                 if breadcrumbs.len() >= max_depth {
                     // Create files.
-                    File::create(&new_path).expect("unable to create file");
+                    File::create(&new_path).unwrap();
                 }
                 else {
                     // Create dirs and then recurse.
-                    db.create(&new_path).expect("unable to create directory");
+                    db.create(&new_path).unwrap();
                     fill_dir(&new_path, &db, fanout, new_breadcrumbs, max_depth);
                 }
             }
@@ -216,12 +216,12 @@ impl TestUtil {
 
     pub fn create_meta_fanout_test_dir(name: &str, fanout: usize, max_depth: usize, flag_set_by: fn(usize, usize) -> bool) -> TempDir
     {
-        let root_dir = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+        let root_dir = Builder::new().suffix(name).tempdir().unwrap();
 
         fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize, flag_set_by: fn(usize, usize) -> bool)
         {
             // Create self meta file.
-            let self_meta_file = File::create(p.join("self.json")).expect("unable to create self meta file");
+            let self_meta_file = File::create(p.join("self.json")).unwrap();
 
             let self_meta_struct = Schema::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
             serde_json::to_writer_pretty(self_meta_file, &self_meta_struct).unwrap();
@@ -243,11 +243,11 @@ impl TestUtil {
                 if breadcrumbs.len() >= max_depth {
                     // Create files.
                     let new_path = p.join(&name);
-                    File::create(&new_path).expect("unable to create item file");
+                    File::create(&new_path).unwrap();
                 } else {
                     // Create dirs and then recurse.
                     let new_path = p.join(&name);
-                    db.create(&new_path).expect("unable to create item directory");
+                    db.create(&new_path).unwrap();
                     fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth, flag_set_by);
                 }
 
@@ -258,7 +258,7 @@ impl TestUtil {
             }
 
             // Create item meta file.
-            let item_meta_file = File::create(p.join("item.json")).expect("unable to create item meta file");
+            let item_meta_file = File::create(p.join("item.json")).unwrap();
 
             let item_meta_struct = Schema::Seq(item_meta_blocks);
             serde_json::to_writer_pretty(item_meta_file, &item_meta_struct).unwrap();

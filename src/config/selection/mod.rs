@@ -210,7 +210,7 @@ mod tests {
     use crate::config::sorter::Sorter;
 
     fn create_test_dir(name: &str) -> TempDir {
-        let temp = Builder::new().suffix(name).tempdir().expect("unable to create temp directory");
+        let temp = Builder::new().suffix(name).tempdir().unwrap();
 
         {
             let path = temp.path();
@@ -230,7 +230,7 @@ mod tests {
             ];
 
             for file_name in file_names {
-                File::create(path.join(file_name)).expect("unable to create temp file");
+                File::create(path.join(file_name)).unwrap();
                 std::thread::sleep(std::time::Duration::from_millis(5));
             }
         }
@@ -403,7 +403,7 @@ mod tests {
                 selection
                 .select_in_dir(&path).unwrap()
                 .into_iter()
-                .map(|res| res.expect("unexpected IO error"))
+                .map(Result::unwrap)
                 .collect()
             ;
 
@@ -471,7 +471,7 @@ mod tests {
                 selection
                 .select_in_dir_sorted(&path, sort_order).unwrap()
                 .into_iter()
-                .map(|res| res.expect("unexpected IO error"))
+                .map(Result::unwrap)
                 .collect::<Vec<_>>()
             ;
 

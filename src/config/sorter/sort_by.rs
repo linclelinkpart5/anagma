@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn path_sort_cmp() {
         // Create temp directory.
-        let temp = Builder::new().tempdir().expect("cannot create temp dir");
+        let temp = Builder::new().tempdir().unwrap();
         let tp = temp.path();
 
         let fps = vec![
@@ -71,7 +71,7 @@ mod tests {
         for fp in &fps {
             // LEARN: Because we're iterating over a ref to a vector, the iter
             // vars are also refs.
-            File::create(fp).expect(&format!(r#"unable to create file "{:?}""#, fp));
+            File::create(fp).unwrap();
             std::thread::sleep(Duration::from_millis(10));
         }
 
