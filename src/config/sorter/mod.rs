@@ -35,13 +35,8 @@ pub struct Sorter {
 
 impl Sorter {
     /// Compares two absolute item file paths using this sorting criteria.
-    pub fn path_sort_cmp<P: AsRef<Path>>(
-        &self,
-        abs_item_path_a: P,
-        abs_item_path_b: P,
-    ) -> Ordering
-    {
-        let ordering = self.sort_by.path_sort_cmp(abs_item_path_a, abs_item_path_b);
+    pub fn path_sort_cmp(&self, abs_path_a: &Path, abs_path_b: &Path) -> Ordering {
+        let ordering = self.sort_by.path_sort_cmp(abs_path_a, abs_path_b);
 
         match self.sort_order {
             SortOrder::Ascending => ordering,

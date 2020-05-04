@@ -72,7 +72,7 @@ impl Matcher {
 
     /// Matches a path based on its file name. If the path does not have a file
     /// name (e.g. '/' on Unix systems), returns `false`.
-    pub fn is_match<P: AsRef<Path>>(&self, path: P) -> bool {
+    pub fn is_match<P: AsRef<Path>>(&self, path: &P) -> bool {
         // Matching on only file name is needed for patterns such as "self*".
         path.as_ref().file_name().map(|f| self.0.is_match(f)).unwrap_or(false)
     }
@@ -98,16 +98,16 @@ mod tests {
         let text = "'*.flac'";
         let matcher: Matcher = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(matcher.is_match("music.flac"), true);
-        assert_eq!(matcher.is_match("music.mp3"), false);
-        assert_eq!(matcher.is_match("photo.png"), false);
+        assert_eq!(matcher.is_match(&"music.flac"), true);
+        assert_eq!(matcher.is_match(&"music.mp3"), false);
+        assert_eq!(matcher.is_match(&"photo.png"), false);
 
         let text = "- '*.flac'\n- '*.mp3'";
         let matcher: Matcher = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(matcher.is_match("music.flac"), true);
-        assert_eq!(matcher.is_match("music.mp3"), true);
-        assert_eq!(matcher.is_match("photo.png"), false);
+        assert_eq!(matcher.is_match(&"music.flac"), true);
+        assert_eq!(matcher.is_match(&"music.mp3"), true);
+        assert_eq!(matcher.is_match(&"photo.png"), false);
     }
 
     #[test]
@@ -148,89 +148,89 @@ mod tests {
     #[test]
     fn is_match() {
         let matcher = Matcher::build(&["*.a", "*.b"]).unwrap();
-        assert_eq!(matcher.is_match("path.a"), true);
-        assert_eq!(matcher.is_match("path.b"), true);
-        assert_eq!(matcher.is_match("path.c"), false);
-        assert_eq!(matcher.is_match("path.ab"), false);
-        assert_eq!(matcher.is_match("path"), false);
-        assert_eq!(matcher.is_match("extra/path.a"), true);
-        assert_eq!(matcher.is_match("extra/path.b"), true);
-        assert_eq!(matcher.is_match("extra/path.c"), false);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path.a"), true);
+        assert_eq!(matcher.is_match(&"path.b"), true);
+        assert_eq!(matcher.is_match(&"path.c"), false);
+        assert_eq!(matcher.is_match(&"path.ab"), false);
+        assert_eq!(matcher.is_match(&"path"), false);
+        assert_eq!(matcher.is_match(&"extra/path.a"), true);
+        assert_eq!(matcher.is_match(&"extra/path.b"), true);
+        assert_eq!(matcher.is_match(&"extra/path.c"), false);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
 
         let matcher = Matcher::build(&["*.b"]).unwrap();
-        assert_eq!(matcher.is_match("path.a"), false);
-        assert_eq!(matcher.is_match("path.b"), true);
-        assert_eq!(matcher.is_match("path.c"), false);
-        assert_eq!(matcher.is_match("path.ab"), false);
-        assert_eq!(matcher.is_match("path"), false);
-        assert_eq!(matcher.is_match("extra/path.a"), false);
-        assert_eq!(matcher.is_match("extra/path.b"), true);
-        assert_eq!(matcher.is_match("extra/path.c"), false);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path.a"), false);
+        assert_eq!(matcher.is_match(&"path.b"), true);
+        assert_eq!(matcher.is_match(&"path.c"), false);
+        assert_eq!(matcher.is_match(&"path.ab"), false);
+        assert_eq!(matcher.is_match(&"path"), false);
+        assert_eq!(matcher.is_match(&"extra/path.a"), false);
+        assert_eq!(matcher.is_match(&"extra/path.b"), true);
+        assert_eq!(matcher.is_match(&"extra/path.c"), false);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
 
         let matcher = Matcher::build(&["*.a", "*.c"]).unwrap();
-        assert_eq!(matcher.is_match("path.a"), true);
-        assert_eq!(matcher.is_match("path.b"), false);
-        assert_eq!(matcher.is_match("path.c"), true);
-        assert_eq!(matcher.is_match("path.ab"), false);
-        assert_eq!(matcher.is_match("path"), false);
-        assert_eq!(matcher.is_match("extra/path.a"), true);
-        assert_eq!(matcher.is_match("extra/path.b"), false);
-        assert_eq!(matcher.is_match("extra/path.c"), true);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path.a"), true);
+        assert_eq!(matcher.is_match(&"path.b"), false);
+        assert_eq!(matcher.is_match(&"path.c"), true);
+        assert_eq!(matcher.is_match(&"path.ab"), false);
+        assert_eq!(matcher.is_match(&"path"), false);
+        assert_eq!(matcher.is_match(&"extra/path.a"), true);
+        assert_eq!(matcher.is_match(&"extra/path.b"), false);
+        assert_eq!(matcher.is_match(&"extra/path.c"), true);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
 
         let matcher = Matcher::build(&["*"]).unwrap();
-        assert_eq!(matcher.is_match("path.a"), true);
-        assert_eq!(matcher.is_match("path.b"), true);
-        assert_eq!(matcher.is_match("path.c"), true);
-        assert_eq!(matcher.is_match("path.ab"), true);
-        assert_eq!(matcher.is_match("path"), true);
-        assert_eq!(matcher.is_match("extra/path.a"), true);
-        assert_eq!(matcher.is_match("extra/path.b"), true);
-        assert_eq!(matcher.is_match("extra/path.c"), true);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path.a"), true);
+        assert_eq!(matcher.is_match(&"path.b"), true);
+        assert_eq!(matcher.is_match(&"path.c"), true);
+        assert_eq!(matcher.is_match(&"path.ab"), true);
+        assert_eq!(matcher.is_match(&"path"), true);
+        assert_eq!(matcher.is_match(&"extra/path.a"), true);
+        assert_eq!(matcher.is_match(&"extra/path.b"), true);
+        assert_eq!(matcher.is_match(&"extra/path.c"), true);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
 
         let matcher = Matcher::build(&[] as &[&str]).unwrap();
-        assert_eq!(matcher.is_match("path.a"), false);
-        assert_eq!(matcher.is_match("path.b"), false);
-        assert_eq!(matcher.is_match("path.c"), false);
-        assert_eq!(matcher.is_match("path.ab"), false);
-        assert_eq!(matcher.is_match("path"), false);
-        assert_eq!(matcher.is_match("extra/path.a"), false);
-        assert_eq!(matcher.is_match("extra/path.b"), false);
-        assert_eq!(matcher.is_match("extra/path.c"), false);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path.a"), false);
+        assert_eq!(matcher.is_match(&"path.b"), false);
+        assert_eq!(matcher.is_match(&"path.c"), false);
+        assert_eq!(matcher.is_match(&"path.ab"), false);
+        assert_eq!(matcher.is_match(&"path"), false);
+        assert_eq!(matcher.is_match(&"extra/path.a"), false);
+        assert_eq!(matcher.is_match(&"extra/path.b"), false);
+        assert_eq!(matcher.is_match(&"extra/path.c"), false);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
     }
 
     #[test]
     fn any() {
         let matcher = Matcher::any();
-        assert_eq!(matcher.is_match("path"), true);
-        assert_eq!(matcher.is_match("path.a"), true);
-        assert_eq!(matcher.is_match("path.a.b.c"), true);
-        assert_eq!(matcher.is_match("path.ab"), true);
-        assert_eq!(matcher.is_match("/extra/path.a"), true);
-        assert_eq!(matcher.is_match("extra/path.a"), true);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path"), true);
+        assert_eq!(matcher.is_match(&"path.a"), true);
+        assert_eq!(matcher.is_match(&"path.a.b.c"), true);
+        assert_eq!(matcher.is_match(&"path.ab"), true);
+        assert_eq!(matcher.is_match(&"/extra/path.a"), true);
+        assert_eq!(matcher.is_match(&"extra/path.a"), true);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
     }
 
     #[test]
     fn empty() {
         let matcher = Matcher::empty();
-        assert_eq!(matcher.is_match("path"), false);
-        assert_eq!(matcher.is_match("path.a"), false);
-        assert_eq!(matcher.is_match("path.a.b.c"), false);
-        assert_eq!(matcher.is_match("path.ab"), false);
-        assert_eq!(matcher.is_match("/extra/path.a"), false);
-        assert_eq!(matcher.is_match("extra/path.a"), false);
-        assert_eq!(matcher.is_match("/"), false);
-        assert_eq!(matcher.is_match(""), false);
+        assert_eq!(matcher.is_match(&"path"), false);
+        assert_eq!(matcher.is_match(&"path.a"), false);
+        assert_eq!(matcher.is_match(&"path.a.b.c"), false);
+        assert_eq!(matcher.is_match(&"path.ab"), false);
+        assert_eq!(matcher.is_match(&"/extra/path.a"), false);
+        assert_eq!(matcher.is_match(&"extra/path.a"), false);
+        assert_eq!(matcher.is_match(&"/"), false);
+        assert_eq!(matcher.is_match(&""), false);
     }
 }

@@ -15,24 +15,16 @@ pub enum SortBy {
 
 impl SortBy {
     /// Compares two absolute item file paths using this sorting criteria.
-    pub fn path_sort_cmp<P: AsRef<Path>>(
-        &self,
-        abs_item_path_a: P,
-        abs_item_path_b: P
-    ) -> Ordering
-    {
-        let abs_item_path_a = abs_item_path_a.as_ref();
-        let abs_item_path_b = abs_item_path_b.as_ref();
-
+    pub fn path_sort_cmp(&self, abs_path_a: &Path, abs_path_b: &Path) -> Ordering {
         match self {
             Self::Name => {
-                let file_name_a = abs_item_path_a.file_name();
-                let file_name_b = abs_item_path_b.file_name();
+                let file_name_a = abs_path_a.file_name();
+                let file_name_b = abs_path_b.file_name();
                 file_name_a.cmp(&file_name_b)
             },
             Self::ModTime => {
-                let mtime_a = Util::mtime(abs_item_path_a);
-                let mtime_b = Util::mtime(abs_item_path_b);
+                let mtime_a = Util::mtime(abs_path_a);
+                let mtime_b = Util::mtime(abs_path_b);
                 mtime_a.cmp(&mtime_b)
             },
         }

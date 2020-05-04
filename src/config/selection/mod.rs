@@ -129,7 +129,7 @@ impl Selection {
         Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
     }
 
-    fn is_pattern_match<P: AsRef<Path>>(&self, path: P, fod: FileOrDir) -> bool {
+    fn is_pattern_match<P: AsRef<Path>>(&self, path: &P, fod: FileOrDir) -> bool {
         let (inc, exc) = match fod {
             FileOrDir::File => (&self.include_files, &self.exclude_files),
             FileOrDir::Dir => (&self.include_dirs, &self.exclude_dirs),
@@ -143,7 +143,7 @@ impl Selection {
     /// and must NOT match the exclude filter.
     /// Note that this method assumes the path is a file, and uses only the
     /// lexical content of the path; it does not access the filesystem.
-    pub fn is_file_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
+    pub fn is_file_pattern_match<P: AsRef<Path>>(&self, path: &P) -> bool {
         self.is_pattern_match(path, FileOrDir::File)
     }
 
@@ -152,13 +152,13 @@ impl Selection {
     /// and must NOT match the exclude filter.
     /// Note that this method assumes the path is a directory, and uses only the
     /// lexical content of the path; it does not access the filesystem.
-    pub fn is_dir_pattern_match<P: AsRef<Path>>(&self, path: P) -> bool {
+    pub fn is_dir_pattern_match<P: AsRef<Path>>(&self, path: &P) -> bool {
         self.is_pattern_match(path, FileOrDir::Dir)
     }
 
     /// Returns true if a path is selected.
     /// This accesses the filesystem to tell if the path is a file or directory.
-    pub fn is_selected<P: AsRef<Path>>(&self, path: P) -> IoResult<bool> {
+    pub fn is_selected<P: AsRef<Path>>(&self, path: &P) -> IoResult<bool> {
         let file_info = std::fs::metadata(&path)?;
 
         Ok(
@@ -242,24 +242,24 @@ mod tests {
     fn default() {
         let selection = Selection::default();
 
-        assert!(selection.is_file_pattern_match("all"));
-        assert!(selection.is_file_pattern_match("files"));
-        assert!(selection.is_file_pattern_match("should"));
-        assert!(selection.is_file_pattern_match("pass"));
-        assert!(selection.is_file_pattern_match("except"));
-        assert!(selection.is_file_pattern_match("for"));
-        assert!(selection.is_file_pattern_match("these"));
-        assert!(!selection.is_file_pattern_match("item",));
-        assert!(!selection.is_file_pattern_match("self",));
+        assert!(selection.is_file_pattern_match(&"all"));
+        assert!(selection.is_file_pattern_match(&"files"));
+        assert!(selection.is_file_pattern_match(&"should"));
+        assert!(selection.is_file_pattern_match(&"pass"));
+        assert!(selection.is_file_pattern_match(&"except"));
+        assert!(selection.is_file_pattern_match(&"for"));
+        assert!(selection.is_file_pattern_match(&"these"));
+        assert!(!selection.is_file_pattern_match(&"item",));
+        assert!(!selection.is_file_pattern_match(&"self",));
 
-        assert!(selection.is_dir_pattern_match("all"));
-        assert!(selection.is_dir_pattern_match("dirs"));
-        assert!(selection.is_dir_pattern_match("should"));
-        assert!(selection.is_dir_pattern_match("pass"));
-        assert!(selection.is_dir_pattern_match("even"));
-        assert!(selection.is_dir_pattern_match("including"));
-        assert!(selection.is_dir_pattern_match("item"));
-        assert!(selection.is_dir_pattern_match("self"));
+        assert!(selection.is_dir_pattern_match(&"all"));
+        assert!(selection.is_dir_pattern_match(&"dirs"));
+        assert!(selection.is_dir_pattern_match(&"should"));
+        assert!(selection.is_dir_pattern_match(&"pass"));
+        assert!(selection.is_dir_pattern_match(&"even"));
+        assert!(selection.is_dir_pattern_match(&"including"));
+        assert!(selection.is_dir_pattern_match(&"item"));
+        assert!(selection.is_dir_pattern_match(&"self"));
     }
 
     #[test]
@@ -268,80 +268,80 @@ mod tests {
         let text = "{ include_files: '*.flac', exclude_files: '*.mp3' }";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), false);
 
         // Multiple patterns for each of include and exclude.
         let text = "{ include_files: ['*.flac', '*.wav'], exclude_files: ['*.mp3', '*.ogg'] }";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.ogg"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.aac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
 
         // Using a default value for missing include patterns.
         let text = "{ exclude_files: ['*.mp3', '*.ogg'] }";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.aac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mpc"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
 
         // Using a default value for missing exclude patterns.
         let text = "{ include_files: ['*.flac', '*.wav'] }";
         let selection: Selection = serde_yaml::from_str(&text).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/item.flac"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/self.flac"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.aac"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mpc"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/item.flac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/self.flac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
     }
 
     #[test]
     fn is_pattern_match() {
         let selection = Selection::from_patterns(&["*.flac"], &["*.mp3"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), false);
 
         let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["*.mp3", "*.ogg"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.ogg"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.aac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
 
         let selection = Selection::from_patterns(&["*"], &["*.mp3", "*.ogg"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.aac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mpc"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
 
         let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["item*", "self*"], &["*"], &[] as &[&str]).unwrap();
 
-        assert_eq!(selection.is_file_pattern_match("path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match("path/to/item.flac"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/self.flac"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.aac"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mpc"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match("path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/item.flac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/self.flac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
     }
 
     #[test]
