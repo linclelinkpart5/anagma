@@ -93,12 +93,8 @@ impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
-    pub fn meta_path<P>(&self, item_path: &P, schema_format: SchemaFormat) -> Result<PathBuf, Error>
-    where
-        P: AsRef<Path>,
+    pub fn meta_path(&self, item_path: &Path, schema_format: SchemaFormat) -> Result<PathBuf, Error>
     {
-        let item_path = item_path.as_ref();
-
         // Get filesystem stat for item path.
         // This step is always done, even if the file/dir status does not need to be checked,
         // as it provides useful error information about permissions and non-existence.
@@ -149,12 +145,8 @@ impl Target {
     /// could/should provide metadata for. Note that this does NOT parse meta
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
-    pub fn item_paths<'a, P>(&self, meta_path: &'a P) -> Result<Vec<Cow<'a, Path>>, Error>
-    where
-        P: AsRef<Path>,
+    pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<Vec<Cow<'a, Path>>, Error>
     {
-        let meta_path = meta_path.as_ref();
-
         let meta_fs_stat = match std::fs::metadata(&meta_path) {
             Err(err) => return Err(Error::CannotAccessMetaPath(meta_path.into(), err)),
             Ok(meta_fs_stat) => meta_fs_stat,
@@ -198,9 +190,7 @@ impl Target {
     /// Similar to `item_paths`, but also performs selection filtering on the
     /// produced item paths.
     // NOTE: No sorting is performed, sorting only occurs if needed during plexing.
-    pub fn selected_item_paths<'a, P>(&self, meta_path: &'a P, selection: &Selection) -> Result<Vec<Cow<'a, Path>>, Error>
-    where
-        P: AsRef<Path>,
+    pub fn selected_item_paths<'a>(&self, meta_path: &'a Path, selection: &Selection) -> Result<Vec<Cow<'a, Path>>, Error>
     {
         let item_paths = self.item_paths(meta_path)?;
 

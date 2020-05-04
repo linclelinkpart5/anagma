@@ -111,9 +111,8 @@ impl Schema {
         }
     }
 
-    pub fn from_file<P: AsRef<Path>>(format: SchemaFormat, p: P, mt: Target) -> Result<Schema, Error> {
-        let p = p.as_ref();
-        let mut f = File::open(p).map_err(Error::CannotOpenFile)?;
+    pub fn from_file(format: SchemaFormat, path: &Path, mt: Target) -> Result<Schema, Error> {
+        let mut f = File::open(path).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;

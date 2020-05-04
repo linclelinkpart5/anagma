@@ -56,17 +56,14 @@ impl Processor {
     /// Processes the metadata contained in a target meta file.
     /// This loads and plexes metadata, and produces a mapping of item file
     /// paths to metadata blocks.
-    pub fn process_meta_file<'a, P>(
-        meta_path: &'a P,
+    pub fn process_meta_file<'a>(
+        meta_path: &'a Path,
         meta_target: Target,
         schema_format: SchemaFormat,
         selection: &Selection,
         sorter: Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
-    where
-        P: AsRef<Path>,
     {
-        // LEARN: Since `meta_path` is already a ref, no need to add `&`!
         let meta_structure =
             Schema::from_file(schema_format, meta_path, meta_target)
             .map_err(Error::CannotReadMetadata)?
@@ -100,14 +97,12 @@ impl Processor {
     /// targets that may provide data for this item file. Merging is done in a
     /// "combine-last" fashion; if a later target produces the same metadata key
     /// as an earlier target, the later one wins and overwrites the earlier one.
-    pub fn process_item_file<P>(
-        item_path: &P,
+    pub fn process_item_file(
+        item_path: &Path,
         schema_format: SchemaFormat,
         selection: &Selection,
         sorter: Sorter,
     ) -> Result<Block, Error>
-    where
-        P: AsRef<Path>,
     {
         let mut comp_mb = Block::new();
 
@@ -131,7 +126,7 @@ impl Processor {
             // The results of processing a meta file will often return extra
             // metadata for item files besides the targeted one. Extract the
             // target item file's metadata, and drop the remaining results.
-            if let Some(meta_block) = processed_meta_file.remove(item_path.as_ref()) {
+            if let Some(meta_block) = processed_meta_file.remove(item_path) {
                 comp_mb.extend(meta_block)
             }
             else {
