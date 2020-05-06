@@ -7,18 +7,18 @@ use crate::metadata::value::Value;
 use crate::metadata::stream::block::BlockStream;
 
 #[derive(Debug)]
-pub struct ValueStream<'p> {
-    target_key_path: Vec<String>,
+pub struct ValueStream<'p, S: AsRef<str>> {
+    target_key_path: &'p [S],
     block_stream: BlockStream<'p>,
 }
 
-impl<'p> ValueStream<'p> {
-    pub fn new(target_key_path: Vec<String>, block_stream: BlockStream<'p>) -> Self {
+impl<'p, S: AsRef<str>> ValueStream<'p, S> {
+    pub fn new(target_key_path: &'p [S], block_stream: BlockStream<'p>) -> Self {
         Self { target_key_path, block_stream, }
     }
 }
 
-impl<'p> Iterator for ValueStream<'p> {
+impl<'p, S: AsRef<str>> Iterator for ValueStream<'p, S> {
     type Item = Result<(Cow<'p, Path>, Value), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -94,7 +94,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), Value::from("ROOT")),
         ];
         let produced = {
-            ValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(&target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -127,7 +127,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
         ];
         let produced = {
-            ValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(&target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -159,7 +159,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), Value::from("0_2_2")),
         ];
         let produced = {
-            ValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(&target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -190,7 +190,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
         let produced = {
-            ValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(&target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -212,7 +212,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
         let produced = {
-            ValueStream::new(target_key_path.clone(), block_stream)
+            ValueStream::new(&target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
