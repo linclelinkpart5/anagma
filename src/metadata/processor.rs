@@ -58,10 +58,10 @@ impl Processor {
     /// paths to metadata blocks.
     pub fn process_meta_file<'a>(
         meta_path: &'a Path,
-        meta_target: Target,
-        schema_format: SchemaFormat,
+        meta_target: &Target,
+        schema_format: &SchemaFormat,
         selection: &Selection,
-        sorter: Sorter,
+        sorter: &Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
     {
         let meta_structure =
@@ -99,9 +99,9 @@ impl Processor {
     /// as an earlier target, the later one wins and overwrites the earlier one.
     pub fn process_item_file(
         item_path: &Path,
-        schema_format: SchemaFormat,
+        schema_format: &SchemaFormat,
         selection: &Selection,
-        sorter: Sorter,
+        sorter: &Sorter,
     ) -> Result<Block, Error>
     {
         let mut comp_mb = Block::new();
@@ -117,7 +117,7 @@ impl Processor {
 
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
-                meta_target,
+                &meta_target,
                 schema_format,
                 selection,
                 sorter,
@@ -241,7 +241,13 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let (meta_path, meta_target) = input;
 
-            let produced = Processor::process_meta_file(&meta_path, meta_target, SchemaFormat::Json, &selection, sorter).unwrap();
+            let produced = Processor::process_meta_file(
+                &meta_path,
+                &meta_target,
+                &SchemaFormat::Json,
+                &selection,
+                &sorter,
+            ).unwrap();
             assert_eq!(expected, produced);
         }
     }
@@ -290,7 +296,12 @@ mod tests {
         for (input, expected) in inputs_and_expected {
             let item_path = input;
 
-            let produced = Processor::process_item_file(&item_path, SchemaFormat::Json, &selection, sorter).unwrap();
+            let produced = Processor::process_item_file(
+                &item_path,
+                &SchemaFormat::Json,
+                &selection,
+                &sorter,
+            ).unwrap();
             assert_eq!(expected, produced);
         }
     }

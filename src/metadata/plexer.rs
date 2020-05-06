@@ -134,7 +134,7 @@ where
     /// Creates a new `Plexer`.
     // NOTE: The `Sorter` is not always used, is there a way around needing to
     //       provide it all the time?
-    pub fn new(meta_structure: Schema, file_path_iter: I, sorter: Sorter) -> Self {
+    pub fn new(meta_structure: Schema, file_path_iter: I, sorter: &Sorter) -> Self {
         match meta_structure {
             Schema::One(mb) => Self::One(Some(mb), file_path_iter),
             Schema::Seq(mb_seq) => {
@@ -236,7 +236,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = Plexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<Vec<_>>();
+            let produced = Plexer::new(meta_structure, item_paths.into_iter(), &Sorter::default()).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
 
@@ -280,7 +280,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = Plexer::new(meta_structure, item_paths.into_iter(), Sorter::default()).collect::<HashSet<_>>();
+            let produced = Plexer::new(meta_structure, item_paths.into_iter(), &Sorter::default()).collect::<HashSet<_>>();
             assert_eq!(expected, produced);
         }
     }

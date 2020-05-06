@@ -15,17 +15,17 @@ use crate::util::file_walker::FileWalker;
 #[derive(Debug)]
 pub struct BlockStream<'p> {
     file_walker: FileWalker<'p>,
-    schema_format: SchemaFormat,
+    schema_format: &'p SchemaFormat,
     selection: &'p Selection,
-    sorter: Sorter,
+    sorter: &'p Sorter,
 }
 
 impl<'p> BlockStream<'p> {
     pub fn new(
         file_walker: FileWalker<'p>,
-        schema_format: SchemaFormat,
+        schema_format: &'p SchemaFormat,
         selection: &'p Selection,
-        sorter: Sorter,
+        sorter: &'p Sorter,
     ) -> Self
     {
         Self {
@@ -50,9 +50,9 @@ impl<'p> Iterator for BlockStream<'p> {
                 Some(
                     Processor::process_item_file(
                         &path,
-                        self.schema_format,
+                        &self.schema_format,
                         self.selection,
-                        self.sorter,
+                        &self.sorter,
                     )
                     .map(|mb| (path, mb))
                     .map_err(Error::Processor)
@@ -79,14 +79,15 @@ mod tests {
         let root_dir = temp_dir.path();
 
         let selection = Selection::default();
+        let sorter = Sorter::default();
 
         let test_path = root_dir.join("0").join("0_1").join("0_1_2");
 
         let mut stream = BlockStream::new(
             ParentFileWalker::new(&test_path).into(),
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get("target_file_name"), Some(&Value::from("0_1_2")));
@@ -98,9 +99,9 @@ mod tests {
 
         let mut stream = BlockStream::new(
             ChildFileWalker::new(&test_path).into(),
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("ROOT")));

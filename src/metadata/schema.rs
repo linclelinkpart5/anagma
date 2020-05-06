@@ -90,34 +90,34 @@ impl From<SchemaRepr> for Schema {
 }
 
 impl Schema {
-    fn from_yaml_str(s: &str, target: Target) -> Result<Self, YamlError> {
+    fn from_yaml_str(s: &str, target: &Target) -> Result<Self, YamlError> {
         match target {
             Target::Parent => serde_yaml::from_str(s).map(SchemaRepr::Unit),
             Target::Siblings => serde_yaml::from_str(s).map(SchemaRepr::Many),
         }.map(Into::into)
     }
 
-    fn from_json_str(s: &str, target: Target) -> Result<Self, JsonError> {
+    fn from_json_str(s: &str, target: &Target) -> Result<Self, JsonError> {
         match target {
             Target::Parent => serde_json::from_str(s).map(SchemaRepr::Unit),
             Target::Siblings => serde_json::from_str(s).map(SchemaRepr::Many),
         }.map(Into::into)
     }
 
-    pub fn from_str(format: SchemaFormat, s: &str, mt: Target) -> Result<Schema, Error> {
+    pub fn from_str(format: &SchemaFormat, s: &str, target: &Target) -> Result<Schema, Error> {
         match format {
-            SchemaFormat::Yaml => Self::from_yaml_str(s, mt).map_err(Error::YamlDeserializeError),
-            SchemaFormat::Json => Self::from_json_str(s, mt).map_err(Error::JsonDeserializeError),
+            SchemaFormat::Yaml => Self::from_yaml_str(s, target).map_err(Error::YamlDeserializeError),
+            SchemaFormat::Json => Self::from_json_str(s, target).map_err(Error::JsonDeserializeError),
         }
     }
 
-    pub fn from_file(format: SchemaFormat, path: &Path, mt: Target) -> Result<Schema, Error> {
+    pub fn from_file(format: &SchemaFormat, path: &Path, target: &Target) -> Result<Schema, Error> {
         let mut f = File::open(path).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-        Self::from_str(format, &buffer, mt)
+        Self::from_str(format, &buffer, target)
     }
 }
 
@@ -160,7 +160,7 @@ mod tests {
             key_c: val_c
             key_d: val_d
         "#;
-        assert_matches!(Schema::from_yaml_str(input, Target::Parent), Ok(Schema::One(_)));
+        assert_matches!(Schema::from_yaml_str(input, &Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
             key_a: val_a
@@ -173,7 +173,7 @@ mod tests {
                 -   val_a
                 -   val_b
         "#;
-        assert_matches!(Schema::from_yaml_str(input, Target::Parent), Ok(Schema::One(_)));
+        assert_matches!(Schema::from_yaml_str(input, &Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
             -   key_1_a: val_1_a
@@ -181,7 +181,7 @@ mod tests {
             -   key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert_matches!(Schema::from_yaml_str(input, Target::Siblings), Ok(Schema::Seq(_)));
+        assert_matches!(Schema::from_yaml_str(input, &Target::Siblings), Ok(Schema::Seq(_)));
 
         let input = r#"
             item_1:
@@ -191,7 +191,7 @@ mod tests {
                 key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert_matches!(Schema::from_yaml_str(input, Target::Siblings), Ok(Schema::Map(_)));
+        assert_matches!(Schema::from_yaml_str(input, &Target::Siblings), Ok(Schema::Map(_)));
     }
 
     #[test]
@@ -204,7 +204,7 @@ mod tests {
             "key_d": "val_d"
         }
         "#;
-        assert_matches!(Schema::from_json_str(input, Target::Parent), Ok(Schema::One(_)));
+        assert_matches!(Schema::from_json_str(input, &Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
         {
@@ -227,7 +227,7 @@ mod tests {
             ]
         }
         "#;
-        assert_matches!(Schema::from_json_str(input, Target::Parent), Ok(Schema::One(_)));
+        assert_matches!(Schema::from_json_str(input, &Target::Parent), Ok(Schema::One(_)));
 
         let input = r#"
         [
@@ -241,7 +241,7 @@ mod tests {
             }
         ]
         "#;
-        assert_matches!(Schema::from_json_str(input, Target::Siblings), Ok(Schema::Seq(_)));
+        assert_matches!(Schema::from_json_str(input, &Target::Siblings), Ok(Schema::Seq(_)));
 
         let input = r#"
         {
@@ -255,6 +255,6 @@ mod tests {
             }
         }
         "#;
-        assert_matches!(Schema::from_json_str(input, Target::Siblings), Ok(Schema::Map(_)));
+        assert_matches!(Schema::from_json_str(input, &Target::Siblings), Ok(Schema::Map(_)));
     }
 }

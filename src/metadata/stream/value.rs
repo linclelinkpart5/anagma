@@ -71,7 +71,9 @@ mod tests {
     fn meta_field_stream_all() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("meta_field_stream_all", 3, 3, TestUtil::flag_set_by_all);
         let root_dir = temp_dir.path();
+
         let selection = Selection::default();
+        let sorter = Sorter::default();
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -80,9 +82,9 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         let expected = vec![
@@ -105,7 +107,9 @@ mod tests {
     fn meta_field_stream_default() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("meta_field_stream_default", 3, 3, TestUtil::flag_set_by_default);
         let root_dir = temp_dir.path();
+
         let selection = Selection::default();
+        let sorter = Sorter::default();
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -114,9 +118,9 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         let expected = vec![
@@ -138,9 +142,9 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         let expected = vec![
@@ -168,7 +172,9 @@ mod tests {
     fn meta_field_stream_none() {
         let temp_dir = TestUtil::create_meta_fanout_test_dir("meta_field_stream_none", 3, 3, TestUtil::flag_set_by_none);
         let root_dir = temp_dir.path();
+
         let selection = Selection::default();
+        let sorter = Sorter::default();
 
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
@@ -177,9 +183,9 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
@@ -199,9 +205,9 @@ mod tests {
 
         let block_stream = BlockStream::new(
             file_walker,
-            SchemaFormat::Json,
+            &SchemaFormat::Json,
             &selection,
-            Sorter::default(),
+            &sorter,
         );
 
         let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();

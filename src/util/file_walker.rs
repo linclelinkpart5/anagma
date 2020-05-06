@@ -28,7 +28,7 @@ impl<'p> Iterator for FileWalker<'p> {
 }
 
 impl<'p> FileWalker<'p> {
-    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), IoError> {
+    pub fn delve(&mut self, selection: &Selection, sorter: &Sorter) -> Result<(), IoError> {
         match self {
             // Parent walkers do not have to delve, just no-op.
             Self::Parent(..) => Ok(()),
@@ -92,7 +92,7 @@ impl<'p> ChildFileWalker<'p> {
     /// Manually delves into a directory, and adds its subitems to the frontier.
     /// Note that this is a no-op if the most recent processed path is not a
     /// directory, and not an error.
-    pub fn delve(&mut self, selection: &Selection, sorter: Sorter) -> Result<(), IoError> {
+    pub fn delve(&mut self, selection: &Selection, sorter: &Sorter) -> Result<(), IoError> {
         // If there is a last processed path, delve into it.
         // If not, just no-op.
         if let Some(lpp) = self.last_processed_path.take() {
@@ -167,27 +167,27 @@ mod tests {
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path());
         assert!(walker.next().is_none());
 
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, &sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2"));
         assert!(walker.next().is_none());
 
         // This delve call opens up the most recently accessed directory.
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, &sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_0"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1"));
 
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, &sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0"));
 
         // Once files are found, observe the results of the selection.
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, &sorter).unwrap();
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_1"));
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_0").join("2_1_0_2"));
 
         // Delving on a file does nothing, and does not error.
-        walker.delve(&selection, sorter).unwrap();
+        walker.delve(&selection, &sorter).unwrap();
 
         // Right back to where we were before delving into depth 3.
         assert_eq!(walker.next().unwrap().unwrap(), root_dir.path().join("2").join("2_1").join("2_1_1"));

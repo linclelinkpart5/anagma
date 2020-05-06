@@ -93,7 +93,7 @@ impl Target {
     /// Provides the meta file path that provides metadata for an item file for
     /// this target.
     // NOTE: This always returns a `PathBuf`, since joining paths is required.
-    pub fn meta_path(&self, item_path: &Path, schema_format: SchemaFormat) -> Result<PathBuf, Error>
+    pub fn meta_path(&self, item_path: &Path, schema_format: &SchemaFormat) -> Result<PathBuf, Error>
     {
         // Get filesystem stat for item path.
         // This step is always done, even if the file/dir status does not need to be checked,
