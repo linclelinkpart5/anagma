@@ -78,7 +78,7 @@ mod tests {
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
 
-        let target_key_path = vec![String::from("flag_key")];
+        let target_key_path = &["flag_key"];
 
         let block_stream = BlockStream::new(
             file_walker,
@@ -94,7 +94,7 @@ mod tests {
             // (Cow::Owned(root_dir.to_path_buf()), Value::from("ROOT")),
         ];
         let produced = {
-            ValueStream::new(&target_key_path, block_stream)
+            ValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -114,7 +114,7 @@ mod tests {
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
 
-        let target_key_path = vec![String::from("flag_key")];
+        let target_key_path = &["flag_key"];
 
         let block_stream = BlockStream::new(
             file_walker,
@@ -127,7 +127,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_1").join("0_1_2")), Value::from("0_1_2")),
         ];
         let produced = {
-            ValueStream::new(&target_key_path, block_stream)
+            ValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -138,7 +138,7 @@ mod tests {
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
 
-        let target_key_path = vec![String::from("flag_key")];
+        let target_key_path = &["flag_key"];
 
         let block_stream = BlockStream::new(
             file_walker,
@@ -159,7 +159,7 @@ mod tests {
             (Cow::Owned(root_dir.join("0").join("0_2").join("0_2_2")), Value::from("0_2_2")),
         ];
         let produced = {
-            ValueStream::new(&target_key_path, block_stream)
+            ValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -179,7 +179,7 @@ mod tests {
         let origin_path = root_dir.join("0").join("0_1").join("0_1_2");
         let file_walker = FileWalker::Parent(ParentFileWalker::new(&origin_path));
 
-        let target_key_path = vec![String::from("flag_key")];
+        let target_key_path = &["flag_key"];
 
         let block_stream = BlockStream::new(
             file_walker,
@@ -190,7 +190,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
         let produced = {
-            ValueStream::new(&target_key_path, block_stream)
+            ValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
@@ -201,7 +201,7 @@ mod tests {
         let origin_path = root_dir.join("0");
         let file_walker = FileWalker::Child(ChildFileWalker::new(&origin_path));
 
-        let target_key_path = vec![String::from("flag_key")];
+        let target_key_path = &["flag_key"];
 
         let block_stream = BlockStream::new(
             file_walker,
@@ -212,7 +212,7 @@ mod tests {
 
         let expected: Vec<(Cow<'_, _>, Value)> = Vec::new();
         let produced = {
-            ValueStream::new(&target_key_path, block_stream)
+            ValueStream::new(target_key_path, block_stream)
                 .into_iter()
                 .map(|res| res.unwrap())
                 .collect::<Vec<_>>()
