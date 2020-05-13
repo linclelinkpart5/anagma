@@ -58,20 +58,20 @@ impl Processor {
     /// paths to metadata blocks.
     pub fn process_meta_file<'a>(
         meta_path: &'a Path,
-        meta_target: &Target,
+        target: &Target,
         schema_format: &SchemaFormat,
         selection: &Selection,
         sorter: &Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
     {
-        let meta_structure =
-            Schema::from_file(schema_format, meta_path, meta_target)
+        let schema =
+            Schema::from_file(schema_format, meta_path, target)
             .map_err(Error::CannotReadMetadata)?
         ;
 
         // LEARN: Since `meta_path` is already a ref, no need to add `&`!
         let selected_item_paths =
-            meta_target
+            target
             .selected_item_paths(meta_path, selection)
             .map_err(Error::CannotFindItemPaths)?
         ;
@@ -79,7 +79,7 @@ impl Processor {
         let mut meta_plexed = HashMap::new();
 
         let meta_plexer = Plexer::new(
-            meta_structure,
+            schema,
             selected_item_paths.into_iter(),
             sorter,
         );
@@ -106,8 +106,8 @@ impl Processor {
     {
         let mut comp_mb = Block::new();
 
-        for meta_target in Target::iter() {
-            let meta_path = match meta_target.meta_path(item_path, schema_format) {
+        for target in Target::iter() {
+            let meta_path = match target.meta_path(item_path, schema_format) {
                 Err(e) => {
                     if e.is_fatal() { return Err(e).map_err(Error::CannotFindMetaPath); }
                     else { continue; }
@@ -117,7 +117,7 @@ impl Processor {
 
             let mut processed_meta_file = Self::process_meta_file(
                 &meta_path,
-                &meta_target,
+                &target,
                 schema_format,
                 selection,
                 sorter,
@@ -239,11 +239,11 @@ mod tests {
         ];
 
         for (input, expected) in inputs_and_expected {
-            let (meta_path, meta_target) = input;
+            let (meta_path, target) = input;
 
             let produced = Processor::process_meta_file(
                 &meta_path,
-                &meta_target,
+                &target,
                 &SchemaFormat::Json,
                 &selection,
                 &sorter,
