@@ -26,8 +26,7 @@ impl Default for SortOrder {
 /// A struct that contains all of the information needed to sort item file paths
 /// in a desired order.
 #[derive(Debug, Copy, Clone, Deserialize, PartialEq, Eq, Hash, Default)]
-#[serde(default)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct Sorter {
     pub sort_by: SortBy,
     pub sort_order: SortOrder,

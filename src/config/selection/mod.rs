@@ -76,8 +76,7 @@ impl<'a> Iterator for SelectedSubPaths<'a> {
 
 /// A type that represents included and excluded item files and directories.
 #[derive(Deserialize, Debug)]
-#[serde(default)]
-#[serde(deny_unknown_fields)]
+#[serde(default, deny_unknown_fields)]
 pub struct Selection {
     include_files: Matcher,
     exclude_files: Matcher,
