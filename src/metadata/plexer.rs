@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use std::iter::FusedIterator;
 use std::borrow::Cow;
 
-use crate::config::sorter::Sorter;
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockMapping;
 use crate::metadata::schema::Schema;
@@ -45,7 +44,7 @@ where
     I: Iterator<Item = Cow<'a, Path>>,
 {
     One(Option<Block>, I),
-    Seq(std::vec::IntoIter<Block>, std::vec::IntoIter<Cow<'a, Path>>),
+    Seq(std::vec::IntoIter<Block>, I),
     Map(BlockMapping, I),
 }
 
@@ -132,18 +131,10 @@ where
     I: Iterator<Item = Cow<'a, Path>>,
 {
     /// Creates a new `Plexer`.
-    // NOTE: The `Sorter` is not always used, is there a way around needing to
-    //       provide it all the time?
-    pub fn new(meta_structure: Schema, file_path_iter: I, sorter: &Sorter) -> Self {
-        match meta_structure {
+    pub fn new(schema: Schema, file_path_iter: I) -> Self {
+        match schema {
             Schema::One(mb) => Self::One(Some(mb), file_path_iter),
-            Schema::Seq(mb_seq) => {
-                // Need to collect and pre-sort the file paths.
-                let mut file_paths = file_path_iter.collect::<Vec<_>>();
-                file_paths.sort_by(|a, b| sorter.path_sort_cmp(a.as_ref(), b.as_ref()));
-
-                Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
-            },
+            Schema::Seq(mb_seq) => Self::Seq(mb_seq.into_iter(), file_path_iter),
             Schema::Map(mb_map) => Self::Map(mb_map, file_path_iter),
         }
     }
@@ -236,7 +227,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = Plexer::new(meta_structure, item_paths.into_iter(), &Sorter::default()).collect::<Vec<_>>();
+            let produced = Plexer::new(meta_structure, item_paths.into_iter()).collect::<Vec<_>>();
             assert_eq!(expected, produced);
         }
 
@@ -280,7 +271,7 @@ mod tests {
 
         for (input, expected) in inputs_and_expected {
             let (meta_structure, item_paths) = input;
-            let produced = Plexer::new(meta_structure, item_paths.into_iter(), &Sorter::default()).collect::<HashSet<_>>();
+            let produced = Plexer::new(meta_structure, item_paths.into_iter()).collect::<HashSet<_>>();
             assert_eq!(expected, produced);
         }
     }

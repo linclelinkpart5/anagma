@@ -70,18 +70,22 @@ impl Processor {
         ;
 
         // LEARN: Since `meta_path` is already a ref, no need to add `&`!
-        let selected_item_paths =
+        let mut selected_item_paths =
             target
             .selected_item_paths(meta_path, selection)
             .map_err(Error::CannotFindItemPaths)?
         ;
+
+        if schema.expects_sorted() {
+            // Sort the input item paths.
+            selected_item_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
+        }
 
         let mut meta_plexed = HashMap::new();
 
         let meta_plexer = Plexer::new(
             schema,
             selected_item_paths.into_iter(),
-            sorter,
         );
 
         for meta_plex_res in meta_plexer {

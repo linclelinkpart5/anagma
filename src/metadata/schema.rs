@@ -90,6 +90,14 @@ impl From<SchemaRepr> for Schema {
 }
 
 impl Schema {
+    pub fn expects_sorted(&self) -> bool {
+        match self {
+            Self::One(..) => false,
+            Self::Seq(..) => true,
+            Self::Map(..) => false,
+        }
+    }
+
     fn from_yaml_str(s: &str, target: &Target) -> Result<Self, YamlError> {
         match target {
             Target::Parent => serde_yaml::from_str(s).map(SchemaRepr::Unit),
