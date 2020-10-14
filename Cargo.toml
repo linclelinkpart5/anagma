@@ -1,6 +1,6 @@
 [package]
 name = "anagma"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Mark LeMoine <linclelinkpart5@gmail.com>"]
 edition = "2018"
 description = "A new standard for storing hierarchical metadata for data/media files in external configuration files."
