@@ -3,6 +3,8 @@
 pub mod selection;
 pub mod sorter;
 
+use std::path::Path;
+
 use serde::Deserialize;
 
 use self::selection::Selection;
@@ -46,6 +48,14 @@ impl Default for Config {
             self_fn,
             schema_format,
         }
+    }
+}
+
+impl Config {
+    pub fn from_file<P: AsRef<Path>>(path: &P) -> Result<Self, Box<dyn std::error::Error>> {
+        let contents = std::fs::read_to_string(path)?;
+        let config = serde_json::from_str(&contents)?;
+        Ok(config)
     }
 }
 
