@@ -1,12 +1,13 @@
 //! Primitives and methods for accessing and working with item metadata.
 
-pub mod value;
 pub mod block;
-pub mod schema;
-pub mod target;
+pub mod compositor;
 pub mod plexer;
 pub mod processor;
+pub mod schema;
 pub mod stream;
+pub mod target;
+pub mod value;
 
 pub use self::value::{Value, Error as ValueError};
 pub use self::block::{Block, BlockSequence, BlockMapping};
