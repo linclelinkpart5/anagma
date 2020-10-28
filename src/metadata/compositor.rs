@@ -1,15 +1,112 @@
-
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
+use std::io::Error as IoError;
+use std::path::{Path, PathBuf};
 
 use crate::metadata::schema::SchemaFormat;
 
+#[derive(Debug)]
+pub enum Error {
+    NotADir(PathBuf),
+    ItemAccess(PathBuf, IoError),
+    NoParentDir(PathBuf),
+    IterDir(IoError),
+    IterDirEntry(IoError),
+    NotAFile(PathBuf),
+    MetaAccess(PathBuf, IoError),
+
+    Bulk(IoError, Vec<IoError>),
+    // InvalidItemDirPath(PathBuf),
+    // CannotAccessItemPath(PathBuf, IoError),
+    // NoItemPathParent(PathBuf),
+    // CannotReadItemDir(IoError),
+    // CannotReadItemDirEntry(IoError),
+
+    // InvalidMetaFilePath(PathBuf),
+    // CannotAccessMetaPath(PathBuf, IoError),
+    // NoMetaPathParent(PathBuf), // THIS SHOULD NEVER OCCUR, JUST PANIC.
+
+    // BulkSelectionError(IoError, Vec<IoError>),
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            _ => write!(f, "error!"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            _ => None,
+        }
+    }
+}
+
 pub(crate) enum Source {
     /// The metadata file location is a sibling of the target item file path.
-    External(OsString),
+    External(String),
 
     /// The metadata file location is inside the target item file path.
     /// Implies that the the target item file path is a directory.
-    Internal(OsString),
+    Internal(String),
+}
+
+impl Source {
+    pub(crate) fn fn_stub(&self) -> &str {
+        match self {
+            Self::External(fn_stub) => fn_stub,
+            Self::Internal(fn_stub) => fn_stub,
+        }
+    }
+
+    /// Given a concrete item file path, returns the meta file path that would
+    /// provide metadata for that item path, according to the source rules.
+    pub(crate) fn meta_path(
+        &self,
+        item_path: &Path,
+        schema_fmt: &SchemaFormat,
+    ) -> Result<PathBuf, Error> {
+        // Get filesystem stat for item path.
+        // This step is always done, even if the file/directory status does not
+        // need to be checked, as it provides useful error information about
+        // permissions and non-existence.
+        let item_fs_stat =
+            std::fs::metadata(&item_path).map_err(|io| Error::ItemAccess(item_path.into(), io))?;
+
+        let meta_path_parent_dir = match self {
+            Self::External(..) => item_path
+                .parent()
+                .ok_or_else(|| Error::NoParentDir(item_path.into()))?,
+            Self::Internal(..) => {
+                if !item_fs_stat.is_dir() {
+                    return Err(Error::NotADir(item_path.into()));
+                }
+
+                item_path
+            }
+        };
+
+        // Create the target meta file name.
+        let target_fn = format!("{}.{}", self.fn_stub(), schema_fmt.file_extension());
+        let meta_path = meta_path_parent_dir.join(target_fn);
+
+        // Get filesystem stat for meta path.
+        // NOTE: Using `match` in order to avoid a clone in the error case.
+        let meta_fs_stat = match std::fs::metadata(&meta_path) {
+            Ok(o) => o,
+            Err(io_err) => return Err(Error::MetaAccess(meta_path, io_err)),
+        };
+
+        // Ensure that the meta path is indeed a file.
+        if !meta_fs_stat.is_file() {
+            // Found a directory with the meta file name, this would be an unusual error case.
+            Err(Error::NotAFile(meta_path))
+        } else {
+            Ok(meta_path)
+        }
+    }
 }
 
 pub struct Compositor(Vec<Source>, SchemaFormat);
@@ -19,14 +116,14 @@ impl<'a> Compositor {
         Self(Vec::new(), fmt)
     }
 
-    fn _add_src<I, F>(&mut self, file_stub: I, f: F) -> &mut Self
+    fn _add_src<I, F>(&mut self, fn_stub: I, f: F) -> &mut Self
     where
-        I: Into<OsString>,
-        F: Fn(OsString) -> Source,
+        I: Into<String>,
+        F: FnOnce(String) -> Source,
     {
-        let mut src_fn = file_stub.into();
-        src_fn.push(".");
-        src_fn.push(self.1.file_extension());
+        let mut src_fn = fn_stub.into();
+        src_fn.push('.');
+        src_fn.push_str(self.1.file_extension());
 
         let src = f(src_fn);
 
@@ -34,11 +131,19 @@ impl<'a> Compositor {
         self
     }
 
-    pub(crate) fn ex_source<I: Into<OsString>>(&mut self, file_stub: I) -> &mut Self {
-        self._add_src(file_stub, Source::External)
+    pub(crate) fn ex_source<I>(&mut self, fn_stub: I) -> &mut Self
+    where
+        I: Into<String>,
+    {
+        self._add_src(fn_stub, Source::External)
     }
 
-    pub(crate) fn in_source<I: Into<OsString>>(&mut self, file_stub: I) -> &mut Self {
-        self._add_src(file_stub, Source::Internal)
+    pub(crate) fn in_source<I>(&mut self, fn_stub: I) -> &mut Self
+    where
+        I: Into<String>,
+    {
+        self._add_src(fn_stub, Source::Internal)
     }
+
+    pub fn compose(&self, item_path: &Path) {}
 }
