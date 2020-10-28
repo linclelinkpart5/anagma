@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::ffi::{OsStr, OsString};
 use std::io::Error as IoError;
 use std::path::{Path, PathBuf};
@@ -105,6 +106,47 @@ impl Source {
             Err(Error::NotAFile(meta_path))
         } else {
             Ok(meta_path)
+        }
+    }
+
+    /// Provides a listing of the item file paths that this meta target
+    /// could/should provide metadata for. Note that this does NOT parse meta
+    /// files, it only uses file system locations and presence. In addition, no
+    /// filtering or sorting of the returned item paths is performed.
+    pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<Vec<Cow<'a, Path>>, Error> {
+        let meta_fs_stat =
+            std::fs::metadata(&meta_path).map_err(|io| Error::MetaAccess(meta_path.into(), io))?;
+
+        if !meta_fs_stat.is_file() {
+            return Err(Error::NotAFile(meta_path.into()));
+        }
+
+        // Get the parent directory of the meta file.
+        if let Some(meta_parent_dir_path) = meta_path.parent() {
+            let mut item_paths = Vec::new();
+
+            match self {
+                Self::External(..) => {
+                    // Return all children of the parent directory of this meta file.
+                    let read_dir =
+                        std::fs::read_dir(&meta_parent_dir_path).map_err(Error::IterDir)?;
+
+                    for entry in read_dir {
+                        item_paths.push(Cow::Owned(entry.map_err(Error::IterDirEntry)?.path()));
+                    }
+                }
+                Self::Internal(..) => {
+                    // This is just the passed-in path, just push it on unchanged.
+                    item_paths.push(Cow::Borrowed(meta_parent_dir_path));
+                }
+            }
+
+            Ok(item_paths)
+        } else {
+            // This should never happen, since at this point we have a real meta
+            // file and thus, a real parent directory for that file, but making
+            // an error for it anyways.
+            Err(Error::NoParentDir(meta_path.into()))?
         }
     }
 }
