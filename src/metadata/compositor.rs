@@ -72,7 +72,7 @@ impl<'a> Iterator for ItemPaths<'a> {
     }
 }
 
-pub(crate) struct SelectedItemPaths<'a>(ItemPathsInner<'a>, &'a Selection);
+pub(crate) struct SelectedItemPaths<'a>(ItemPaths<'a>, &'a Selection);
 
 impl<'a> Iterator for SelectedItemPaths<'a> {
     type Item = IoResult<Cow<'a, Path>>;
@@ -80,14 +80,20 @@ impl<'a> Iterator for SelectedItemPaths<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(res) = self.0.next() {
             match res {
-                Err(err) => { return Some(Err(err)); },
-                Ok(path) => {
-                    match self.1.is_selected(&path) {
-                        Ok(true) => { return Some(Ok(path)); },
-                        Ok(false) => { continue; },
-                        Err(err) => { return Some(Err(err)); },
-                    }
+                Err(err) => {
+                    return Some(Err(err));
                 }
+                Ok(path) => match self.1.is_selected(&path) {
+                    Ok(true) => {
+                        return Some(Ok(path));
+                    }
+                    Ok(false) => {
+                        continue;
+                    }
+                    Err(err) => {
+                        return Some(Err(err));
+                    }
+                },
             }
         }
 
@@ -194,6 +200,16 @@ impl Source {
             // an error for it anyways.
             Err(Error::NoParentDir(meta_path.into()))
         }
+    }
+
+    /// Similar to `item_paths`, but also performs selection filtering on the
+    /// produced item paths.
+    pub fn selected_item_paths<'a>(
+        &self,
+        meta_path: &'a Path,
+        selection: &'a Selection,
+    ) -> Result<SelectedItemPaths<'a>, Error> {
+        Ok(SelectedItemPaths(self.item_paths(meta_path)?, selection))
     }
 }
 
