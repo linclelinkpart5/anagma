@@ -3,6 +3,7 @@ use std::ffi::{OsStr, OsString};
 use std::io::{Error as IoError, Result as IoResult};
 use std::path::{Path, PathBuf};
 
+use crate::config::selection::Selection;
 use crate::metadata::schema::SchemaFormat;
 
 #[derive(Debug)]
@@ -68,6 +69,29 @@ impl<'a> Iterator for ItemPaths<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
+    }
+}
+
+pub(crate) struct SelectedItemPaths<'a>(ItemPathsInner<'a>, &'a Selection);
+
+impl<'a> Iterator for SelectedItemPaths<'a> {
+    type Item = IoResult<Cow<'a, Path>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(res) = self.0.next() {
+            match res {
+                Err(err) => { return Some(Err(err)); },
+                Ok(path) => {
+                    match self.1.is_selected(&path) {
+                        Ok(true) => { return Some(Ok(path)); },
+                        Ok(false) => { continue; },
+                        Err(err) => { return Some(Err(err)); },
+                    }
+                }
+            }
+        }
+
+        None
     }
 }
 
