@@ -1,7 +1,6 @@
 //! Primitives and methods for accessing and working with item metadata.
 
 pub mod block;
-pub mod compositor;
 pub mod plexer;
 pub mod processor;
 pub mod schema;

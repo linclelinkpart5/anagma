@@ -1,5 +1,7 @@
-pub mod metadata;
+pub mod compose;
 pub mod config;
+pub mod metadata;
+pub mod source;
 mod util;
 
 #[cfg(test)] mod test_util;

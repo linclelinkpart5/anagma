@@ -1,6 +1,5 @@
 use std::borrow::Cow;
-use std::ffi::{OsStr, OsString};
-use std::io::{Error as IoError, Result as IoResult, ErrorKind as IoErrorKind};
+use std::io::{Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
 use std::path::{Path, PathBuf};
 
 use crate::config::selection::Selection;
@@ -8,32 +7,51 @@ use crate::config::selection::Selection;
 #[derive(Debug)]
 pub enum Error {
     NotADir(PathBuf),
-    ItemAccess(PathBuf, IoError),
-    NoItemParentDir(PathBuf),
-    NoMetaParentDir(PathBuf),
-    IterDir(IoError),
-    IterDirEntry(IoError),
     NotAFile(PathBuf),
+
+    ItemAccess(PathBuf, IoError),
     MetaAccess(PathBuf, IoError),
 
-    Bulk(IoError, Vec<IoError>),
-    // InvalidItemDirPath(PathBuf),
-    // CannotAccessItemPath(PathBuf, IoError),
-    // NoItemPathParent(PathBuf),
-    // CannotReadItemDir(IoError),
-    // CannotReadItemDirEntry(IoError),
+    NoItemParentDir(PathBuf),
+    NoMetaParentDir(PathBuf),
 
-    // InvalidMetaFilePath(PathBuf),
-    // CannotAccessMetaPath(PathBuf, IoError),
-    // NoMetaPathParent(PathBuf), // THIS SHOULD NEVER OCCUR, JUST PANIC.
+    IterDir(IoError),
+    // IterDirEntry(IoError),
 
-    // BulkSelectionError(IoError, Vec<IoError>),
+    // Bulk(IoError, Vec<IoError>),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            _ => write!(f, "error!"),
+            Self::NotADir(ref p) => write!(f, "not a directory: {}", p.display()),
+            Self::NotAFile(ref p) => write!(f, "not a file: {}", p.display()),
+
+            Self::ItemAccess(ref p, ref err) => write!(
+                f,
+                r#"cannot access item path "{}", error: {}"#,
+                p.display(),
+                err
+            ),
+            Self::MetaAccess(ref p, ref err) => write!(
+                f,
+                r#"cannot access meta path "{}", error: {}"#,
+                p.display(),
+                err
+            ),
+
+            Self::NoItemParentDir(ref p) => {
+                write!(f, "item path does not have a parent: {}", p.display())
+            }
+            Self::NoMetaParentDir(ref p) => {
+                write!(f, "meta path does not have a parent: {}", p.display())
+            }
+
+            Self::IterDir(ref err) => {
+                write!(f, "unable to read entries in item directory: {}", err)
+            }
+            // Self::IterDirEntry(ref err)
+            //     => write!(f, "unable to read item directory entry: {}", err),
         }
     }
 }
@@ -47,13 +65,11 @@ impl std::error::Error for Error {
 }
 
 impl Error {
-    pub(crate) fn is_fatal(&self) -> bool {
+    pub fn is_fatal(&self) -> bool {
         match self {
-            Self::MetaAccess(_, io_error) => {
-                match io_error.kind() {
-                    IoErrorKind::NotFound => false,
-                    _ => true,
-                }
+            Self::MetaAccess(_, io_error) => match io_error.kind() {
+                IoErrorKind::NotFound => false,
+                _ => true,
             },
             Self::NotADir(..) | Self::NoItemParentDir(..) => false,
             _ => true,
@@ -61,65 +77,10 @@ impl Error {
     }
 }
 
-enum ItemPathsInner<'a> {
-    ReadDir(std::fs::ReadDir),
-    Single(Option<&'a Path>),
-}
-
-impl<'a> Iterator for ItemPathsInner<'a> {
-    type Item = IoResult<Cow<'a, Path>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::ReadDir(rd) => Some(rd.next()?.map(|e| Cow::Owned(e.path()))),
-            Self::Single(o) => o.take().map(|p| Ok(Cow::Borrowed(p))),
-        }
-    }
-}
-
-pub(crate) struct ItemPaths<'a>(ItemPathsInner<'a>);
-
-impl<'a> Iterator for ItemPaths<'a> {
-    type Item = IoResult<Cow<'a, Path>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
-
-pub(crate) struct SelectedItemPaths<'a>(ItemPaths<'a>, &'a Selection);
-
-impl<'a> Iterator for SelectedItemPaths<'a> {
-    type Item = IoResult<Cow<'a, Path>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(res) = self.0.next() {
-            match res {
-                Err(err) => {
-                    return Some(Err(err));
-                }
-                Ok(path) => match self.1.is_selected(&path) {
-                    Ok(true) => {
-                        return Some(Ok(path));
-                    }
-                    Ok(false) => {
-                        continue;
-                    }
-                    Err(err) => {
-                        return Some(Err(err));
-                    }
-                },
-            }
-        }
-
-        None
-    }
-}
-
 /// Represents a method of finding the location of a meta file given an item
 /// file path.
 #[derive(Clone, Copy)]
-pub(crate) enum Anchor {
+pub enum Anchor {
     /// The meta file is located in the same directory as the item file path.
     External,
 
@@ -130,7 +91,7 @@ pub(crate) enum Anchor {
 
 /// Defines a meta file source, consisting of an anchor (the target directory
 /// to look in) and a file name (the meta file name in that target directory).
-pub(crate) struct Source {
+pub struct Source {
     pub file_name: String,
     pub anchor: Anchor,
 }
@@ -138,10 +99,7 @@ pub(crate) struct Source {
 impl Source {
     /// Given a concrete item file path, returns the meta file path that would
     /// provide metadata for that item path, according to the source rules.
-    pub(crate) fn meta_path(
-        &self,
-        item_path: &Path,
-    ) -> Result<PathBuf, Error> {
+    pub fn meta_path(&self, item_path: &Path) -> Result<PathBuf, Error> {
         // Get filesystem stat for item path.
         // This step is always done, even if the file/directory status does not
         // need to be checked, as it provides useful error information about
@@ -229,41 +187,57 @@ impl Source {
     }
 }
 
-pub struct Compositor(Vec<Source>);
+enum ItemPathsInner<'a> {
+    ReadDir(std::fs::ReadDir),
+    Single(Option<&'a Path>),
+}
 
-impl<'a> Compositor {
-    pub(crate) fn new() -> Self {
-        Self(Vec::new())
+impl<'a> Iterator for ItemPathsInner<'a> {
+    type Item = IoResult<Cow<'a, Path>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::ReadDir(rd) => Some(rd.next()?.map(|e| Cow::Owned(e.path()))),
+            Self::Single(o) => o.take().map(|p| Ok(Cow::Borrowed(p))),
+        }
     }
+}
 
-    fn add_source<I>(&mut self, file_name: I, anchor: Anchor) -> &mut Self
-    where
-        I: Into<String>,
-    {
-        let file_name = file_name.into();
+pub struct ItemPaths<'a>(ItemPathsInner<'a>);
 
-        let src = Source {
-            file_name,
-            anchor,
-        };
+impl<'a> Iterator for ItemPaths<'a> {
+    type Item = IoResult<Cow<'a, Path>>;
 
-        self.0.push(src);
-        self
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
+}
 
-    pub(crate) fn external<I>(&mut self, file_name: I) -> &mut Self
-    where
-        I: Into<String>,
-    {
-        self.add_source(file_name, Anchor::External)
+pub struct SelectedItemPaths<'a>(ItemPaths<'a>, &'a Selection);
+
+impl<'a> Iterator for SelectedItemPaths<'a> {
+    type Item = IoResult<Cow<'a, Path>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(res) = self.0.next() {
+            match res {
+                Err(err) => {
+                    return Some(Err(err));
+                }
+                Ok(path) => match self.1.is_selected(&path) {
+                    Ok(true) => {
+                        return Some(Ok(path));
+                    }
+                    Ok(false) => {
+                        continue;
+                    }
+                    Err(err) => {
+                        return Some(Err(err));
+                    }
+                },
+            }
+        }
+
+        None
     }
-
-    pub(crate) fn internal<I>(&mut self, file_name: I) -> &mut Self
-    where
-        I: Into<String>,
-    {
-        self.add_source(file_name, Anchor::Internal)
-    }
-
-    pub fn compose(&self, item_path: &Path) {}
 }
