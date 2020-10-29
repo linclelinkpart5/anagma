@@ -5,38 +5,22 @@ use std::path::PathBuf;
 use std::iter::FusedIterator;
 use std::borrow::Cow;
 
+use thiserror::Error;
+
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockMapping;
 use crate::metadata::schema::Schema;
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Error)]
 pub enum Error {
+    #[error("item path was unused: {}", .0.display())]
     UnusedItemPath(PathBuf),
-    UnusedBlock(Block, Option<String>),
+    #[error("meta block was unused")]
+    UnusedBlock(Block),
+    #[error(r#"meta block was unused, with tag "{1}""#)]
+    UnusedTaggedBlock(Block, String),
+    #[error("item path does not have a file name: {}", .0.display())]
     NamelessItemPath(PathBuf),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::UnusedItemPath(ref p) => write!(f, "item path was unused in plexing: {}", p.display()),
-            Self::UnusedBlock(_, ref opt_tag) => {
-                let tag_desc = match opt_tag {
-                    Some(tag) => Cow::Owned(format!(", with tag: {}", tag)),
-                    None => Cow::Borrowed(""),
-                };
-
-                write!(f, "meta block was unused in plexing{}", tag_desc)
-            },
-            Self::NamelessItemPath(ref p) => write!(f, "item path did not have a file name: {}", p.display()),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
-    }
 }
 
 pub enum Plexer<'a, I>
@@ -68,7 +52,7 @@ where
                     (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
 
                     // Got a meta block with no file path, report an error.
-                    (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
+                    (Some(block), None) => Some(Err(Error::UnusedBlock(block))),
                 }
             },
             Self::Seq(ref mut block_iter, ref mut sorted_path_iter) => {
@@ -83,7 +67,7 @@ where
                     (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into()))),
 
                     // Got a meta block with no file path, report an error.
-                    (Some(block), None) => Some(Err(Error::UnusedBlock(block, None))),
+                    (Some(block), None) => Some(Err(Error::UnusedBlock(block))),
                 }
             },
             Self::Map(ref mut block_mapping, ref mut path_iter) => {
@@ -109,7 +93,7 @@ where
                         // No more file paths, see if there are any more meta blocks.
                         match block_mapping.pop() {
                             // Found an orphaned meta block, report an error.
-                            Some((block_tag, block)) => Some(Err(Error::UnusedBlock(block, Some(block_tag)))),
+                            Some((block_tag, block)) => Some(Err(Error::UnusedTaggedBlock(block, block_tag))),
 
                             // No more meta blocks were found, this iterator is now exhausted.
                             None => None,
@@ -196,7 +180,7 @@ mod tests {
             (
                 (structure_a.clone(), vec![]),
                 vec![
-                    Err(Error::UnusedBlock(block_a.clone(), None)),
+                    Err(Error::UnusedBlock(block_a.clone())),
                 ],
             ),
             (
@@ -220,8 +204,8 @@ mod tests {
                 (structure_b.clone(), vec![Cow::Owned(PathBuf::from("item_a"))]),
                 vec![
                     Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
-                    Err(Error::UnusedBlock(block_b.clone(), None)),
-                    Err(Error::UnusedBlock(block_c.clone(), None)),
+                    Err(Error::UnusedBlock(block_b.clone())),
+                    Err(Error::UnusedBlock(block_c.clone())),
                 ],
             ),
         ];
@@ -247,7 +231,7 @@ mod tests {
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
-                    Err(Error::UnusedBlock(block_c.clone(), Some(str!("item_c")))),
+                    Err(Error::UnusedTaggedBlock(block_c.clone(), str!("item_c"))),
                 ],
             ),
             (
@@ -264,7 +248,7 @@ mod tests {
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
-                    Err(Error::UnusedBlock(block_c.clone(), Some(str!("item_c")))),
+                    Err(Error::UnusedTaggedBlock(block_c.clone(), str!("item_c"))),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),

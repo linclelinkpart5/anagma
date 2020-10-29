@@ -2,66 +2,32 @@ use std::borrow::Cow;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
 use std::path::{Path, PathBuf};
 
+use thiserror::Error;
+
 use crate::config::selection::Selection;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("not a directory: {}", .0.display())]
     NotADir(PathBuf),
+    #[error("not a file: {}", .0.display())]
     NotAFile(PathBuf),
 
-    ItemAccess(PathBuf, IoError),
-    MetaAccess(PathBuf, IoError),
+    #[error(r#"cannot access item path "{}": {1}"#, .0.display())]
+    ItemAccess(PathBuf, #[source] IoError),
+    #[error(r#"cannot access meta path "{}": {1}"#, .0.display())]
+    MetaAccess(PathBuf, #[source] IoError),
 
+    #[error("item path does not have a parent: {}", .0.display())]
     NoItemParentDir(PathBuf),
+    #[error("meta path does not have a parent: {}", .0.display())]
     NoMetaParentDir(PathBuf),
 
-    IterDir(IoError),
+    #[error("unable to read item directory entry: {0}")]
+    IterDir(#[source] IoError),
     // IterDirEntry(IoError),
 
     // Bulk(IoError, Vec<IoError>),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::NotADir(ref p) => write!(f, "not a directory: {}", p.display()),
-            Self::NotAFile(ref p) => write!(f, "not a file: {}", p.display()),
-
-            Self::ItemAccess(ref p, ref err) => write!(
-                f,
-                r#"cannot access item path "{}", error: {}"#,
-                p.display(),
-                err
-            ),
-            Self::MetaAccess(ref p, ref err) => write!(
-                f,
-                r#"cannot access meta path "{}", error: {}"#,
-                p.display(),
-                err
-            ),
-
-            Self::NoItemParentDir(ref p) => {
-                write!(f, "item path does not have a parent: {}", p.display())
-            }
-            Self::NoMetaParentDir(ref p) => {
-                write!(f, "meta path does not have a parent: {}", p.display())
-            }
-
-            Self::IterDir(ref err) => {
-                write!(f, "unable to read entries in item directory: {}", err)
-            }
-            // Self::IterDirEntry(ref err)
-            //     => write!(f, "unable to read item directory entry: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            _ => None,
-        }
-    }
 }
 
 impl Error {

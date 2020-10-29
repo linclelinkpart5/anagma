@@ -7,28 +7,14 @@ use globset::GlobSetBuilder;
 use globset::Error as GlobError;
 use serde::Deserialize;
 
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum Error {
-    InvalidPattern(GlobError),
-    BuildFailure(GlobError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::InvalidPattern(ref err) => write!(f, "invalid pattern: {}", err),
-            Self::BuildFailure(ref err) => write!(f, "cannot build matcher: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::InvalidPattern(ref err) => Some(err),
-            Self::BuildFailure(ref err) => Some(err),
-        }
-    }
+    #[error("invalid pattern: {0}")]
+    InvalidPattern(#[source] GlobError),
+    #[error("cannot build matcher: {0}")]
+    BuildFailure(#[source] GlobError),
 }
 
 #[derive(Deserialize)]

@@ -9,6 +9,7 @@ use std::fs::ReadDir;
 
 use strum::IntoEnumIterator;
 use serde::Deserialize;
+use thiserror::Error;
 
 use crate::config::sorter::Sorter;
 use crate::metadata::target::Target;
@@ -16,30 +17,12 @@ use crate::metadata::target::Target;
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("not a valid directory: {}", .0.display())]
     InvalidDirPath(PathBuf),
-    CannotBuildMatcher(MatcherError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::InvalidDirPath(ref p)
-                => write!(f, "not a valid directory: {}", p.display()),
-            Self::CannotBuildMatcher(ref err)
-                => write!(f, "cannot build matcher: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match *self {
-            Self::InvalidDirPath(..) => None,
-            Self::CannotBuildMatcher(ref err) => Some(err),
-        }
-    }
+    #[error("cannot build matcher: {0}")]
+    CannotBuildMatcher(#[source] MatcherError),
 }
 
 enum FileOrDir {
