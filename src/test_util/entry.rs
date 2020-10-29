@@ -48,19 +48,6 @@ fn create_meta_json(name: &str, target: Target, include_flag: bool) -> Json {
         Target::Siblings => "item",
     };
 
-    // let mut json = json!({
-    //     "name": name,
-    //     "unique_id": format!("{}_{}", name, target_str),
-    //     target_str: (),
-    // });
-
-    // let mut json = json!({
-    //     "const_key": "const_val",
-    //     format!("{}_key", target_str): format!("{}_val", target_str),
-    //     format!("{}_{}_key", name, target_str): format!("{}_{}_val", name, target_str),
-    //     "overridden": format!("{}_{}", name, target_str),
-    // });
-
     let mut json_map = JsonMap::new();
     json_map.insert("const_key".into(), "const_val".into());
     json_map.insert(format!("{}_key", target_str), format!("{}_val", target_str).into());
@@ -68,21 +55,6 @@ fn create_meta_json(name: &str, target: Target, include_flag: bool) -> Json {
     json_map.insert("overridden".into(), format!("{}_{}", name, target_str).into());
 
     if include_flag {
-        // json.as_object_mut().map(|m| m.insert(String::from("flag"), Json::Null));
-
-        // if let Some(map) = json.as_object_mut() {
-        //     let flag_json = json!({
-        //         "staggered_key": {
-        //             "sub_key_a": format!("{}_sub_val_a", name),
-        //             "sub_key_b": format!("{}_sub_val_b", name),
-        //             "sub_key_c": {
-        //                 "sub_sub_key_a": format!("{}_sub_sub_val_a", name),
-        //                 "sub_sub_key_b": format!("{}_sub_sub_val_b", name),
-        //             },
-        //         },
-        //     });
-        // }
-
         let mut sub_sub_json_map = JsonMap::new();
         sub_sub_json_map.insert("sub_sub_key_a".into(), format!("{}_sub_sub_val_a", name).into());
         sub_sub_json_map.insert("sub_sub_key_b".into(), format!("{}_sub_sub_val_b", name).into());

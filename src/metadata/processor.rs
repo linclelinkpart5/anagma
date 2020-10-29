@@ -147,6 +147,7 @@ mod tests {
     use super::*;
 
     use maplit::{hashmap, btreemap};
+    use str_macro::str;
 
     use crate::test_util::TestUtil as TU;
 
@@ -164,10 +165,10 @@ mod tests {
                 (path.join("self.json"), Target::Parent),
                 hashmap![
                     Cow::Owned(path.to_owned()) => btreemap![
-                        "ROOT_self_key".to_owned() => TU::s("ROOT_self_val"),
-                        "const_key".to_owned() => TU::s("const_val"),
-                        "self_key".to_owned() => TU::s("self_val"),
-                        "overridden".to_owned() => TU::s("ROOT_self"),
+                        str!("ROOT_self_key") => TU::s("ROOT_self_val"),
+                        str!("const_key") => TU::s("const_val"),
+                        str!("self_key") => TU::s("self_val"),
+                        str!("overridden") => TU::s("ROOT_self"),
                     ],
                 ],
             ),
@@ -175,34 +176,34 @@ mod tests {
                 (path.join("item.json"), Target::Siblings),
                 hashmap![
                     Cow::Owned(path.join("ALBUM_01")) => btreemap![
-                        String::from("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
-                        String::from("const_key") => TU::s("const_val"),
-                        String::from("item_key") => TU::s("item_val"),
-                        String::from("overridden") => TU::s("ALBUM_01_item"),
+                        str!("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
+                        str!("const_key") => TU::s("const_val"),
+                        str!("item_key") => TU::s("item_val"),
+                        str!("overridden") => TU::s("ALBUM_01_item"),
                     ],
                     Cow::Owned(path.join("ALBUM_02")) => btreemap![
-                        String::from("ALBUM_02_item_key") => TU::s("ALBUM_02_item_val"),
-                        String::from("const_key") => TU::s("const_val"),
-                        String::from("item_key") => TU::s("item_val"),
-                        String::from("overridden") => TU::s("ALBUM_02_item"),
+                        str!("ALBUM_02_item_key") => TU::s("ALBUM_02_item_val"),
+                        str!("const_key") => TU::s("const_val"),
+                        str!("item_key") => TU::s("item_val"),
+                        str!("overridden") => TU::s("ALBUM_02_item"),
                     ],
                     Cow::Owned(path.join("ALBUM_03")) => btreemap![
-                        String::from("ALBUM_03_item_key") => TU::s("ALBUM_03_item_val"),
-                        String::from("const_key") => TU::s("const_val"),
-                        String::from("item_key") => TU::s("item_val"),
-                        String::from("overridden") => TU::s("ALBUM_03_item"),
+                        str!("ALBUM_03_item_key") => TU::s("ALBUM_03_item_val"),
+                        str!("const_key") => TU::s("const_val"),
+                        str!("item_key") => TU::s("item_val"),
+                        str!("overridden") => TU::s("ALBUM_03_item"),
                     ],
                     Cow::Owned(path.join("ALBUM_04.flac")) => btreemap![
-                        String::from("ALBUM_04_item_key") => TU::s("ALBUM_04_item_val"),
-                        String::from("const_key") => TU::s("const_val"),
-                        String::from("item_key") => TU::s("item_val"),
-                        String::from("overridden") => TU::s("ALBUM_04_item"),
+                        str!("ALBUM_04_item_key") => TU::s("ALBUM_04_item_val"),
+                        str!("const_key") => TU::s("const_val"),
+                        str!("item_key") => TU::s("item_val"),
+                        str!("overridden") => TU::s("ALBUM_04_item"),
                     ],
                     Cow::Owned(path.join("ALBUM_05")) => btreemap![
-                        String::from("ALBUM_05_item_key") => TU::s("ALBUM_05_item_val"),
-                        String::from("const_key") => TU::s("const_val"),
-                        String::from("item_key") => TU::s("item_val"),
-                        String::from("overridden") => TU::s("ALBUM_05_item"),
+                        str!("ALBUM_05_item_key") => TU::s("ALBUM_05_item_val"),
+                        str!("const_key") => TU::s("const_val"),
+                        str!("item_key") => TU::s("item_val"),
+                        str!("overridden") => TU::s("ALBUM_05_item"),
                     ],
                 ],
             ),
@@ -210,10 +211,10 @@ mod tests {
             //     (path.join("ALBUM_01").join("self.json"), Target::Parent),
             //     hashmap![
             //         path.join("ALBUM_01") => btreemap![
-            //             "ALBUM_01_self_key".to_owned() => TU::s("ALBUM_01_self_val"),
-            //             "const_key".to_owned() => TU::s("const_val"),
-            //             "self_key".to_owned() => TU::s("self_val"),
-            //             "overridden".to_owned() => TU::s("ALBUM_01_self"),
+            //             str!("ALBUM_01_self_key") => TU::s("ALBUM_01_self_val"),
+            //             str!("const_key") => TU::s("const_val"),
+            //             str!("self_key") => TU::s("self_val"),
+            //             str!("overridden") => TU::s("ALBUM_01_self"),
             //         ],
             //     ],
             // ),
@@ -221,22 +222,22 @@ mod tests {
             //     (path.join("ALBUM_01").join("DISC_01").join("item.json"), Target::Siblings),
             //     hashmap![
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac") => btreemap![
-            //             "TRACK_01_item_key".to_owned() => TU::s("TRACK_01_item_val"),
-            //             "const_key".to_owned() => TU::s("const_val"),
-            //             "item_key".to_owned() => TU::s("item_val"),
-            //             "overridden".to_owned() => TU::s("TRACK_01_item"),
+            //             str!("TRACK_01_item_key") => TU::s("TRACK_01_item_val"),
+            //             str!("const_key") => TU::s("const_val"),
+            //             str!("item_key") => TU::s("item_val"),
+            //             str!("overridden") => TU::s("TRACK_01_item"),
             //         ],
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_02.flac") => btreemap![
-            //             "TRACK_02_item_key".to_owned() => TU::s("TRACK_02_item_val"),
-            //             "const_key".to_owned() => TU::s("const_val"),
-            //             "item_key".to_owned() => TU::s("item_val"),
-            //             "overridden".to_owned() => TU::s("TRACK_02_item"),
+            //             str!("TRACK_02_item_key") => TU::s("TRACK_02_item_val"),
+            //             str!("const_key") => TU::s("const_val"),
+            //             str!("item_key") => TU::s("item_val"),
+            //             str!("overridden") => TU::s("TRACK_02_item"),
             //         ],
             //         path.join("ALBUM_01").join("DISC_01").join("TRACK_03.flac") => btreemap![
-            //             "TRACK_03_item_key".to_owned() => TU::s("TRACK_03_item_val"),
-            //             "const_key".to_owned() => TU::s("const_val"),
-            //             "item_key".to_owned() => TU::s("item_val"),
-            //             "overridden".to_owned() => TU::s("TRACK_03_item"),
+            //             str!("TRACK_03_item_key") => TU::s("TRACK_03_item_val"),
+            //             str!("const_key") => TU::s("const_val"),
+            //             str!("item_key") => TU::s("item_val"),
+            //             str!("overridden") => TU::s("TRACK_03_item"),
             //         ],
             //     ],
             // ),
@@ -269,30 +270,30 @@ mod tests {
             (
                 Cow::Borrowed(path),
                 btreemap![
-                    String::from("ROOT_self_key") => TU::s("ROOT_self_val"),
-                    String::from("const_key") => TU::s("const_val"),
-                    String::from("self_key") => TU::s("self_val"),
-                    String::from("overridden") => TU::s("ROOT_self"),
+                    str!("ROOT_self_key") => TU::s("ROOT_self_val"),
+                    str!("const_key") => TU::s("const_val"),
+                    str!("self_key") => TU::s("self_val"),
+                    str!("overridden") => TU::s("ROOT_self"),
                 ],
             ),
             (
                 Cow::Owned(path.join("ALBUM_01")),
                 btreemap![
-                    String::from("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
-                    String::from("ALBUM_01_self_key") => TU::s("ALBUM_01_self_val"),
-                    String::from("const_key") => TU::s("const_val"),
-                    String::from("item_key") => TU::s("item_val"),
-                    String::from("self_key") => TU::s("self_val"),
-                    String::from("overridden") => TU::s("ALBUM_01_self"),
+                    str!("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
+                    str!("ALBUM_01_self_key") => TU::s("ALBUM_01_self_val"),
+                    str!("const_key") => TU::s("const_val"),
+                    str!("item_key") => TU::s("item_val"),
+                    str!("self_key") => TU::s("self_val"),
+                    str!("overridden") => TU::s("ALBUM_01_self"),
                 ],
             ),
             (
                 Cow::Owned(path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac")),
                 btreemap![
-                    String::from("TRACK_01_item_key") => TU::s("TRACK_01_item_val"),
-                    String::from("const_key") => TU::s("const_val"),
-                    String::from("item_key") => TU::s("item_val"),
-                    String::from("overridden") => TU::s("TRACK_01_item"),
+                    str!("TRACK_01_item_key") => TU::s("TRACK_01_item_val"),
+                    str!("const_key") => TU::s("const_val"),
+                    str!("item_key") => TU::s("item_val"),
+                    str!("overridden") => TU::s("TRACK_01_item"),
                 ],
             ),
         ];

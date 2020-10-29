@@ -14,6 +14,7 @@ use tempfile::TempDir;
 
 use maplit::btreemap;
 use rust_decimal_macros::dec;
+use str_macro::str;
 
 use crate::metadata::block::Block;
 use crate::metadata::schema::Schema;
@@ -46,7 +47,7 @@ impl TestUtil {
     }
 
     pub fn sample_string() -> Value {
-        Value::String(String::from("string"))
+        Value::String(str!("string"))
     }
 
     pub fn sample_integer() -> Value {
@@ -77,19 +78,19 @@ impl TestUtil {
 
     pub fn core_flat_mapping() -> Mapping {
         btreemap![
-            String::from(Self::STRING_KEY) => Self::sample_string(),
-            String::from(Self::INTEGER_KEY) => Self::sample_integer(),
-            String::from(Self::DECIMAL_KEY) => Self::sample_decimal(),
-            String::from(Self::BOOLEAN_KEY) => Self::sample_boolean(),
-            String::from(Self::NULL_KEY) => Self::sample_null(),
+            str!(Self::STRING_KEY) => Self::sample_string(),
+            str!(Self::INTEGER_KEY) => Self::sample_integer(),
+            str!(Self::DECIMAL_KEY) => Self::sample_decimal(),
+            str!(Self::BOOLEAN_KEY) => Self::sample_boolean(),
+            str!(Self::NULL_KEY) => Self::sample_null(),
         ]
     }
 
     pub fn core_nested_mapping() -> Mapping {
         let mut map = Self::core_flat_mapping();
 
-        map.insert(String::from(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
-        map.insert(String::from(Self::MAPPING_KEY), Self::sample_flat_mapping());
+        map.insert(str!(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
+        map.insert(str!(Self::MAPPING_KEY), Self::sample_flat_mapping());
 
         map
     }
@@ -141,24 +142,24 @@ impl TestUtil {
         let mut map = Self::core_nested_mapping();
 
         map.insert(
-            String::from(format!("{}_key", meta_target.default_file_name())),
+            str!(format!("{}_key", meta_target.default_file_name())),
             Value::String(format!("{}_val", meta_target.default_file_name())),
         );
 
         map.insert(
-            String::from("meta_target"),
-            Value::String(String::from(meta_target.default_file_name())),
+            str!("meta_target"),
+            Value::String(str!(meta_target.default_file_name())),
         );
 
         map.insert(
-            String::from("target_file_name"),
-            Value::String(String::from(target_name)),
+            str!("target_file_name"),
+            Value::String(str!(target_name)),
         );
 
         if include_flag_key {
             map.insert(
-                String::from("flag_key"),
-                Value::String(String::from(target_name)),
+                str!("flag_key"),
+                Value::String(str!(target_name)),
             );
         }
 
@@ -175,7 +176,7 @@ impl TestUtil {
                 new_breadcrumbs.push(i);
 
                 let name = if new_breadcrumbs.len() == 0 {
-                    String::from("ROOT")
+                    str!("ROOT")
                 }
                 else {
                     new_breadcrumbs.iter().map(|n| format!("{}", n)).collect::<Vec<_>>().join("_")
@@ -234,7 +235,7 @@ impl TestUtil {
                 new_breadcrumbs.push(i);
 
                 let name = if new_breadcrumbs.len() == 0 {
-                    String::from("ROOT")
+                    str!("ROOT")
                 }
                 else {
                     new_breadcrumbs.iter().map(|n| format!("{}", n)).collect::<Vec<_>>().join("_")

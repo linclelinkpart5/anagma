@@ -146,35 +146,36 @@ mod tests {
 
     use std::collections::HashSet;
 
-    use maplit::{hashset, btreemap};
     use indexmap::indexmap;
+    use maplit::{hashset, btreemap};
+    use str_macro::str;
 
     use crate::test_util::TestUtil as TU;
 
     #[test]
     fn plex() {
         let block_a = btreemap![
-            String::from("key_1a") => TU::s("val_1a"),
-            String::from("key_1b") => TU::s("val_1b"),
-            String::from("key_1c") => TU::s("val_1c"),
+            str!("key_1a") => TU::s("val_1a"),
+            str!("key_1b") => TU::s("val_1b"),
+            str!("key_1c") => TU::s("val_1c"),
         ];
         let block_b = btreemap![
-            String::from("key_2a") => TU::s("val_2a"),
-            String::from("key_2b") => TU::s("val_2b"),
-            String::from("key_2c") => TU::s("val_2c"),
+            str!("key_2a") => TU::s("val_2a"),
+            str!("key_2b") => TU::s("val_2b"),
+            str!("key_2c") => TU::s("val_2c"),
         ];
         let block_c = btreemap![
-            String::from("key_3a") => TU::s("val_3a"),
-            String::from("key_3b") => TU::s("val_3b"),
-            String::from("key_3c") => TU::s("val_3c"),
+            str!("key_3a") => TU::s("val_3a"),
+            str!("key_3b") => TU::s("val_3b"),
+            str!("key_3c") => TU::s("val_3c"),
         ];
 
         let structure_a = Schema::One(block_a.clone());
         let structure_b = Schema::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
         let structure_c = Schema::Map(indexmap![
-            String::from("item_c") => block_c.clone(),
-            String::from("item_a") => block_a.clone(),
-            String::from("item_b") => block_b.clone(),
+            str!("item_c") => block_c.clone(),
+            str!("item_a") => block_a.clone(),
+            str!("item_b") => block_b.clone(),
         ]);
 
         // Test single and sequence structures.
@@ -246,7 +247,7 @@ mod tests {
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
-                    Err(Error::UnusedBlock(block_c.clone(), Some(String::from("item_c")))),
+                    Err(Error::UnusedBlock(block_c.clone(), Some(str!("item_c")))),
                 ],
             ),
             (
@@ -263,7 +264,7 @@ mod tests {
                 hashset![
                     Ok((Cow::Owned(PathBuf::from("item_a")), block_a.clone())),
                     Ok((Cow::Owned(PathBuf::from("item_b")), block_b.clone())),
-                    Err(Error::UnusedBlock(block_c.clone(), Some(String::from("item_c")))),
+                    Err(Error::UnusedBlock(block_c.clone(), Some(str!("item_c")))),
                     Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
                 ],
             ),

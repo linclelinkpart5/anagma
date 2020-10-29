@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 use std::path::Path;
 
-
 use super::Error;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-use crate::metadata::schema::SchemaFormat;
 use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
+use crate::metadata::schema::SchemaFormat;
 use crate::util::file_walker::FileWalker;
 
 /// An iterator that yields metadata blocks from files on disk, powered by a file walker.
@@ -26,8 +25,7 @@ impl<'p> BlockStream<'p> {
         schema_format: &'p SchemaFormat,
         selection: &'p Selection,
         sorter: &'p Sorter,
-    ) -> Self
-    {
+    ) -> Self {
         Self {
             file_walker,
             schema_format,
@@ -37,7 +35,9 @@ impl<'p> BlockStream<'p> {
     }
 
     pub fn delve(&mut self) -> Result<(), Error> {
-        self.file_walker.delve(&self.selection, self.sorter).map_err(Error::FileWalker)
+        self.file_walker
+            .delve(&self.selection, self.sorter)
+            .map_err(Error::FileWalker)
     }
 }
 
@@ -46,18 +46,16 @@ impl<'p> Iterator for BlockStream<'p> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.file_walker.next()? {
-            Ok(path) => {
-                Some(
-                    Processor::process_item_file(
-                        &path,
-                        &self.schema_format,
-                        self.selection,
-                        &self.sorter,
-                    )
-                    .map(|mb| (path, mb))
-                    .map_err(Error::Processor)
+            Ok(path) => Some(
+                Processor::process_item_file(
+                    &path,
+                    &self.schema_format,
+                    self.selection,
+                    &self.sorter,
                 )
-            },
+                .map(|mb| (path, mb))
+                .map_err(Error::Processor),
+            ),
             Err(err) => Some(Err(Error::FileWalker(err))),
         }
     }
@@ -70,12 +68,19 @@ mod tests {
     use crate::test_util::TestUtil;
 
     use crate::metadata::value::Value;
-    use crate::util::file_walker::ParentFileWalker;
     use crate::util::file_walker::ChildFileWalker;
+    use crate::util::file_walker::ParentFileWalker;
+
+    use str_macro::str;
 
     #[test]
     fn file_meta_block_stream() {
-        let temp_dir = TestUtil::create_meta_fanout_test_dir("file_meta_block_stream", 3, 3, TestUtil::flag_set_by_default);
+        let temp_dir = TestUtil::create_meta_fanout_test_dir(
+            "file_meta_block_stream",
+            3,
+            3,
+            TestUtil::flag_set_by_default,
+        );
         let root_dir = temp_dir.path();
 
         let selection = Selection::default();
@@ -90,10 +95,42 @@ mod tests {
             &sorter,
         );
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get("target_file_name"), Some(&Value::from("0_1_2")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get("target_file_name"), Some(&Value::from("0_1")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get("target_file_name"), Some(&Value::from("0")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get("target_file_name"), Some(&Value::from("ROOT")));
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get("target_file_name"),
+            Some(&Value::from("0_1_2"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get("target_file_name"),
+            Some(&Value::from("0_1"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get("target_file_name"),
+            Some(&Value::from("0"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get("target_file_name"),
+            Some(&Value::from("ROOT"))
+        );
 
         let test_path = root_dir.clone();
 
@@ -104,21 +141,77 @@ mod tests {
             &sorter,
         );
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("ROOT")));
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("ROOT"))
+        );
         assert!(stream.next().is_none());
 
         stream.delve().unwrap();
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("0")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("1")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2")));
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("0"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("1"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("2"))
+        );
         assert!(stream.next().is_none());
 
         stream.delve().unwrap();
 
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2_0")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2_1")));
-        assert_eq!(stream.next().unwrap().map(|(_, mb)| mb).unwrap().get(&String::from("target_file_name")), Some(&Value::from("2_2")));
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("2_0"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("2_1"))
+        );
+        assert_eq!(
+            stream
+                .next()
+                .unwrap()
+                .map(|(_, mb)| mb)
+                .unwrap()
+                .get(&str!("target_file_name")),
+            Some(&Value::from("2_2"))
+        );
         assert!(stream.next().is_none());
     }
 }

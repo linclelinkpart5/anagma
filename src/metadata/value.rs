@@ -291,12 +291,13 @@ mod tests {
 
     use maplit::btreemap;
     use rust_decimal_macros::dec;
+    use str_macro::str;
 
     #[test]
     fn deserialize() {
         let inputs_and_expected = vec![
             ("null", Value::Null),
-            (r#""string""#, Value::String(String::from("string"))),
+            (r#""string""#, Value::String(str!("string"))),
             ("27", Value::Integer(27)),
             ("-27", Value::Integer(-27)),
             ("3.1415", Value::Decimal(dec!(3.1415))),
@@ -307,7 +308,7 @@ mod tests {
                 r#"[null, "string", 27, true]"#,
                 Value::Sequence(vec![
                     Value::Null,
-                    Value::String(String::from("string")),
+                    Value::String(str!("string")),
                     Value::Integer(27),
                     Value::Boolean(true),
                 ]),
@@ -315,9 +316,9 @@ mod tests {
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
                 Value::Mapping(btreemap![
-                    String::from("key_a") => Value::String(String::from("string")),
-                    String::from("key_b") => Value::Integer(-27),
-                    String::from("key_c") => Value::Boolean(false),
+                    str!("key_a") => Value::String(str!("string")),
+                    str!("key_b") => Value::Integer(-27),
+                    str!("key_c") => Value::Boolean(false),
                 ]),
             ),
         ];
@@ -330,8 +331,8 @@ mod tests {
         let inputs_and_expected = vec![
             ("null", Value::Null),
             ("~", Value::Null),
-            (r#""string""#, Value::String(String::from("string"))),
-            ("string", Value::String(String::from("string"))),
+            (r#""string""#, Value::String(str!("string"))),
+            ("string", Value::String(str!("string"))),
             ("27", Value::Integer(27)),
             ("-27", Value::Integer(-27)),
             ("3.1415", Value::Decimal(dec!(3.1415))),
@@ -342,7 +343,7 @@ mod tests {
                 r#"[null, "string", 27, true]"#,
                 Value::Sequence(vec![
                     Value::Null,
-                    Value::String(String::from("string")),
+                    Value::String(str!("string")),
                     Value::Integer(27),
                     Value::Boolean(true),
                 ]),
@@ -351,7 +352,7 @@ mod tests {
                 "- null\n- string\n- 27\n- true",
                 Value::Sequence(vec![
                     Value::Null,
-                    Value::String(String::from("string")),
+                    Value::String(str!("string")),
                     Value::Integer(27),
                     Value::Boolean(true),
                 ]),
@@ -359,17 +360,17 @@ mod tests {
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
                 Value::Mapping(btreemap![
-                    String::from("key_a") => Value::String(String::from("string")),
-                    String::from("key_b") => Value::Integer(-27),
-                    String::from("key_c") => Value::Boolean(false),
+                    str!("key_a") => Value::String(str!("string")),
+                    str!("key_b") => Value::Integer(-27),
+                    str!("key_c") => Value::Boolean(false),
                 ]),
             ),
             (
                 "key_a: string\nkey_b: -27\nkey_c: false",
                 Value::Mapping(btreemap![
-                    String::from("key_a") => Value::String(String::from("string")),
-                    String::from("key_b") => Value::Integer(-27),
-                    String::from("key_c") => Value::Boolean(false),
+                    str!("key_a") => Value::String(str!("string")),
+                    str!("key_b") => Value::Integer(-27),
+                    str!("key_c") => Value::Boolean(false),
                 ]),
             ),
         ];
@@ -401,24 +402,24 @@ mod tests {
             val_str_c.clone(), val_str_c.clone(), val_str_c.clone(),
         ]);
         let val_map_a = Value::from(btreemap![
-            key_str_a.to_string() => val_str_a.clone(),
-            key_str_b.to_string() => val_str_b.clone(),
-            key_str_c.to_string() => val_str_c.clone(),
+            str!(key_str_a) => val_str_a.clone(),
+            str!(key_str_b) => val_str_b.clone(),
+            str!(key_str_c) => val_str_c.clone(),
         ]);
         let val_map_b = Value::from(btreemap![
-            key_str_a.to_string() => val_seq_a.clone(),
-            key_str_b.to_string() => val_seq_b.clone(),
-            key_str_c.to_string() => val_seq_c.clone(),
+            str!(key_str_a) => val_seq_a.clone(),
+            str!(key_str_b) => val_seq_b.clone(),
+            str!(key_str_c) => val_seq_c.clone(),
         ]);
         let val_map_c = Value::from(btreemap![
-            key_str_a.to_string() => val_nil.clone(),
-            key_str_b.to_string() => val_nil.clone(),
-            key_str_c.to_string() => val_nil.clone(),
+            str!(key_str_a) => val_nil.clone(),
+            str!(key_str_b) => val_nil.clone(),
+            str!(key_str_c) => val_nil.clone(),
         ]);
         let val_map_d = Value::from(btreemap![
-            key_str_a.to_string() => val_map_a.clone(),
-            key_str_b.to_string() => val_map_b.clone(),
-            key_str_c.to_string() => val_map_c.clone(),
+            str!(key_str_a) => val_map_a.clone(),
+            str!(key_str_b) => val_map_b.clone(),
+            str!(key_str_c) => val_map_c.clone(),
         ]);
 
         let inputs_and_expected = vec![
