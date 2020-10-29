@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::borrow::Cow;
 
 use strum::IntoEnumIterator;
+use thiserror::Error;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
@@ -17,37 +18,18 @@ use crate::metadata::target::Error as TargetError;
 use crate::metadata::plexer::Plexer;
 use crate::metadata::plexer::Error as PlexerError;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    CannotReadMetadata(SchemaError),
-    CannotFindItemPaths(TargetError),
-    CannotFindMetaPath(TargetError),
-    PlexerError(PlexerError),
+    #[error("cannot read metadata file: {0}")]
+    CannotReadMetadata(#[source] SchemaError),
+    #[error("cannot find item file paths: {0}")]
+    CannotFindItemPaths(#[source] TargetError),
+    #[error("cannot find meta file path: {0}")]
+    CannotFindMetaPath(#[source] TargetError),
+    #[error("plexing error: {0}")]
+    PlexerError(#[source] PlexerError),
+    #[error("missing metadata")]
     MissingMetadata,
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::CannotReadMetadata(ref err) => write!(f, "cannot read metadata file: {}", err),
-            Self::CannotFindItemPaths(ref err) => write!(f, "cannot find item file paths: {}", err),
-            Self::CannotFindMetaPath(ref err) => write!(f, "cannot find meta file path: {}", err),
-            Self::PlexerError(ref err) => write!(f, "plexing error: {}", err),
-            Self::MissingMetadata => write!(f, "missing metadata"),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::CannotReadMetadata(ref err) => Some(err),
-            Self::CannotFindItemPaths(ref err) => Some(err),
-            Self::CannotFindMetaPath(ref err) => Some(err),
-            Self::PlexerError(ref err) => Some(err),
-            Self::MissingMetadata => None,
-        }
-    }
 }
 
 pub struct Processor;

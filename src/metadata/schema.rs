@@ -3,49 +3,29 @@
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::io::Error as IoError;
 
 use serde::Deserialize;
 use serde::Serialize;
 use serde_yaml::Error as YamlError;
 use serde_json::Error as JsonError;
+use thiserror::Error;
 
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
 use crate::metadata::block::BlockMapping;
 use crate::metadata::target::Target;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    CannotOpenFile(std::io::Error),
-    CannotReadFile(std::io::Error),
-    YamlDeserializeError(YamlError),
-    JsonDeserializeError(JsonError),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::CannotOpenFile(ref err) =>
-                write!(f, "cannot open metadata file: {}", err),
-            Self::CannotReadFile(ref err) =>
-                write!(f, "cannot read metadata file: {}", err),
-            Self::YamlDeserializeError(ref err) =>
-                write!(f, "cannot deserialize YAML: {}", err),
-            Self::JsonDeserializeError(ref err) =>
-                write!(f, "cannot deserialize JSON: {}", err),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::CannotOpenFile(ref err) => Some(err),
-            Self::CannotReadFile(ref err) => Some(err),
-            Self::YamlDeserializeError(ref err) => Some(err),
-            Self::JsonDeserializeError(ref err) => Some(err),
-        }
-    }
+    #[error("cannot open metadata file: {0}")]
+    CannotOpenFile(#[source] IoError),
+    #[error("cannot read metadata file: {0}")]
+    CannotReadFile(#[source] IoError),
+    #[error("cannot deserialize YAML: {0}")]
+    YamlDeserializeError(#[source] YamlError),
+    #[error("cannot deserialize JSON: {0}")]
+    JsonDeserializeError(#[source] JsonError),
 }
 
 #[derive(Debug, Clone, Deserialize)]

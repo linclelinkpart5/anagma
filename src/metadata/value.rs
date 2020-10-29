@@ -7,30 +7,17 @@ use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde::Serialize;
 use strum_macros::{EnumDiscriminants, AsRefStr};
+use thiserror::Error;
 
 use crate::util::Number;
 
-#[derive(Debug, Copy, Clone, PartialEq, Hash)]
+#[derive(Debug, Error, Copy, Clone, PartialEq, Hash)]
 pub enum Error {
+    #[error("cannot convert value of kind {} into target type", .0.as_ref())]
     CannotConvert(ValueKind),
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            Self::CannotConvert(ref source) =>
-                write!(f, "cannot convert value of kind {} into target type", source.as_ref()),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
-    }
-}
-
-// NOTE: Re-exporting to allow downstream users to ensure usage of the correct types.
+// Re-exporting to allow downstream users to ensure usage of the correct types.
 pub type Integer = i64;
 pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
