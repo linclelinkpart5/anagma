@@ -1,10 +1,44 @@
 use std::borrow::Cow;
+// use std::convert::TryFrom;
+use std::ffi::OsString;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
 use crate::config::selection::Selection;
+
+pub struct SourceName(PathBuf);
+
+impl Deref for SourceName {
+    type Target = PathBuf;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+// impl<I> TryFrom<I> for SourceName
+// where
+//     I: Into<PathBuf>,
+// {
+//     type Error = NameError;
+
+//     fn try_from(value: I) -> Result<Self, Self::Error> {
+
+//     }
+// }
+
+#[derive(Debug, Error)]
+pub enum SourceError {
+    #[error("source file name is invalid: {0}")]
+    InvalidName(String),
+    #[error("source file name does not have an extension: {0}")]
+    EmptyExtension(String),
+    #[error("unknown format for file extension: {}", .0.to_string_lossy())]
+    UnknownExtension(OsString),
+}
 
 #[derive(Debug, Error)]
 pub enum Error {

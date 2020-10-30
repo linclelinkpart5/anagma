@@ -1,12 +1,33 @@
 pub mod file_walker;
 pub mod number;
 
+// TODO: Just using these in preparation for refactoring, remove when these
+//       are moved to this module.
+pub use crate::config::selection::Selection;
+pub use crate::config::selection::Matcher;
+pub use crate::config::sorter::Sorter;
+pub use crate::metadata::schema::SchemaFormat;
+
 pub use number::Number;
 
 use std::ffi::OsStr;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::path::Component;
 use std::time::SystemTime;
+
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum NameError {
+    #[error("source name did not have any components")]
+    NoComponents(PathBuf),
+    #[error("source name had more than one component: {}", .0.display())]
+    ManyComponents(PathBuf),
+    #[error("source name contains a non-normal component: {}", .0.display())]
+    NonNormalComponent(PathBuf),
+    #[error("source name does not match normalized version of itself: {}", .0.display())]
+    NotRoundTrip(PathBuf),
+}
 
 /// Helpful utilities, meant to use used internally in the crate.
 pub(crate) struct Util;
@@ -19,10 +40,26 @@ impl Util {
     }
 
     /// Tests a string to see if it would be a valid item file name.
-    pub fn _is_valid_item_name(name: &str) -> bool {
+    pub fn validate_item_name<I: Into<PathBuf>>(name: I) -> Result<PathBuf, NameError> {
         // Re-create this name as a file path, and iterate over its components.
-        let name_path = Path::new(name);
-        let mut components = name_path.components();
+        let name = name.into();
+        let mut components = name.components();
+
+        match (components.next(), components.next()) {
+            (None, _) => { Err(NameError::NoComponents(name)) },
+            (Some(_), Some(_)) => { Err(NameError::ManyComponents(name)) },
+            (Some(Component::Normal(c)), None) if c != &name => { Err(NameError::NotRoundTrip(name)) },
+            (Some(Component::Normal(c)), None) => { Ok(name) },
+            (Some(_), None) => { Err(NameError::NonNormalComponent(name)) },
+        }
+    }
+
+    // TODO: CLEAN THIS UP, just leaving this here to avoid breaking tests.
+    /// Tests a string to see if it would be a valid item file name.
+    pub fn is_valid_item_name<P: AsRef<Path>>(name: &P) -> bool {
+        // Re-create this name as a file path, and iterate over its components.
+        let name = name.as_ref();
+        let mut components = name.components();
 
         match (components.next(), components.next()) {
             // A valid path must have exactly one normal component.
@@ -85,29 +122,29 @@ mod tests {
 
     #[test]
     fn is_valid_item_name() {
-        assert_eq!(Util::_is_valid_item_name("name"), true);
-        assert_eq!(Util::_is_valid_item_name(".name"), true);
-        assert_eq!(Util::_is_valid_item_name("name."), true);
-        assert_eq!(Util::_is_valid_item_name("name.ext"), true);
+        assert_eq!(Util::is_valid_item_name(&"name"), true);
+        assert_eq!(Util::is_valid_item_name(&".name"), true);
+        assert_eq!(Util::is_valid_item_name(&"name."), true);
+        assert_eq!(Util::is_valid_item_name(&"name.ext"), true);
 
-        assert_eq!(Util::_is_valid_item_name("."), false);
-        assert_eq!(Util::_is_valid_item_name(".."), false);
-        assert_eq!(Util::_is_valid_item_name("/"), false);
-        assert_eq!(Util::_is_valid_item_name("/."), false);
-        assert_eq!(Util::_is_valid_item_name("/.."), false);
-        assert_eq!(Util::_is_valid_item_name("./"), false);
-        assert_eq!(Util::_is_valid_item_name("../"), false);
-        assert_eq!(Util::_is_valid_item_name("/name"), false);
-        assert_eq!(Util::_is_valid_item_name("name/"), false);
-        assert_eq!(Util::_is_valid_item_name("./name"), false);
-        assert_eq!(Util::_is_valid_item_name("name/."), false);
-        assert_eq!(Util::_is_valid_item_name("../name"), false);
-        assert_eq!(Util::_is_valid_item_name("name/.."), false);
-        assert_eq!(Util::_is_valid_item_name("/name.ext"), false);
-        assert_eq!(Util::_is_valid_item_name("name.ext/"), false);
-        assert_eq!(Util::_is_valid_item_name("./name.ext"), false);
-        assert_eq!(Util::_is_valid_item_name("name.ext/."), false);
-        assert_eq!(Util::_is_valid_item_name("../name.ext"), false);
-        assert_eq!(Util::_is_valid_item_name("name.ext/.."), false);
+        assert_eq!(Util::is_valid_item_name(&"."), false);
+        assert_eq!(Util::is_valid_item_name(&".."), false);
+        assert_eq!(Util::is_valid_item_name(&"/"), false);
+        assert_eq!(Util::is_valid_item_name(&"/."), false);
+        assert_eq!(Util::is_valid_item_name(&"/.."), false);
+        assert_eq!(Util::is_valid_item_name(&"./"), false);
+        assert_eq!(Util::is_valid_item_name(&"../"), false);
+        assert_eq!(Util::is_valid_item_name(&"/name"), false);
+        assert_eq!(Util::is_valid_item_name(&"name/"), false);
+        assert_eq!(Util::is_valid_item_name(&"./name"), false);
+        assert_eq!(Util::is_valid_item_name(&"name/."), false);
+        assert_eq!(Util::is_valid_item_name(&"../name"), false);
+        assert_eq!(Util::is_valid_item_name(&"name/.."), false);
+        assert_eq!(Util::is_valid_item_name(&"/name.ext"), false);
+        assert_eq!(Util::is_valid_item_name(&"name.ext/"), false);
+        assert_eq!(Util::is_valid_item_name(&"./name.ext"), false);
+        assert_eq!(Util::is_valid_item_name(&"name.ext/."), false);
+        assert_eq!(Util::is_valid_item_name(&"../name.ext"), false);
+        assert_eq!(Util::is_valid_item_name(&"name.ext/.."), false);
     }
 }
