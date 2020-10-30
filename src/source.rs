@@ -1,34 +1,13 @@
 use std::borrow::Cow;
-// use std::convert::TryFrom;
 use std::ffi::OsString;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use thiserror::Error;
 
 use crate::config::selection::Selection;
-
-pub struct SourceName(PathBuf);
-
-impl Deref for SourceName {
-    type Target = PathBuf;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-// impl<I> TryFrom<I> for SourceName
-// where
-//     I: Into<PathBuf>,
-// {
-//     type Error = NameError;
-
-//     fn try_from(value: I) -> Result<Self, Self::Error> {
-
-//     }
-// }
+use crate::util::NameError;
+use crate::util::Util;
 
 #[derive(Debug, Error)]
 pub enum SourceError {
@@ -41,7 +20,7 @@ pub enum SourceError {
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum LookupError {
     #[error("not a directory: {}", .0.display())]
     NotADir(PathBuf),
     #[error("not a file: {}", .0.display())]
@@ -64,7 +43,7 @@ pub enum Error {
     // Bulk(IoError, Vec<IoError>),
 }
 
-impl Error {
+impl LookupError {
     pub fn is_fatal(&self) -> bool {
         match self {
             Self::MetaAccess(_, io_error) => match io_error.kind() {
@@ -92,28 +71,33 @@ pub enum Anchor {
 /// Defines a meta file source, consisting of an anchor (the target directory
 /// to look in) and a file name (the meta file name in that target directory).
 pub struct Source {
-    pub file_name: String,
-    pub anchor: Anchor,
+    name: String,
+    anchor: Anchor,
 }
 
 impl Source {
+    pub fn new(name: String, anchor: Anchor) -> Result<Self, NameError> {
+        let sanitized = Util::validate_item_name(name)?;
+        Ok(Self { name: sanitized, anchor, })
+    }
+
     /// Given a concrete item file path, returns the meta file path that would
     /// provide metadata for that item path, according to the source rules.
-    pub fn meta_path(&self, item_path: &Path) -> Result<PathBuf, Error> {
+    pub fn meta_path(&self, item_path: &Path) -> Result<PathBuf, LookupError> {
         // Get filesystem stat for item path.
         // This step is always done, even if the file/directory status does not
         // need to be checked, as it provides useful error information about
         // permissions and non-existence.
         let item_fs_stat =
-            std::fs::metadata(&item_path).map_err(|io| Error::ItemAccess(item_path.into(), io))?;
+            std::fs::metadata(&item_path).map_err(|io| LookupError::ItemAccess(item_path.into(), io))?;
 
         let meta_path_parent_dir = match self.anchor {
             Anchor::External => item_path
                 .parent()
-                .ok_or_else(|| Error::NoItemParentDir(item_path.into()))?,
+                .ok_or_else(|| LookupError::NoItemParentDir(item_path.into()))?,
             Anchor::Internal => {
                 if !item_fs_stat.is_dir() {
-                    return Err(Error::NotADir(item_path.into()));
+                    return Err(LookupError::NotADir(item_path.into()));
                 }
 
                 item_path
@@ -121,19 +105,20 @@ impl Source {
         };
 
         // Create the target meta file path.
-        let meta_path = meta_path_parent_dir.join(&self.file_name);
+        let meta_path = meta_path_parent_dir.join(&self.name);
 
         // Get filesystem stat for meta path.
         // NOTE: Using `match` in order to avoid a clone in the error case.
+        // TODO: Move fatal error determination logic here.
         let meta_fs_stat = match std::fs::metadata(&meta_path) {
             Ok(o) => o,
-            Err(io_err) => return Err(Error::MetaAccess(meta_path, io_err)),
+            Err(io_err) => return Err(LookupError::MetaAccess(meta_path, io_err)),
         };
 
         // Ensure that the meta path is indeed a file.
         if !meta_fs_stat.is_file() {
             // Found a directory with the meta file name, this would be an unusual error case.
-            Err(Error::NotAFile(meta_path))
+            Err(LookupError::NotAFile(meta_path))
         } else {
             Ok(meta_path)
         }
@@ -143,12 +128,12 @@ impl Source {
     /// could/should provide metadata for. Note that this does NOT parse meta
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
-    pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<ItemPaths<'a>, Error> {
+    pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<ItemPaths<'a>, LookupError> {
         let meta_fs_stat =
-            std::fs::metadata(&meta_path).map_err(|io| Error::MetaAccess(meta_path.into(), io))?;
+            std::fs::metadata(&meta_path).map_err(|io| LookupError::MetaAccess(meta_path.into(), io))?;
 
         if !meta_fs_stat.is_file() {
-            return Err(Error::NotAFile(meta_path.into()));
+            return Err(LookupError::NotAFile(meta_path.into()));
         }
 
         // Get the parent directory of the meta file.
@@ -157,7 +142,7 @@ impl Source {
                 Anchor::External => {
                     // Return all children of the parent directory of this meta file.
                     let read_dir =
-                        std::fs::read_dir(&meta_parent_dir_path).map_err(Error::IterDir)?;
+                        std::fs::read_dir(&meta_parent_dir_path).map_err(LookupError::IterDir)?;
 
                     ItemPathsInner::ReadDir(read_dir)
                 }
@@ -172,7 +157,7 @@ impl Source {
             // This should never happen, since at this point we have a real meta
             // file and thus, a real parent directory for that file, but making
             // an error for it anyways.
-            Err(Error::NoMetaParentDir(meta_path.into()))
+            Err(LookupError::NoMetaParentDir(meta_path.into()))
         }
     }
 
@@ -182,7 +167,7 @@ impl Source {
         &self,
         meta_path: &'a Path,
         selection: &'a Selection,
-    ) -> Result<SelectedItemPaths<'a>, Error> {
+    ) -> Result<SelectedItemPaths<'a>, LookupError> {
         Ok(SelectedItemPaths(self.item_paths(meta_path)?, selection))
     }
 }

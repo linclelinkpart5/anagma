@@ -20,13 +20,13 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum NameError {
     #[error("source name did not have any components")]
-    NoComponents(PathBuf),
-    #[error("source name had more than one component: {}", .0.display())]
-    ManyComponents(PathBuf),
-    #[error("source name contains a non-normal component: {}", .0.display())]
-    NonNormalComponent(PathBuf),
-    #[error("source name does not match normalized version of itself: {}", .0.display())]
-    NotRoundTrip(PathBuf),
+    NoComponents,
+    #[error("source name had more than one component: {0}")]
+    ManyComponents(String),
+    #[error("source name contains a non-normal component: {0}")]
+    NonNormalComponent(String),
+    #[error("source name does not match normalized version of itself: {0}")]
+    NotRoundTrip(String),
 }
 
 /// Helpful utilities, meant to use used internally in the crate.
@@ -40,16 +40,18 @@ impl Util {
     }
 
     /// Tests a string to see if it would be a valid item file name.
-    pub fn validate_item_name<I: Into<PathBuf>>(name: I) -> Result<PathBuf, NameError> {
+    pub fn validate_item_name(name: String) -> Result<String, NameError> {
         // Re-create this name as a file path, and iterate over its components.
-        let name = name.into();
-        let mut components = name.components();
+        let name_path = Path::new(&name);
+        let mut components = name_path.components();
 
         match (components.next(), components.next()) {
-            (None, _) => { Err(NameError::NoComponents(name)) },
+            (None, _) => { Err(NameError::NoComponents) },
             (Some(_), Some(_)) => { Err(NameError::ManyComponents(name)) },
-            (Some(Component::Normal(c)), None) if c != &name => { Err(NameError::NotRoundTrip(name)) },
-            (Some(Component::Normal(c)), None) => { Ok(name) },
+            (Some(Component::Normal(c)), None) => {
+                if c != OsStr::new(&name) { Err(NameError::NotRoundTrip(name)) }
+                else { Ok(name) }
+            },
             (Some(_), None) => { Err(NameError::NonNormalComponent(name)) },
         }
     }
