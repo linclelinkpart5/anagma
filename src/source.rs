@@ -37,10 +37,10 @@ pub enum LookupError {
     #[error("meta path does not have a parent: {}", .0.display())]
     NoMetaParentDir(PathBuf),
 
-    #[error("unable to read item directory entry: {0}")]
+    #[error("unable to read item directory: {0}")]
     IterDir(#[source] IoError),
-    // IterDirEntry(IoError),
-
+    #[error("unable to read item directory entry: {0}")]
+    IterDirEntry(#[source] IoError),
     // Bulk(IoError, Vec<IoError>),
 }
 
@@ -97,14 +97,21 @@ impl Source {
             validated.push_str(ext);
         }
 
-        Ok(Self { name: validated, anchor, })
+        Ok(Self {
+            name: validated,
+            anchor,
+        })
     }
 
     pub fn from_name(name: String, anchor: Anchor) -> Result<Self, NameError> {
         Self::_new(NS::Name(name), anchor)
     }
 
-    pub fn from_stub(stub: String, format: SchemaFormat, anchor: Anchor) -> Result<Self, NameError> {
+    pub fn from_stub(
+        stub: String,
+        format: SchemaFormat,
+        anchor: Anchor,
+    ) -> Result<Self, NameError> {
         Self::_new(NS::Stub(stub, format), anchor)
     }
 
@@ -246,6 +253,76 @@ impl Sourcer {
     pub fn source(&mut self, source: Source) -> &mut Self {
         self.0.push(source);
         self
+    }
+}
+
+pub struct SourcerMetaPaths<'a> {
+    iter: std::slice::Iter<'a, Source>,
+    item_path: &'a Path,
+}
+
+impl<'a> Iterator for SourcerMetaPaths<'a> {
+    type Item = Result<PathBuf, LookupError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(source) = self.iter.next() {
+            let res = source.meta_path(self.item_path);
+
+            match res {
+                Ok(meta_path) => {
+                    return Some(Ok(meta_path));
+                }
+                Err(err) if err.is_fatal() => {
+                    return Some(Err(err));
+                }
+                Err(_) => {
+                    continue;
+                }
+            }
+        }
+
+        None
+    }
+}
+
+pub struct SourcerItemPaths<'a> {
+    source_iter: std::slice::Iter<'a, Source>,
+    meta_path: &'a Path,
+    opt_item_path_iter: Option<ItemPaths<'a>>,
+}
+
+impl<'a> Iterator for SourcerItemPaths<'a> {
+    type Item = Result<Cow<'a, Path>, LookupError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.opt_item_path_iter.is_none() {
+                let next_source = self.source_iter.next()?;
+                let next_item_path_iter = match next_source.item_paths(&self.meta_path) {
+                    Err(err) => {
+                        return Some(Err(err));
+                    }
+                    Ok(nip) => nip,
+                };
+
+                self.opt_item_path_iter = Some(next_item_path_iter);
+            }
+
+            let item_path_iter = self.opt_item_path_iter.as_mut()?;
+
+            match item_path_iter.next() {
+                Some(Err(io_err)) => {
+                    return Some(Err(LookupError::IterDirEntry(io_err)));
+                }
+                Some(Ok(item_path)) => {
+                    return Some(Ok(item_path));
+                }
+                None => {
+                    self.opt_item_path_iter = None;
+                    continue;
+                }
+            }
+        }
     }
 }
 
