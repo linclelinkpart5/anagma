@@ -45,7 +45,7 @@ pub enum LookupError {
 }
 
 impl LookupError {
-    pub fn is_fatal(&self) -> bool {
+    pub(crate) fn is_fatal(&self) -> bool {
         match self {
             Self::MetaAccess(_, io_error) => match io_error.kind() {
                 IoErrorKind::NotFound => false,
@@ -288,7 +288,7 @@ impl<'a> Iterator for SourcerMetaPaths<'a> {
 pub struct SourcerItemPaths<'a> {
     source_iter: std::slice::Iter<'a, Source>,
     meta_path: &'a Path,
-    opt_item_path_iter: Option<ItemPaths<'a>>,
+    curr_item_path_iter: Option<ItemPaths<'a>>,
 }
 
 impl<'a> Iterator for SourcerItemPaths<'a> {
@@ -296,31 +296,36 @@ impl<'a> Iterator for SourcerItemPaths<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.opt_item_path_iter.is_none() {
-                let next_source = self.source_iter.next()?;
-                let next_item_path_iter = match next_source.item_paths(&self.meta_path) {
+            // If there is no current item path iterator, pull the next source
+            // and create one.
+            if self.curr_item_path_iter.is_none() {
+                // If there are no more sources, this entire iterator is done.
+                let src = self.source_iter.next()?;
+                let it = match src.item_paths(&self.meta_path) {
                     Err(err) => {
                         return Some(Err(err));
                     }
-                    Ok(nip) => nip,
+                    Ok(it) => it,
                 };
 
-                self.opt_item_path_iter = Some(next_item_path_iter);
+                self.curr_item_path_iter = Some(it);
             }
 
-            let item_path_iter = self.opt_item_path_iter.as_mut()?;
+            let item_path_iter = self.curr_item_path_iter.as_mut()?;
 
             match item_path_iter.next() {
                 Some(Err(io_err)) => {
                     return Some(Err(LookupError::IterDirEntry(io_err)));
-                }
+                },
                 Some(Ok(item_path)) => {
                     return Some(Ok(item_path));
-                }
+                },
                 None => {
-                    self.opt_item_path_iter = None;
+                    // This item path iter has been exhausted, drop it and
+                    // restart the loop.
+                    self.curr_item_path_iter = None;
                     continue;
-                }
+                },
             }
         }
     }
