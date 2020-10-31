@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::config::selection::Selection;
+use crate::metadata::schema::SchemaFormat;
 use crate::util::NameError;
 use crate::util::Util;
 
@@ -68,6 +69,11 @@ pub enum Anchor {
     Internal,
 }
 
+enum NS {
+    Name(String),
+    Stub(String, SchemaFormat),
+}
+
 /// Defines a meta file source, consisting of an anchor (the target directory
 /// to look in) and a file name (the meta file name in that target directory).
 pub struct Source {
@@ -76,9 +82,30 @@ pub struct Source {
 }
 
 impl Source {
-    pub fn new(name: String, anchor: Anchor) -> Result<Self, NameError> {
-        let sanitized = Util::validate_item_name(name)?;
-        Ok(Self { name: sanitized, anchor, })
+    fn _new(ns: NS, anchor: Anchor) -> Result<Self, NameError> {
+        let (atom, opt_format) = match ns {
+            NS::Name(name) => (name, None),
+            NS::Stub(stub, fmt) => (stub, Some(fmt)),
+        };
+
+        let mut validated = Util::validate_item_name(atom)?;
+
+        if let Some(format) = opt_format {
+            let ext = format.file_extension();
+            validated.reserve(ext.len() + 1);
+            validated.push('.');
+            validated.push_str(ext);
+        }
+
+        Ok(Self { name: validated, anchor, })
+    }
+
+    pub fn from_name(name: String, anchor: Anchor) -> Result<Self, NameError> {
+        Self::_new(NS::Name(name), anchor)
+    }
+
+    pub fn from_stub(stub: String, format: SchemaFormat, anchor: Anchor) -> Result<Self, NameError> {
+        Self::_new(NS::Stub(stub, format), anchor)
     }
 
     /// Given a concrete item file path, returns the meta file path that would
@@ -88,8 +115,8 @@ impl Source {
         // This step is always done, even if the file/directory status does not
         // need to be checked, as it provides useful error information about
         // permissions and non-existence.
-        let item_fs_stat =
-            std::fs::metadata(&item_path).map_err(|io| LookupError::ItemAccess(item_path.into(), io))?;
+        let item_fs_stat = std::fs::metadata(&item_path)
+            .map_err(|io| LookupError::ItemAccess(item_path.into(), io))?;
 
         let meta_path_parent_dir = match self.anchor {
             Anchor::External => item_path
@@ -129,8 +156,8 @@ impl Source {
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
     pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<ItemPaths<'a>, LookupError> {
-        let meta_fs_stat =
-            std::fs::metadata(&meta_path).map_err(|io| LookupError::MetaAccess(meta_path.into(), io))?;
+        let meta_fs_stat = std::fs::metadata(&meta_path)
+            .map_err(|io| LookupError::MetaAccess(meta_path.into(), io))?;
 
         if !meta_fs_stat.is_file() {
             return Err(LookupError::NotAFile(meta_path.into()));
@@ -169,6 +196,56 @@ impl Source {
         selection: &'a Selection,
     ) -> Result<SelectedItemPaths<'a>, LookupError> {
         Ok(SelectedItemPaths(self.item_paths(meta_path)?, selection))
+    }
+}
+
+// pub struct OldSourcer(Vec<Source>, SchemaFormat);
+
+// impl OldSourcer {
+//     pub fn new(sources: Vec<Source>, format: SchemaFormat) -> Self {
+//         Self(sources, format)
+//     }
+
+//     pub fn from_stubs(stubs: Vec<String>, format: SchemaFormat) -> Result<Self, NameError> {
+//         for stub in stubs {
+//             // Ensure that the stub is a valid file name.
+//             let mut stub = Util::validate_item_name(stub)?;
+
+//             // It is expected that appending a suffix at the end will still keep
+//             // a valid file name.
+//             stub.push('.');
+//             stub.push_str(format.file_extension());
+//         }
+
+//         let mut sources = Vec::new();
+
+//         Ok(Self(sources, format))
+//     }
+
+//     pub fn from_sources(sources: Vec<Source>) -> Result<Self, ()> {
+//         // Try and automatically detect format by looking at the sources.
+//         // All sources must have either no extension or a known format
+//         // extension, at least one source must have a known format extension,
+//         // and all sources that have an extension must have the same extension.
+
+//         todo!()
+//     }
+// }
+
+// Only strings, the schema format is only used to convert file stubs into
+// file names. Since the responsibility of this type is only to produce
+// candidate meta paths, and not actually parse them, this does not need to
+// store schema formats.
+pub struct Sourcer(Vec<Source>);
+
+impl Sourcer {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn source(&mut self, source: Source) -> &mut Self {
+        self.0.push(source);
+        self
     }
 }
 
