@@ -10,11 +10,13 @@ use serde::Serialize;
 use serde_yaml::Error as YamlError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
+// use strum_macros::EnumDiscriminants;
 
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
 use crate::metadata::block::BlockMapping;
 use crate::metadata::target::Target;
+use crate::source::Anchor;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -49,6 +51,51 @@ pub(crate) enum SchemaRepr {
     Many(ManySchemaRepr),
 }
 
+/// The "order" of the number of item files a schema provides data for.
+/// In other words, whether a schema provides data for one or many items.
+// TODO: Replace with `EnumDiscriminants` once PR to `strum` is merged/released.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Arity {
+    Unit,
+    Many,
+}
+
+impl From<Target> for Arity {
+    fn from(value: Target) -> Self {
+        match value {
+            Target::Parent => Arity::Unit,
+            Target::Siblings => Arity::Many,
+        }
+    }
+}
+
+impl<'a> From<&'a Target> for &'a Arity {
+    fn from(value: &'a Target) -> Self {
+        match value {
+            Target::Parent => &Arity::Unit,
+            Target::Siblings => &Arity::Many,
+        }
+    }
+}
+
+impl From<Anchor> for Arity {
+    fn from(value: Anchor) -> Self {
+        match value {
+            Anchor::Internal => Arity::Unit,
+            Anchor::External => Arity::Many,
+        }
+    }
+}
+
+impl<'a> From<&'a Anchor> for &'a Arity {
+    fn from(value: &'a Anchor) -> Self {
+        match value {
+            Anchor::Internal => &Arity::Unit,
+            Anchor::External => &Arity::Many,
+        }
+    }
+}
+
 /// A data structure-level representation of all metadata structures.
 /// This is intended to be agnostic to the text-level format of the metadata.
 #[derive(Debug, Clone, Serialize)]
@@ -78,34 +125,34 @@ impl Schema {
         }
     }
 
-    fn from_yaml_str(s: &str, target: &Target) -> Result<Self, YamlError> {
-        match target {
-            Target::Parent => serde_yaml::from_str(s).map(SchemaRepr::Unit),
-            Target::Siblings => serde_yaml::from_str(s).map(SchemaRepr::Many),
+    fn from_yaml_str(s: &str, arity: &Arity) -> Result<Self, YamlError> {
+        match arity {
+            Arity::Unit => serde_yaml::from_str(s).map(SchemaRepr::Unit),
+            Arity::Many => serde_yaml::from_str(s).map(SchemaRepr::Many),
         }.map(Into::into)
     }
 
-    fn from_json_str(s: &str, target: &Target) -> Result<Self, JsonError> {
-        match target {
-            Target::Parent => serde_json::from_str(s).map(SchemaRepr::Unit),
-            Target::Siblings => serde_json::from_str(s).map(SchemaRepr::Many),
+    fn from_json_str(s: &str, arity: &Arity) -> Result<Self, JsonError> {
+        match arity {
+            Arity::Unit => serde_json::from_str(s).map(SchemaRepr::Unit),
+            Arity::Many => serde_json::from_str(s).map(SchemaRepr::Many),
         }.map(Into::into)
     }
 
-    pub fn from_str(format: &SchemaFormat, s: &str, target: &Target) -> Result<Schema, Error> {
+    pub fn from_str(format: &SchemaFormat, s: &str, arity: &Arity) -> Result<Schema, Error> {
         match format {
-            SchemaFormat::Yaml => Self::from_yaml_str(s, target).map_err(Error::YamlDeserializeError),
-            SchemaFormat::Json => Self::from_json_str(s, target).map_err(Error::JsonDeserializeError),
+            SchemaFormat::Yaml => Self::from_yaml_str(s, arity).map_err(Error::YamlDeserializeError),
+            SchemaFormat::Json => Self::from_json_str(s, arity).map_err(Error::JsonDeserializeError),
         }
     }
 
-    pub fn from_file(format: &SchemaFormat, path: &Path, target: &Target) -> Result<Schema, Error> {
+    pub fn from_file(format: &SchemaFormat, path: &Path, arity: &Arity) -> Result<Schema, Error> {
         let mut f = File::open(path).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
         f.read_to_string(&mut buffer).map_err(Error::CannotReadFile)?;
 
-        Self::from_str(format, &buffer, target)
+        Self::from_str(format, &buffer, arity)
     }
 }
 
@@ -146,7 +193,7 @@ mod tests {
             key_c: val_c
             key_d: val_d
         "#;
-        assert!(matches!(Schema::from_yaml_str(input, &Target::Parent), Ok(Schema::One(_))));
+        assert!(matches!(Schema::from_yaml_str(input, &Arity::Unit), Ok(Schema::One(_))));
 
         let input = r#"
             key_a: val_a
@@ -159,7 +206,7 @@ mod tests {
                 -   val_a
                 -   val_b
         "#;
-        assert!(matches!(Schema::from_yaml_str(input, &Target::Parent), Ok(Schema::One(_))));
+        assert!(matches!(Schema::from_yaml_str(input, &Arity::Unit), Ok(Schema::One(_))));
 
         let input = r#"
             -   key_1_a: val_1_a
@@ -167,7 +214,7 @@ mod tests {
             -   key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert!(matches!(Schema::from_yaml_str(input, &Target::Siblings), Ok(Schema::Seq(_))));
+        assert!(matches!(Schema::from_yaml_str(input, &Arity::Many), Ok(Schema::Seq(_))));
 
         let input = r#"
             item_1:
@@ -177,7 +224,7 @@ mod tests {
                 key_2_a: val_2_a
                 key_2_b: val_2_b
         "#;
-        assert!(matches!(Schema::from_yaml_str(input, &Target::Siblings), Ok(Schema::Map(_))));
+        assert!(matches!(Schema::from_yaml_str(input, &Arity::Many), Ok(Schema::Map(_))));
     }
 
     #[test]
@@ -190,7 +237,7 @@ mod tests {
             "key_d": "val_d"
         }
         "#;
-        assert!(matches!(Schema::from_json_str(input, &Target::Parent), Ok(Schema::One(_))));
+        assert!(matches!(Schema::from_json_str(input, &Arity::Unit), Ok(Schema::One(_))));
 
         let input = r#"
         {
@@ -213,7 +260,7 @@ mod tests {
             ]
         }
         "#;
-        assert!(matches!(Schema::from_json_str(input, &Target::Parent), Ok(Schema::One(_))));
+        assert!(matches!(Schema::from_json_str(input, &Arity::Unit), Ok(Schema::One(_))));
 
         let input = r#"
         [
@@ -227,7 +274,7 @@ mod tests {
             }
         ]
         "#;
-        assert!(matches!(Schema::from_json_str(input, &Target::Siblings), Ok(Schema::Seq(_))));
+        assert!(matches!(Schema::from_json_str(input, &Arity::Many), Ok(Schema::Seq(_))));
 
         let input = r#"
         {
@@ -241,6 +288,6 @@ mod tests {
             }
         }
         "#;
-        assert!(matches!(Schema::from_json_str(input, &Target::Siblings), Ok(Schema::Map(_))));
+        assert!(matches!(Schema::from_json_str(input, &Arity::Many), Ok(Schema::Map(_))));
     }
 }

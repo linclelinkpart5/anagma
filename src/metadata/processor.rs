@@ -47,7 +47,7 @@ impl Processor {
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error>
     {
         let schema =
-            Schema::from_file(schema_format, meta_path, target)
+            Schema::from_file(schema_format, meta_path, target.into())
             .map_err(Error::CannotReadMetadata)?
         ;
 
