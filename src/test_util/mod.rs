@@ -18,10 +18,10 @@ use str_macro::str;
 
 use crate::metadata::block::Block;
 use crate::metadata::schema::Schema;
-use crate::metadata::target::Target;
-use crate::metadata::value::Value;
-use crate::metadata::value::Sequence;
 use crate::metadata::value::Mapping;
+use crate::metadata::value::Sequence;
+use crate::metadata::value::Value;
+use crate::source::Anchor;
 
 use self::entry::DEFAULT_FLAGGER;
 use self::entry::DEFAULT_LIBRARY;
@@ -103,7 +103,12 @@ impl TestUtil {
         Value::Mapping(Self::core_flat_mapping())
     }
 
-    pub fn core_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Sequence {
+    pub fn core_number_sequence(
+        int_max: i64,
+        dec_extremes: bool,
+        shuffle: bool,
+        include_zero: bool,
+    ) -> Sequence {
         let mut nums = Vec::new();
 
         for i in 1..=int_max {
@@ -134,33 +139,39 @@ impl TestUtil {
         nums
     }
 
-    pub fn sample_number_sequence(int_max: i64, dec_extremes: bool, shuffle: bool, include_zero: bool) -> Value {
-        Value::Sequence(Self::core_number_sequence(int_max, dec_extremes, shuffle, include_zero))
+    pub fn sample_number_sequence(
+        int_max: i64,
+        dec_extremes: bool,
+        shuffle: bool,
+        include_zero: bool,
+    ) -> Value {
+        Value::Sequence(Self::core_number_sequence(
+            int_max,
+            dec_extremes,
+            shuffle,
+            include_zero,
+        ))
     }
 
-    pub fn sample_meta_block(meta_target: Target, target_name: &str, include_flag_key: bool) -> Block {
+    pub fn sample_meta_block(anchor: &Anchor, target_name: &str, include_flag_key: bool) -> Block {
         let mut map = Self::core_nested_mapping();
 
-        map.insert(
-            str!(format!("{}_key", meta_target.default_file_name())),
-            Value::String(format!("{}_val", meta_target.default_file_name())),
-        );
+        let anchor_str = match anchor {
+            Anchor::Internal => "self",
+            Anchor::External => "item",
+        };
 
         map.insert(
-            str!("meta_target"),
-            Value::String(str!(meta_target.default_file_name())),
+            str!(format!("{}_key", anchor_str)),
+            Value::String(format!("{}_val", anchor_str)),
         );
 
-        map.insert(
-            str!("target_file_name"),
-            Value::String(str!(target_name)),
-        );
+        map.insert(str!("anchor"), Value::String(str!(anchor_str)));
+
+        map.insert(str!("target_file_name"), Value::String(str!(target_name)));
 
         if include_flag_key {
-            map.insert(
-                str!("flag_key"),
-                Value::String(str!(target_name)),
-            );
+            map.insert(str!("flag_key"), Value::String(str!(target_name)));
         }
 
         map
@@ -169,7 +180,13 @@ impl TestUtil {
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().unwrap();
 
-        fn fill_dir(p: &Path, db: &DirBuilder, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize) {
+        fn fill_dir(
+            p: &Path,
+            db: &DirBuilder,
+            fanout: usize,
+            breadcrumbs: Vec<usize>,
+            max_depth: usize,
+        ) {
             for i in 0..fanout {
                 let mut new_breadcrumbs = breadcrumbs.clone();
 
@@ -177,9 +194,12 @@ impl TestUtil {
 
                 let name = if new_breadcrumbs.len() == 0 {
                     str!("ROOT")
-                }
-                else {
-                    new_breadcrumbs.iter().map(|n| format!("{}", n)).collect::<Vec<_>>().join("_")
+                } else {
+                    new_breadcrumbs
+                        .iter()
+                        .map(|n| format!("{}", n))
+                        .collect::<Vec<_>>()
+                        .join("_")
                 };
 
                 let new_path = p.join(&name);
@@ -187,8 +207,7 @@ impl TestUtil {
                 if breadcrumbs.len() >= max_depth {
                     // Create files.
                     File::create(&new_path).unwrap();
-                }
-                else {
+                } else {
                     // Create dirs and then recurse.
                     db.create(&new_path).unwrap();
                     fill_dir(&new_path, &db, fanout, new_breadcrumbs, max_depth);
@@ -215,16 +234,31 @@ impl TestUtil {
         false
     }
 
-    pub fn create_meta_fanout_test_dir(name: &str, fanout: usize, max_depth: usize, flag_set_by: fn(usize, usize) -> bool) -> TempDir
-    {
+    pub fn create_meta_fanout_test_dir(
+        name: &str,
+        fanout: usize,
+        max_depth: usize,
+        flag_set_by: fn(usize, usize) -> bool,
+    ) -> TempDir {
         let root_dir = Builder::new().suffix(name).tempdir().unwrap();
 
-        fn fill_dir(p: &Path, db: &DirBuilder, parent_name: &str, fanout: usize, breadcrumbs: Vec<usize>, max_depth: usize, flag_set_by: fn(usize, usize) -> bool)
-        {
+        fn fill_dir(
+            p: &Path,
+            db: &DirBuilder,
+            parent_name: &str,
+            fanout: usize,
+            breadcrumbs: Vec<usize>,
+            max_depth: usize,
+            flag_set_by: fn(usize, usize) -> bool,
+        ) {
             // Create self meta file.
             let self_meta_file = File::create(p.join("self.json")).unwrap();
 
-            let self_meta_struct = Schema::One(TestUtil::sample_meta_block(Target::Parent, &parent_name, false));
+            let self_meta_struct = Schema::One(TestUtil::sample_meta_block(
+                &Anchor::Internal,
+                &parent_name,
+                false,
+            ));
             serde_json::to_writer_pretty(self_meta_file, &self_meta_struct).unwrap();
 
             let mut item_meta_blocks = Vec::new();
@@ -236,9 +270,12 @@ impl TestUtil {
 
                 let name = if new_breadcrumbs.len() == 0 {
                     str!("ROOT")
-                }
-                else {
-                    new_breadcrumbs.iter().map(|n| format!("{}", n)).collect::<Vec<_>>().join("_")
+                } else {
+                    new_breadcrumbs
+                        .iter()
+                        .map(|n| format!("{}", n))
+                        .collect::<Vec<_>>()
+                        .join("_")
                 };
 
                 if breadcrumbs.len() >= max_depth {
@@ -249,12 +286,21 @@ impl TestUtil {
                     // Create dirs and then recurse.
                     let new_path = p.join(&name);
                     db.create(&new_path).unwrap();
-                    fill_dir(&new_path, &db, &name, fanout, new_breadcrumbs, max_depth, flag_set_by);
+                    fill_dir(
+                        &new_path,
+                        &db,
+                        &name,
+                        fanout,
+                        new_breadcrumbs,
+                        max_depth,
+                        flag_set_by,
+                    );
                 }
 
                 let include_flag_key = flag_set_by(max_depth - breadcrumbs.len(), i);
 
-                let item_meta_block = TestUtil::sample_meta_block(Target::Siblings, &name, include_flag_key);
+                let item_meta_block =
+                    TestUtil::sample_meta_block(&Anchor::External, &name, include_flag_key);
                 item_meta_blocks.push(item_meta_block);
             }
 
@@ -267,7 +313,15 @@ impl TestUtil {
 
         let db = DirBuilder::new();
 
-        fill_dir(root_dir.path(), &db, "ROOT", fanout, Vec::new(), max_depth, flag_set_by);
+        fill_dir(
+            root_dir.path(),
+            &db,
+            "ROOT",
+            fanout,
+            Vec::new(),
+            max_depth,
+            flag_set_by,
+        );
 
         std::thread::sleep(Duration::from_millis(1));
         root_dir
@@ -305,32 +359,59 @@ mod tests {
             (
                 TestUtil::sample_number_sequence(2, false, false, false),
                 Value::Sequence(vec![
-                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
-                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
+                    TU::i(1),
+                    TU::i(-1),
+                    TU::d(dec!(0.5)),
+                    TU::d(dec!(-0.5)),
+                    TU::i(2),
+                    TU::i(-2),
+                    TU::d(dec!(1.5)),
+                    TU::d(dec!(-1.5)),
                 ]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, false),
                 Value::Sequence(vec![
-                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
-                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
-                    TU::d(dec!(2.5)), TU::d(dec!(-2.5)),
+                    TU::i(1),
+                    TU::i(-1),
+                    TU::d(dec!(0.5)),
+                    TU::d(dec!(-0.5)),
+                    TU::i(2),
+                    TU::i(-2),
+                    TU::d(dec!(1.5)),
+                    TU::d(dec!(-1.5)),
+                    TU::d(dec!(2.5)),
+                    TU::d(dec!(-2.5)),
                 ]),
             ),
             (
                 TestUtil::sample_number_sequence(2, false, false, true),
                 Value::Sequence(vec![
-                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
-                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
+                    TU::i(1),
+                    TU::i(-1),
+                    TU::d(dec!(0.5)),
+                    TU::d(dec!(-0.5)),
+                    TU::i(2),
+                    TU::i(-2),
+                    TU::d(dec!(1.5)),
+                    TU::d(dec!(-1.5)),
                     TU::i(0),
                 ]),
             ),
             (
                 TestUtil::sample_number_sequence(2, true, false, true),
                 Value::Sequence(vec![
-                    TU::i(1), TU::i(-1), TU::d(dec!(0.5)), TU::d(dec!(-0.5)),
-                    TU::i(2), TU::i(-2), TU::d(dec!(1.5)), TU::d(dec!(-1.5)),
-                    TU::d(dec!(2.5)), TU::d(dec!(-2.5)), TU::i(0),
+                    TU::i(1),
+                    TU::i(-1),
+                    TU::d(dec!(0.5)),
+                    TU::d(dec!(-0.5)),
+                    TU::i(2),
+                    TU::i(-2),
+                    TU::d(dec!(1.5)),
+                    TU::d(dec!(-1.5)),
+                    TU::d(dec!(2.5)),
+                    TU::d(dec!(-2.5)),
+                    TU::i(0),
                 ]),
             ),
         ];

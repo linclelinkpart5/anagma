@@ -65,8 +65,8 @@ enum NS {
 /// Defines a meta file source, consisting of an anchor (the target directory
 /// to look in) and a file name (the meta file name in that target directory).
 pub struct Source {
-    name: String,
-    anchor: Anchor,
+    pub(crate) name: String,
+    pub(crate) anchor: Anchor,
 }
 
 impl Source {
@@ -276,7 +276,7 @@ pub struct MetaPaths<'a> {
 }
 
 impl<'a> Iterator for MetaPaths<'a> {
-    type Item = Result<PathBuf, Error>;
+    type Item = Result<(PathBuf, &'a Source), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(source) = self.iter.next() {
@@ -284,7 +284,7 @@ impl<'a> Iterator for MetaPaths<'a> {
 
             match res {
                 Ok(meta_path) => {
-                    return Some(Ok(meta_path));
+                    return Some(Ok((meta_path, source)));
                 }
                 Err(err) if err.is_fatal() => {
                     return Some(Err(err));

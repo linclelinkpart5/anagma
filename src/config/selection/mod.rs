@@ -7,12 +7,10 @@ use std::io::Result as IoResult;
 use std::cmp::Ordering;
 use std::fs::ReadDir;
 
-use strum::IntoEnumIterator;
 use serde::Deserialize;
 use thiserror::Error;
 
 use crate::config::sorter::Sorter;
-use crate::metadata::target::Target;
 
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
@@ -69,15 +67,8 @@ pub struct Selection {
 
 impl Default for Selection {
     fn default() -> Self {
-        // TODO: Replace with `StaticVec` once released for stable Rust.
-        let excluded_patterns =
-            Target::iter()
-            .map(|ml| format!("{}*", ml.default_file_name()))
-            .collect::<Vec<_>>()
-        ;
-
         let include_files = Matcher::any();
-        let exclude_files = Matcher::build(&excluded_patterns).unwrap();
+        let exclude_files = Matcher::empty();
         let include_dirs = Matcher::any();
         let exclude_dirs = Matcher::empty();
 
@@ -228,20 +219,11 @@ mod tests {
         assert!(selection.is_file_pattern_match(&"files"));
         assert!(selection.is_file_pattern_match(&"should"));
         assert!(selection.is_file_pattern_match(&"pass"));
-        assert!(selection.is_file_pattern_match(&"except"));
-        assert!(selection.is_file_pattern_match(&"for"));
-        assert!(selection.is_file_pattern_match(&"these"));
-        assert!(!selection.is_file_pattern_match(&"item",));
-        assert!(!selection.is_file_pattern_match(&"self",));
 
         assert!(selection.is_dir_pattern_match(&"all"));
         assert!(selection.is_dir_pattern_match(&"dirs"));
         assert!(selection.is_dir_pattern_match(&"should"));
         assert!(selection.is_dir_pattern_match(&"pass"));
-        assert!(selection.is_dir_pattern_match(&"even"));
-        assert!(selection.is_dir_pattern_match(&"including"));
-        assert!(selection.is_dir_pattern_match(&"item"));
-        assert!(selection.is_dir_pattern_match(&"self"));
     }
 
     #[test]
@@ -281,8 +263,6 @@ mod tests {
 
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/item.flac"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/self.flac"), false);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), false);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);

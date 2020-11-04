@@ -15,7 +15,7 @@ use thiserror::Error;
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
 use crate::metadata::block::BlockMapping;
-use crate::metadata::target::Target;
+// use crate::metadata::target::Target;
 use crate::source::Anchor;
 
 #[derive(Debug, Error)]
@@ -60,23 +60,23 @@ pub enum Arity {
     Many,
 }
 
-impl From<Target> for Arity {
-    fn from(value: Target) -> Self {
-        match value {
-            Target::Parent => Arity::Unit,
-            Target::Siblings => Arity::Many,
-        }
-    }
-}
+// impl From<Target> for Arity {
+//     fn from(value: Target) -> Self {
+//         match value {
+//             Target::Parent => Arity::Unit,
+//             Target::Siblings => Arity::Many,
+//         }
+//     }
+// }
 
-impl<'a> From<&'a Target> for &'a Arity {
-    fn from(value: &'a Target) -> Self {
-        match value {
-            Target::Parent => &Arity::Unit,
-            Target::Siblings => &Arity::Many,
-        }
-    }
-}
+// impl<'a> From<&'a Target> for &'a Arity {
+//     fn from(value: &'a Target) -> Self {
+//         match value {
+//             Target::Parent => &Arity::Unit,
+//             Target::Siblings => &Arity::Many,
+//         }
+//     }
+// }
 
 impl From<Anchor> for Arity {
     fn from(value: Anchor) -> Self {

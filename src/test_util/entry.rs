@@ -4,10 +4,10 @@ use std::fs::DirBuilder;
 use std::fs::File;
 use std::path::Path;
 
-use serde_json::Value as Json;
 use serde_json::Map as JsonMap;
+use serde_json::Value as Json;
 
-use crate::metadata::target::Target;
+use crate::source::Anchor;
 
 pub(crate) const MEDIA_FILE_EXT: &str = "flac";
 
@@ -42,22 +42,37 @@ pub(crate) const DEFAULT_FLAGGER: Flagger = Flagger::FixedSet(&[
     &["ALBUM_03", "DISC_02", "TRACK_04"],
 ]);
 
-fn create_meta_json(name: &str, target: Target, include_flag: bool) -> Json {
-    let target_str = match target {
-        Target::Parent => "self",
-        Target::Siblings => "item",
+fn create_meta_json(name: &str, anchor: &Anchor, include_flag: bool) -> Json {
+    let anchor_str = match anchor {
+        Anchor::Internal => "self",
+        Anchor::External => "item",
     };
 
     let mut json_map = JsonMap::new();
     json_map.insert("const_key".into(), "const_val".into());
-    json_map.insert(format!("{}_key", target_str), format!("{}_val", target_str).into());
-    json_map.insert(format!("{}_{}_key", name, target_str), format!("{}_{}_val", name, target_str).into());
-    json_map.insert("overridden".into(), format!("{}_{}", name, target_str).into());
+    json_map.insert(
+        format!("{}_key", anchor_str),
+        format!("{}_val", anchor_str).into(),
+    );
+    json_map.insert(
+        format!("{}_{}_key", name, anchor_str),
+        format!("{}_{}_val", name, anchor_str).into(),
+    );
+    json_map.insert(
+        "overridden".into(),
+        format!("{}_{}", name, anchor_str).into(),
+    );
 
     if include_flag {
         let mut sub_sub_json_map = JsonMap::new();
-        sub_sub_json_map.insert("sub_sub_key_a".into(), format!("{}_sub_sub_val_a", name).into());
-        sub_sub_json_map.insert("sub_sub_key_b".into(), format!("{}_sub_sub_val_b", name).into());
+        sub_sub_json_map.insert(
+            "sub_sub_key_a".into(),
+            format!("{}_sub_sub_val_a", name).into(),
+        );
+        sub_sub_json_map.insert(
+            "sub_sub_key_b".into(),
+            format!("{}_sub_sub_val_b", name).into(),
+        );
 
         let mut sub_json_map = JsonMap::new();
         sub_json_map.insert("sub_key_a".into(), format!("{}_sub_val_a", name).into());
@@ -77,7 +92,12 @@ pub(crate) enum Entry<'a> {
 
 impl<'a> Entry<'a> {
     /// Create this entry and its metadata recursively in a target directory.
-    fn realize_and_emit(&self, root_dir: &Path, parent_name_crumbs: Vec<&str>, flagger: &Flagger) -> Json {
+    fn realize_and_emit(
+        &self,
+        root_dir: &Path,
+        parent_name_crumbs: Vec<&str>,
+        flagger: &Flagger,
+    ) -> Json {
         let mut this_name_crumbs = parent_name_crumbs;
 
         // Create the actual entry (file or directory).
@@ -90,7 +110,7 @@ impl<'a> Entry<'a> {
 
                 // Flag this file if needed.
                 (name, flagger.is_flagged(&this_name_crumbs))
-            },
+            }
             Self::Dir(name, sub_entries) => {
                 this_name_crumbs.push(name);
 
@@ -99,7 +119,11 @@ impl<'a> Entry<'a> {
 
                 // NOTE: A little shortcut here, creating a `Library` on-the-fly
                 //       and using that to recurse.
-                Library { sub_entries, name, }.realize_helper(&new_dir_path, this_name_crumbs.clone(), flagger);
+                Library { sub_entries, name }.realize_helper(
+                    &new_dir_path,
+                    this_name_crumbs.clone(),
+                    flagger,
+                );
 
                 // Never flag a directory at the sibling level.
                 (name, false)
@@ -107,7 +131,7 @@ impl<'a> Entry<'a> {
         };
 
         // Create and emit the individual JSON for this entry.
-        create_meta_json(name, Target::Siblings, is_flagged)
+        create_meta_json(name, &Anchor::External, is_flagged)
     }
 }
 
@@ -128,7 +152,7 @@ impl<'a> Library<'a> {
         let meta_file = File::create(&meta_file_path).unwrap();
         let json = create_meta_json(
             self.name,
-            Target::Parent,
+            &Anchor::Internal,
             flagger.is_flagged(&this_name_crumbs),
         );
         serde_json::to_writer_pretty(meta_file, &json).unwrap();
@@ -152,73 +176,100 @@ pub(crate) const DEFAULT_LIBRARY: Library<'_> = Library {
     name: "ROOT",
     sub_entries: &[
         // Well-behaved album.
-        Entry::Dir("ALBUM_01", &[
-            Entry::Dir("DISC_01", &[
-                Entry::File("TRACK_01"),
-                Entry::File("TRACK_02"),
-                Entry::File("TRACK_03"),
-            ]),
-            Entry::Dir("DISC_02", &[
-                Entry::File("TRACK_01"),
-                Entry::File("TRACK_02"),
-                Entry::File("TRACK_03"),
-            ]),
-        ]),
-
+        Entry::Dir(
+            "ALBUM_01",
+            &[
+                Entry::Dir(
+                    "DISC_01",
+                    &[
+                        Entry::File("TRACK_01"),
+                        Entry::File("TRACK_02"),
+                        Entry::File("TRACK_03"),
+                    ],
+                ),
+                Entry::Dir(
+                    "DISC_02",
+                    &[
+                        Entry::File("TRACK_01"),
+                        Entry::File("TRACK_02"),
+                        Entry::File("TRACK_03"),
+                    ],
+                ),
+            ],
+        ),
         // Album with a disc and tracks, and loose tracks not on a disc.
-        Entry::Dir("ALBUM_02", &[
-            Entry::Dir("DISC_01", &[
+        Entry::Dir(
+            "ALBUM_02",
+            &[
+                Entry::Dir(
+                    "DISC_01",
+                    &[
+                        Entry::File("TRACK_01"),
+                        Entry::File("TRACK_02"),
+                        Entry::File("TRACK_03"),
+                    ],
+                ),
                 Entry::File("TRACK_01"),
                 Entry::File("TRACK_02"),
                 Entry::File("TRACK_03"),
-            ]),
-            Entry::File("TRACK_01"),
-            Entry::File("TRACK_02"),
-            Entry::File("TRACK_03"),
-        ]),
-
+            ],
+        ),
         // Album with discs and tracks, and subtracks on one disc.
-        Entry::Dir("ALBUM_03", &[
-            Entry::Dir("DISC_01", &[
-                Entry::File("TRACK_01"),
-                Entry::File("TRACK_02"),
-                Entry::File("TRACK_03"),
-            ]),
-            Entry::Dir("DISC_02", &[
-                Entry::Dir("TRACK_01", &[
-                    Entry::File("SUBTRACK_01"),
-                    Entry::File("SUBTRACK_02"),
-                ]),
-                Entry::Dir("TRACK_02", &[
-                    Entry::File("SUBTRACK_01"),
-                    Entry::File("SUBTRACK_02"),
-                ]),
-                Entry::File("TRACK_03"),
-                Entry::File("TRACK_04"),
-            ]),
-        ]),
-
+        Entry::Dir(
+            "ALBUM_03",
+            &[
+                Entry::Dir(
+                    "DISC_01",
+                    &[
+                        Entry::File("TRACK_01"),
+                        Entry::File("TRACK_02"),
+                        Entry::File("TRACK_03"),
+                    ],
+                ),
+                Entry::Dir(
+                    "DISC_02",
+                    &[
+                        Entry::Dir(
+                            "TRACK_01",
+                            &[Entry::File("SUBTRACK_01"), Entry::File("SUBTRACK_02")],
+                        ),
+                        Entry::Dir(
+                            "TRACK_02",
+                            &[Entry::File("SUBTRACK_01"), Entry::File("SUBTRACK_02")],
+                        ),
+                        Entry::File("TRACK_03"),
+                        Entry::File("TRACK_04"),
+                    ],
+                ),
+            ],
+        ),
         // Album that consists of one file.
         Entry::File("ALBUM_04"),
-
         // A very messed-up album.
-        Entry::Dir("ALBUM_05", &[
-            Entry::Dir("DISC_01", &[
-                Entry::File("SUBTRACK_01"),
-                Entry::File("SUBTRACK_02"),
-                Entry::File("SUBTRACK_03"),
-            ]),
-            Entry::Dir("DISC_02", &[
-                Entry::Dir("TRACK_01", &[
-                    Entry::File("SUBTRACK_01"),
-                    Entry::File("SUBTRACK_02"),
-                ]),
-            ]),
-            Entry::File("TRACK_01"),
-            Entry::File("TRACK_02"),
-            Entry::File("TRACK_03"),
-        ]),
-    ]
+        Entry::Dir(
+            "ALBUM_05",
+            &[
+                Entry::Dir(
+                    "DISC_01",
+                    &[
+                        Entry::File("SUBTRACK_01"),
+                        Entry::File("SUBTRACK_02"),
+                        Entry::File("SUBTRACK_03"),
+                    ],
+                ),
+                Entry::Dir(
+                    "DISC_02",
+                    &[Entry::Dir(
+                        "TRACK_01",
+                        &[Entry::File("SUBTRACK_01"), Entry::File("SUBTRACK_02")],
+                    )],
+                ),
+                Entry::File("TRACK_01"),
+                Entry::File("TRACK_02"),
+                Entry::File("TRACK_03"),
+            ],
+        ),
+    ],
 };
 
 #[cfg(test)]

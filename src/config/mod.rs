@@ -11,7 +11,6 @@ use self::selection::Selection;
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
-use crate::metadata::target::Target;
 
 #[derive(Deserialize)]
 #[serde(default)]
@@ -31,13 +30,11 @@ impl Default for Config {
         let sorter = Sorter::default();
         let schema_format = SchemaFormat::default();
         let item_fn = format!(
-            "{}.{}",
-            Target::Siblings.default_file_name(),
+            "item.{}",
             schema_format.file_extension(),
         );
         let self_fn = format!(
-            "{}.{}",
-            Target::Parent.default_file_name(),
+            "self.{}",
             schema_format.file_extension(),
         );
 
