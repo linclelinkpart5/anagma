@@ -172,8 +172,7 @@ impl Default for SchemaFormat {
 
 impl SchemaFormat {
     /// Returns the expected file name extension for files in this format.
-    // TODO: When `match` is allowed in `const fn`s, make this `const fn`.
-    pub fn file_extension(&self) -> &'static str {
+    pub const fn file_extension(&self) -> &'static str {
         match self {
             Self::Yaml => "yml",
             Self::Json => "json",

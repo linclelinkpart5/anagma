@@ -24,8 +24,6 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        // TODO: Is there a way to intelligently populate this while also
-        //       preserving defaulting behavior?
         let selection = Selection::default();
         let sorter = Sorter::default();
         let schema_format = SchemaFormat::default();

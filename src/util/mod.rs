@@ -55,34 +55,6 @@ impl Util {
             (Some(_), None) => { Err(NameError::NonNormalComponent(name)) },
         }
     }
-
-    // TODO: CLEAN THIS UP, just leaving this here to avoid breaking tests.
-    /// Tests a string to see if it would be a valid item file name.
-    pub fn is_valid_item_name<P: AsRef<Path>>(name: &P) -> bool {
-        // Re-create this name as a file path, and iterate over its components.
-        let name = name.as_ref();
-        let mut components = name.components();
-
-        match (components.next(), components.next()) {
-            // A valid path must have exactly one normal component.
-            // It must also match the original name.
-            (Some(Component::Normal(c)), None) => c == OsStr::new(name),
-            _ => false,
-        }
-    }
-
-    pub fn _separate_err<T, E>(results: Vec<Result<T, E>>) -> (Vec<T>, Vec<E>)
-    where
-        T: std::fmt::Debug,
-        E: std::fmt::Debug,
-    {
-        let (values, errors): (Vec<_>, Vec<_>) = results.into_iter().partition(Result::is_ok);
-
-        let values: Vec<_> = values.into_iter().map(Result::unwrap).collect();
-        let errors: Vec<_> = errors.into_iter().map(Result::unwrap_err).collect();
-
-        (values, errors)
-    }
 }
 
 #[cfg(test)]
@@ -93,6 +65,8 @@ mod tests {
     use std::time::SystemTime;
 
     use tempfile::Builder;
+
+    use str_macro::str;
 
     #[test]
     // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
@@ -123,30 +97,87 @@ mod tests {
     }
 
     #[test]
-    fn is_valid_item_name() {
-        assert_eq!(Util::is_valid_item_name(&"name"), true);
-        assert_eq!(Util::is_valid_item_name(&".name"), true);
-        assert_eq!(Util::is_valid_item_name(&"name."), true);
-        assert_eq!(Util::is_valid_item_name(&"name.ext"), true);
+    fn validate_item_name() {
+        assert_eq!(Util::validate_item_name(str!("name")).unwrap(), str!("name"));
+        assert_eq!(Util::validate_item_name(str!(".name")).unwrap(), str!(".name"));
+        assert_eq!(Util::validate_item_name(str!("name.")).unwrap(), str!("name."));
+        assert_eq!(Util::validate_item_name(str!("name.ext")).unwrap(), str!("name.ext"));
 
-        assert_eq!(Util::is_valid_item_name(&"."), false);
-        assert_eq!(Util::is_valid_item_name(&".."), false);
-        assert_eq!(Util::is_valid_item_name(&"/"), false);
-        assert_eq!(Util::is_valid_item_name(&"/."), false);
-        assert_eq!(Util::is_valid_item_name(&"/.."), false);
-        assert_eq!(Util::is_valid_item_name(&"./"), false);
-        assert_eq!(Util::is_valid_item_name(&"../"), false);
-        assert_eq!(Util::is_valid_item_name(&"/name"), false);
-        assert_eq!(Util::is_valid_item_name(&"name/"), false);
-        assert_eq!(Util::is_valid_item_name(&"./name"), false);
-        assert_eq!(Util::is_valid_item_name(&"name/."), false);
-        assert_eq!(Util::is_valid_item_name(&"../name"), false);
-        assert_eq!(Util::is_valid_item_name(&"name/.."), false);
-        assert_eq!(Util::is_valid_item_name(&"/name.ext"), false);
-        assert_eq!(Util::is_valid_item_name(&"name.ext/"), false);
-        assert_eq!(Util::is_valid_item_name(&"./name.ext"), false);
-        assert_eq!(Util::is_valid_item_name(&"name.ext/."), false);
-        assert_eq!(Util::is_valid_item_name(&"../name.ext"), false);
-        assert_eq!(Util::is_valid_item_name(&"name.ext/.."), false);
+        assert!(matches!(
+            Util::validate_item_name(str!(".")),
+            Err(NameError::NonNormalComponent(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("..")),
+            Err(NameError::NonNormalComponent(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("/")),
+            Err(NameError::NonNormalComponent(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("/.")),
+            Err(NameError::NonNormalComponent(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("/..")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("./")),
+            Err(NameError::NonNormalComponent(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("../")),
+            Err(NameError::NonNormalComponent(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("/name")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("name/")),
+            Err(NameError::NotRoundTrip(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("./name")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("name/.")),
+            Err(NameError::NotRoundTrip(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("../name")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("name/..")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("/name.ext")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("name.ext/")),
+            Err(NameError::NotRoundTrip(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("./name.ext")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("name.ext/.")),
+            Err(NameError::NotRoundTrip(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("../name.ext")),
+            Err(NameError::ManyComponents(..))
+        ));
+        assert!(matches!(
+            Util::validate_item_name(str!("name.ext/..")),
+            Err(NameError::ManyComponents(..))
+        ));
     }
 }
