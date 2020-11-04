@@ -222,17 +222,17 @@ impl TestUtil {
         root_dir
     }
 
-    pub fn flag_set_by_default(depth_left: usize, fanout_index: usize) -> bool {
-        ((depth_left % 2 == 1) ^ (fanout_index % 2 == 1)) && depth_left <= 1
-    }
+    // pub fn flag_set_by_default(depth_left: usize, fanout_index: usize) -> bool {
+    //     ((depth_left % 2 == 1) ^ (fanout_index % 2 == 1)) && depth_left <= 1
+    // }
 
-    pub fn flag_set_by_all(_: usize, _: usize) -> bool {
-        true
-    }
+    // pub fn flag_set_by_all(_: usize, _: usize) -> bool {
+    //     true
+    // }
 
-    pub fn flag_set_by_none(_: usize, _: usize) -> bool {
-        false
-    }
+    // pub fn flag_set_by_none(_: usize, _: usize) -> bool {
+    //     false
+    // }
 
     pub fn create_meta_fanout_test_dir(
         name: &str,

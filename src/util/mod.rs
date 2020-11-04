@@ -11,7 +11,7 @@ pub use crate::metadata::schema::SchemaFormat;
 pub use number::Number;
 
 use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::path::Component;
 use std::time::SystemTime;
 
