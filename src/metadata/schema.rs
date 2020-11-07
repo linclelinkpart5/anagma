@@ -10,12 +10,10 @@ use serde::Serialize;
 use serde_yaml::Error as YamlError;
 use serde_json::Error as JsonError;
 use thiserror::Error;
-// use strum_macros::EnumDiscriminants;
 
 use crate::metadata::block::Block;
 use crate::metadata::block::BlockSequence;
 use crate::metadata::block::BlockMapping;
-// use crate::metadata::target::Target;
 use crate::source::Anchor;
 
 #[derive(Debug, Error)]

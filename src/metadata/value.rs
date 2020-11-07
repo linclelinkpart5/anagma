@@ -6,7 +6,7 @@ use std::convert::TryFrom;
 use rust_decimal::Decimal;
 use serde::Deserialize;
 use serde::Serialize;
-use strum_macros::{EnumDiscriminants, AsRefStr};
+use strum::{EnumDiscriminants, AsRefStr};
 use thiserror::Error;
 
 use crate::util::Number;
