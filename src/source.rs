@@ -10,6 +10,16 @@ use crate::util::NameError;
 use crate::util::Util;
 
 #[derive(Debug, Error)]
+pub enum CreateError {
+    #[error("invalid source name: {0}")]
+    InvalidName(NameError),
+    #[error("missing extension: {0}")]
+    MissingExt(String),
+    #[error("unknown extension: {0}")]
+    UnknownExt(String),
+}
+
+#[derive(Debug, Error)]
 pub enum Error {
     #[error("not a directory: {}", .0.display())]
     NotADir(PathBuf),
@@ -67,40 +77,26 @@ enum NS {
 pub struct Source {
     pub(crate) name: String,
     pub(crate) anchor: Anchor,
+    pub(crate) format: SchemaFormat,
 }
 
 impl Source {
-    fn _new(ns: NS, anchor: Anchor) -> Result<Self, NameError> {
-        let (atom, opt_format) = match ns {
-            NS::Name(name) => (name, None),
-            NS::Stub(stub, fmt) => (stub, Some(fmt)),
+    pub fn from_name(name: String, anchor: Anchor) -> Result<Self, CreateError> {
+        let name = Util::validate_item_name(name).map_err(CreateError::InvalidName)?;
+
+        let ext = match name.rsplit('.').next() {
+            Some(e) => e,
+            None => { return Err(CreateError::MissingExt(name)); },
         };
 
-        let mut validated = Util::validate_item_name(atom)?;
+        // TODO: Figure out how to use `strum` to do the heavy lifting here.
+        let format = match ext {
+            "json" | "JSON" => SchemaFormat::Json,
+            "yml" | "YML" => SchemaFormat::Yaml,
+            _ => { return Err(CreateError::UnknownExt(name)); },
+        };
 
-        if let Some(format) = opt_format {
-            let ext = format.file_extension();
-            validated.reserve(ext.len() + 1);
-            validated.push('.');
-            validated.push_str(ext);
-        }
-
-        Ok(Self {
-            name: validated,
-            anchor,
-        })
-    }
-
-    pub fn from_name(name: String, anchor: Anchor) -> Result<Self, NameError> {
-        Self::_new(NS::Name(name), anchor)
-    }
-
-    pub fn from_stub(
-        stub: String,
-        format: SchemaFormat,
-        anchor: Anchor,
-    ) -> Result<Self, NameError> {
-        Self::_new(NS::Stub(stub, format), anchor)
+        Ok(Self { name, anchor, format, })
     }
 
     /// Given a concrete item file path, returns the meta file path that would

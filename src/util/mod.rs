@@ -17,15 +17,15 @@ use std::time::SystemTime;
 
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum NameError {
-    #[error("source name did not have any components")]
+    #[error("name does not have any path components")]
     NoComponents,
-    #[error("source name had more than one component: {0}")]
+    #[error("name has more than one path component: {0}")]
     ManyComponents(String),
-    #[error("source name contains a non-normal component: {0}")]
+    #[error("name contains a non-normal path component: {0}")]
     NonNormalComponent(String),
-    #[error("source name does not match normalized version of itself: {0}")]
+    #[error("name does not match normalized version of itself: {0}")]
     NotRoundTrip(String),
 }
 
