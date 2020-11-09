@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
+use strum::EnumString;
 use thiserror::Error;
 
 use crate::config::selection::Selection;
@@ -89,11 +91,9 @@ impl Source {
             None => { return Err(CreateError::MissingExt(name)); },
         };
 
-        // TODO: Figure out how to use `strum` to do the heavy lifting here.
-        let format = match ext {
-            "json" | "JSON" => SchemaFormat::Json,
-            "yml" | "YML" => SchemaFormat::Yaml,
-            _ => { return Err(CreateError::UnknownExt(name)); },
+        let format = match SchemaFormat::from_str(ext) {
+            Ok(fmt) => fmt,
+            Err(_) => { return Err(CreateError::UnknownExt(name)); },
         };
 
         Ok(Self { name, anchor, format, })

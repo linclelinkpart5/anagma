@@ -77,9 +77,9 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"self.yml"), false);
         assert_eq!(config.selection.is_file_pattern_match(&"item.yml"), false);
         assert_eq!(config.sorter.sort_by, SortBy::Name);
-        assert_eq!(config.item_fn, "item.yml");
-        assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.schema_format, SchemaFormat::Yaml);
+        assert_eq!(config.item_fn, "item.json");
+        assert_eq!(config.self_fn, "self.json");
+        assert_eq!(config.schema_format, SchemaFormat::Json);
 
         let text_config = r#"
             include_files:
@@ -94,9 +94,9 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"music.mp3"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), false);
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
-        assert_eq!(config.item_fn, "item.yml");
-        assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.schema_format, SchemaFormat::Yaml);
+        assert_eq!(config.item_fn, "item.json");
+        assert_eq!(config.self_fn, "self.json");
+        assert_eq!(config.schema_format, SchemaFormat::Json);
 
         let text_config = r#"
             include_files: '*'
@@ -109,9 +109,9 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"music.mp3"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), true);
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
-        assert_eq!(config.item_fn, "item.yml");
-        assert_eq!(config.self_fn, "self.yml");
-        assert_eq!(config.schema_format, SchemaFormat::Yaml);
+        assert_eq!(config.item_fn, "item.json");
+        assert_eq!(config.self_fn, "self.json");
+        assert_eq!(config.schema_format, SchemaFormat::Json);
 
         let text_config = r#"
             include_files: '*'
@@ -128,7 +128,7 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), true);
         assert_eq!(config.sorter.sort_by, SortBy::Name);
         assert_eq!(config.item_fn, "item_meta.yml");
-        assert_eq!(config.self_fn, "self.yml");
+        assert_eq!(config.self_fn, "self.json");
         assert_eq!(config.schema_format, SchemaFormat::Yaml);
     }
 }
