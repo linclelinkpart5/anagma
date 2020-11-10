@@ -24,9 +24,9 @@ pub enum Error {
     #[error("cannot read metadata file: {0}")]
     CannotReadFile(#[source] IoError),
     #[error("cannot deserialize YAML: {0}")]
-    YamlDeserializeError(#[source] YamlError),
+    YamlDeserialize(#[source] YamlError),
     #[error("cannot deserialize JSON: {0}")]
-    JsonDeserializeError(#[source] JsonError),
+    JsonDeserialize(#[source] JsonError),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -50,7 +50,7 @@ pub(crate) enum SchemaRepr {
     Many(ManySchemaRepr),
 }
 
-/// The "order" of the number of item files a schema provides data for.
+/// The "degree" of the number of item files a schema provides data for.
 /// In other words, whether a schema provides data for one or many items.
 // TODO: Replace with `EnumDiscriminants` once PR to `strum` is merged/released.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -58,24 +58,6 @@ pub enum Arity {
     Unit,
     Many,
 }
-
-// impl From<Target> for Arity {
-//     fn from(value: Target) -> Self {
-//         match value {
-//             Target::Parent => Arity::Unit,
-//             Target::Siblings => Arity::Many,
-//         }
-//     }
-// }
-
-// impl<'a> From<&'a Target> for &'a Arity {
-//     fn from(value: &'a Target) -> Self {
-//         match value {
-//             Target::Parent => &Arity::Unit,
-//             Target::Siblings => &Arity::Many,
-//         }
-//     }
-// }
 
 impl From<Anchor> for Arity {
     fn from(value: Anchor) -> Self {
@@ -140,8 +122,8 @@ impl Schema {
 
     pub fn from_str(format: &SchemaFormat, s: &str, arity: &Arity) -> Result<Schema, Error> {
         match format {
-            SchemaFormat::Yaml => Self::from_yaml_str(s, arity).map_err(Error::YamlDeserializeError),
-            SchemaFormat::Json => Self::from_json_str(s, arity).map_err(Error::JsonDeserializeError),
+            SchemaFormat::Yaml => Self::from_yaml_str(s, arity).map_err(Error::YamlDeserialize),
+            SchemaFormat::Json => Self::from_json_str(s, arity).map_err(Error::JsonDeserialize),
         }
     }
 
