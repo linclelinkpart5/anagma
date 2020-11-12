@@ -12,6 +12,41 @@ use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
 
+const DEFAULT_INTERNAL_STUB: &str = "album";
+const DEFAULT_EXTERNAL_STUB: &str = "track";
+
+#[derive(Deserialize)]
+pub struct Sources {
+    external: Vec<String>,
+    internal: Vec<String>,
+}
+
+impl Default for Sources {
+    fn default() -> Self {
+        let default_fmt = SchemaFormat::default();
+        let default_ext = default_fmt.as_ref();
+
+        let external = vec![format!("{}.{}", DEFAULT_EXTERNAL_STUB, default_ext)];
+        let internal = vec![format!("{}.{}", DEFAULT_INTERNAL_STUB, default_ext)];
+
+        Self { external, internal, }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(default)]
+pub struct ConfigRepr {
+    pub filtering: Selection,
+    pub ordering: Sorter,
+    pub sources: Sources,
+}
+
+impl Default for ConfigRepr {
+    fn default() -> Self {
+        todo!();
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(default)]
 pub struct Config {
