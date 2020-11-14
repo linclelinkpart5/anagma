@@ -3,6 +3,7 @@
 pub mod selection;
 pub mod sorter;
 
+use std::convert::{TryFrom, TryInto};
 use std::path::Path;
 
 use serde::Deserialize;
@@ -11,7 +12,7 @@ use self::selection::Selection;
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
-use crate::source::{Anchor, Source};
+use crate::source::{Anchor, Source, CreateError as SourceCreateError};
 
 const DEFAULT_INTERNAL_STUB: &str = "album";
 const DEFAULT_EXTERNAL_STUB: &str = "track";
@@ -43,30 +44,31 @@ pub struct ConfigRepr {
     pub sources: Sources,
 }
 
-// TODO: Make this `TryFrom` instead, to remove the need for `.unwrap()`.
-impl From<ConfigRepr> for Config {
-    fn from(value: ConfigRepr) -> Self {
+impl TryFrom<ConfigRepr> for Config {
+    type Error = SourceCreateError;
+
+    fn try_from(value: ConfigRepr) -> Result<Self, Self::Error> {
         let mut sources = Vec::new();
 
         for name in value.sources.external {
-            let src = Source::from_name(name, Anchor::External).unwrap();
+            let src = Source::from_name(name, Anchor::External)?;
             sources.push(src);
         }
 
         for name in value.sources.internal {
-            let src = Source::from_name(name, Anchor::Internal).unwrap();
+            let src = Source::from_name(name, Anchor::Internal)?;
             sources.push(src);
         }
 
-        Self {
+        Ok(Self {
             selection: value.filtering,
             sorter: value.ordering,
             sources,
-        }
+        })
     }
 }
 #[derive(Deserialize)]
-#[serde(from="ConfigRepr")]
+#[serde(try_from = "ConfigRepr")]
 pub struct Config {
     pub selection: Selection,
     pub sorter: Sorter,
@@ -75,14 +77,15 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        ConfigRepr::default().into()
+        // NOTE: This is expected to never fail.
+        TryInto::<_>::try_into(ConfigRepr::default()).unwrap()
     }
 }
 
 impl Config {
     pub fn from_file<P: AsRef<Path>>(path: &P) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = std::fs::read_to_string(path)?;
-        let config = serde_json::from_str(&contents)?;
+        let config = toml::from_str(&contents)?;
         Ok(config)
     }
 }
