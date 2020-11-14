@@ -23,11 +23,13 @@ pub fn get_with_config<P: AsRef<Path>>(path: &P, config: &Config) -> Block {
     temp_sourcer.source(Source::from_name(String::from("item.json"), Anchor::External).unwrap())
         .source(Source::from_name(String::from("self.json"), Anchor::Internal).unwrap());
 
-    Processor::process_item_file(
-        path.as_ref(),
-        &temp_sourcer,
-        &config.schema_format,
-        &config.selection,
-        &config.sorter,
-    ).unwrap()
+    todo!();
+
+    // Processor::process_item_file(
+    //     path.as_ref(),
+    //     &temp_sourcer,
+    //     &config.schema_format,
+    //     &config.selection,
+    //     &config.sorter,
+    // ).unwrap()
 }

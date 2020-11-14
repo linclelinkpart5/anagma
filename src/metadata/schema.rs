@@ -142,26 +142,10 @@ impl Schema {
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum SchemaFormat {
-    #[strum(serialize = "json", serialize = "JSON")]
+    #[strum(serialize = "JSON", serialize = "json")]
     Json,
-    #[strum(serialize = "yml", serialize = "YML")]
+    #[strum(serialize = "YML", serialize = "yml")]
     Yaml,
-}
-
-impl Default for SchemaFormat {
-    fn default() -> Self {
-        Self::Json
-    }
-}
-
-impl SchemaFormat {
-    /// Returns the expected file name extension for files in this format.
-    pub const fn file_extension(&self) -> &'static str {
-        match self {
-            Self::Yaml => "yml",
-            Self::Json => "json",
-        }
-    }
 }
 
 #[cfg(test)]

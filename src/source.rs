@@ -59,7 +59,8 @@ impl Error {
 
 /// Represents a method of finding the location of a meta file given an item
 /// file path.
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum Anchor {
     /// The meta file is located in the same directory as the item file path.
     External,
@@ -76,6 +77,8 @@ enum NS {
 
 /// Defines a meta file source, consisting of an anchor (the target directory
 /// to look in) and a file name (the meta file name in that target directory).
+#[derive(Debug)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub struct Source {
     pub(crate) name: String,
     pub(crate) anchor: Anchor,

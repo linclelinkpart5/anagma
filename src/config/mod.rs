@@ -11,11 +11,13 @@ use self::selection::Selection;
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
+use crate::source::{Anchor, Source};
 
 const DEFAULT_INTERNAL_STUB: &str = "album";
 const DEFAULT_EXTERNAL_STUB: &str = "track";
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
+#[serde(default)]
 pub struct Sources {
     external: Vec<String>,
     internal: Vec<String>,
@@ -23,7 +25,7 @@ pub struct Sources {
 
 impl Default for Sources {
     fn default() -> Self {
-        let default_fmt = SchemaFormat::default();
+        let default_fmt = SchemaFormat::Json;
         let default_ext = default_fmt.as_ref();
 
         let external = vec![format!("{}.{}", DEFAULT_EXTERNAL_STUB, default_ext)];
@@ -33,7 +35,7 @@ impl Default for Sources {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 #[serde(default)]
 pub struct ConfigRepr {
     pub filtering: Selection,
@@ -41,43 +43,39 @@ pub struct ConfigRepr {
     pub sources: Sources,
 }
 
-impl Default for ConfigRepr {
-    fn default() -> Self {
-        todo!();
+// TODO: Make this `TryFrom` instead, to remove the need for `.unwrap()`.
+impl From<ConfigRepr> for Config {
+    fn from(value: ConfigRepr) -> Self {
+        let mut sources = Vec::new();
+
+        for name in value.sources.external {
+            let src = Source::from_name(name, Anchor::External).unwrap();
+            sources.push(src);
+        }
+
+        for name in value.sources.internal {
+            let src = Source::from_name(name, Anchor::Internal).unwrap();
+            sources.push(src);
+        }
+
+        Self {
+            selection: value.filtering,
+            sorter: value.ordering,
+            sources,
+        }
     }
 }
-
 #[derive(Deserialize)]
-#[serde(default)]
+#[serde(from="ConfigRepr")]
 pub struct Config {
-    #[serde(flatten)] pub selection: Selection,
-    #[serde(flatten)] pub sorter: Sorter,
-    pub item_fn: String,
-    pub self_fn: String,
-    pub schema_format: SchemaFormat,
+    pub selection: Selection,
+    pub sorter: Sorter,
+    pub sources: Vec<Source>,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let selection = Selection::default();
-        let sorter = Sorter::default();
-        let schema_format = SchemaFormat::default();
-        let item_fn = format!(
-            "item.{}",
-            schema_format.file_extension(),
-        );
-        let self_fn = format!(
-            "self.{}",
-            schema_format.file_extension(),
-        );
-
-        Self {
-            selection,
-            sorter,
-            item_fn,
-            self_fn,
-            schema_format,
-        }
+        ConfigRepr::default().into()
     }
 }
 
@@ -91,20 +89,22 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use serde_yaml;
-
     use super::*;
 
-    use super::sorter::sort_by::SortBy;
+    use crate::config::sorter::sort_by::SortBy;
+
+    use str_macro::str;
 
     #[test]
     fn deserialization() {
         let text_config = r#"
-            include_files: '*.flac'
-            sort_by: name
+            [filtering]
+            include_files = "*.flac"
+            [ordering]
+            sort_by = "name"
         "#;
 
-        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+        let config: Config = toml::from_str(&text_config).unwrap();
 
         assert_eq!(config.selection.is_file_pattern_match(&"music.flac"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"music.mp3"), false);
@@ -112,58 +112,78 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"self.yml"), false);
         assert_eq!(config.selection.is_file_pattern_match(&"item.yml"), false);
         assert_eq!(config.sorter.sort_by, SortBy::Name);
-        assert_eq!(config.item_fn, "item.json");
-        assert_eq!(config.self_fn, "self.json");
-        assert_eq!(config.schema_format, SchemaFormat::Json);
+        assert_eq!(
+            config.sources,
+            vec![
+                Source::from_name(str!("track.json"), Anchor::External).unwrap(),
+                Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
+            ]
+        );
 
         let text_config = r#"
-            include_files:
-                - '*.flac'
-                - '*.mp3'
-            sort_by: mod_time
+            [filtering]
+            include_files = ["*.flac", "*.mp3"]
+            [ordering]
+            sort_by = "mod_time"
         "#;
 
-        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+        let config: Config = toml::from_str(&text_config).unwrap();
 
         assert_eq!(config.selection.is_file_pattern_match(&"music.flac"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"music.mp3"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), false);
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
-        assert_eq!(config.item_fn, "item.json");
-        assert_eq!(config.self_fn, "self.json");
-        assert_eq!(config.schema_format, SchemaFormat::Json);
+        assert_eq!(
+            config.sources,
+            vec![
+                Source::from_name(str!("track.json"), Anchor::External).unwrap(),
+                Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
+            ]
+        );
 
         let text_config = r#"
-            include_files: '*'
-            sort_by: mod_time
+            [filtering]
+            include_files = "*"
+            [ordering]
+            sort_by = "mod_time"
         "#;
 
-        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+        let config: Config = toml::from_str(&text_config).unwrap();
 
         assert_eq!(config.selection.is_file_pattern_match(&"music.flac"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"music.mp3"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), true);
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
-        assert_eq!(config.item_fn, "item.json");
-        assert_eq!(config.self_fn, "self.json");
-        assert_eq!(config.schema_format, SchemaFormat::Json);
+        assert_eq!(
+            config.sources,
+            vec![
+                Source::from_name(str!("track.json"), Anchor::External).unwrap(),
+                Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
+            ]
+        );
 
         let text_config = r#"
-            include_files: '*'
-            exclude_files: '*.mp3'
-            sort_by: name
-            item_fn: item_meta.yml
-            schema_format: yaml
+            [filtering]
+            include_files = "*"
+            exclude_files = "*.mp3"
+            [ordering]
+            sort_by = "name"
+            [sources]
+            external = ["item_meta.yml"]
         "#;
 
-        let config: Config = serde_yaml::from_str(&text_config).unwrap();
+        let config: Config = toml::from_str(&text_config).unwrap();
 
         assert_eq!(config.selection.is_file_pattern_match(&"music.flac"), true);
         assert_eq!(config.selection.is_file_pattern_match(&"music.mp3"), false);
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), true);
         assert_eq!(config.sorter.sort_by, SortBy::Name);
-        assert_eq!(config.item_fn, "item_meta.yml");
-        assert_eq!(config.self_fn, "self.json");
-        assert_eq!(config.schema_format, SchemaFormat::Yaml);
+        assert_eq!(
+            config.sources,
+            vec![
+                Source::from_name(str!("item_meta.yml"), Anchor::External).unwrap(),
+                Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
+            ]
+        );
     }
 }
