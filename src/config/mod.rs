@@ -83,10 +83,14 @@ impl Default for Config {
 }
 
 impl Config {
+    pub fn from_str(value: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        let config = toml::from_str(&value)?;
+        Ok(config)
+    }
+
     pub fn from_file<P: AsRef<Path>>(path: &P) -> Result<Self, Box<dyn std::error::Error>> {
         let contents = std::fs::read_to_string(path)?;
-        let config = toml::from_str(&contents)?;
-        Ok(config)
+        Self::from_str(&contents)
     }
 }
 
