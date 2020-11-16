@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_yaml::Error as YamlError;
 use serde_json::Error as JsonError;
-use strum::{EnumString, AsRefStr};
+use strum::{EnumString, EnumIter, AsRefStr};
 use thiserror::Error;
 
 use crate::metadata::block::Block;
@@ -138,7 +138,7 @@ impl Schema {
 }
 
 /// Represents all the different metadata formats that are supported.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize, EnumString, AsRefStr)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize, EnumString, EnumIter, AsRefStr)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum SchemaFormat {

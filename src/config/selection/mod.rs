@@ -12,6 +12,8 @@ use thiserror::Error;
 
 use crate::config::sorter::Sorter;
 
+use self::matcher::OneOrManyPatterns;
+
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
 
@@ -167,6 +169,16 @@ impl Selection {
 
         Ok(sel_item_paths)
     }
+}
+
+/// A type that represents included and excluded item files and directories.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SelectionRepr {
+    include_files: OneOrManyPatterns,
+    exclude_files: OneOrManyPatterns,
+    include_dirs: OneOrManyPatterns,
+    exclude_dirs: OneOrManyPatterns,
 }
 
 #[cfg(test)]

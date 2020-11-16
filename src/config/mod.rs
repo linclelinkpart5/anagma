@@ -7,8 +7,9 @@ use std::convert::{TryFrom, TryInto};
 use std::path::Path;
 
 use serde::Deserialize;
+use strum::IntoEnumIterator;
 
-use self::selection::Selection;
+use self::selection::{Matcher, Selection};
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
@@ -36,12 +37,48 @@ impl Default for Sources {
     }
 }
 
-#[derive(Default, Deserialize)]
+#[derive(Deserialize)]
 #[serde(default)]
 pub struct ConfigRepr {
     pub filtering: Selection,
     pub ordering: Sorter,
     pub sources: Sources,
+}
+
+impl Default for ConfigRepr {
+    fn default() -> Self {
+        let ordering = Default::default();
+
+        let default_fmt = SchemaFormat::Json;
+        let default_ext = default_fmt.as_ref();
+
+        let ex_name = format!("{}.{}", DEFAULT_EXTERNAL_STUB, default_ext);
+        let in_name = format!("{}.{}", DEFAULT_INTERNAL_STUB, default_ext);
+
+        let schema_exts = SchemaFormat::iter()
+            .map(|f| format!("*.{}", f.as_ref()))
+            .collect::<Vec<_>>();
+
+        let include_files = Matcher::any();
+        // NOTE: This is expected to never fail.
+        let exclude_files = Matcher::build(&schema_exts).unwrap();
+        let include_dirs = Matcher::any();
+        let exclude_dirs = Matcher::empty();
+
+        let filtering = Selection::new(
+            include_files,
+            exclude_files,
+            include_dirs,
+            exclude_dirs,
+        );
+
+        let external = vec![ex_name];
+        let internal = vec![in_name];
+
+        let sources = Sources { external, internal, };
+
+        Self { filtering, ordering, sources, }
+    }
 }
 
 impl TryFrom<ConfigRepr> for Config {

@@ -19,9 +19,23 @@ pub enum Error {
 
 #[derive(Deserialize)]
 #[serde(untagged)]
-enum OneOrManyPatterns {
+pub(super) enum OneOrManyPatterns {
     One(String),
     Many(Vec<String>),
+}
+
+impl OneOrManyPatterns {
+    fn add(&mut self, pattern: String) {
+        match self {
+            Self::One(s) => {
+                // LEARN: This lets us "move" out a subfield of a type that is
+                //        behind a `&mut`.
+                let t = std::mem::replace(s, String::new());
+                *self = Self::Many(vec![t, pattern]);
+            },
+            Self::Many(ss) => { ss.push(pattern); },
+        }
+    }
 }
 
 impl TryFrom<OneOrManyPatterns> for Matcher {
