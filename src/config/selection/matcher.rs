@@ -56,10 +56,14 @@ pub struct Matcher(GlobSet);
 
 impl Matcher {
     /// Attempts to build a matcher out of an iterable of string-likes.
-    pub fn build<S: AsRef<str>>(pattern_strs: &[S]) -> Result<Self, Error> {
+    pub fn build<I, S>(pattern_strs: I) -> Result<Self, Error>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
         let mut builder = GlobSetBuilder::new();
 
-        for pattern_str in pattern_strs.into_iter() {
+        for pattern_str in pattern_strs {
             let pattern_str = pattern_str.as_ref();
             let pattern = Glob::new(&pattern_str).map_err(Error::InvalidPattern)?;
             builder.add(pattern);

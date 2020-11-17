@@ -1,6 +1,7 @@
 
 mod matcher;
 
+use std::convert::{TryFrom, TryInto};
 use std::path::Path;
 use std::path::PathBuf;
 use std::io::Result as IoResult;
@@ -8,7 +9,6 @@ use std::cmp::Ordering;
 use std::fs::ReadDir;
 
 use serde::Deserialize;
-use thiserror::Error;
 
 use crate::config::sorter::Sorter;
 
@@ -16,14 +16,6 @@ use self::matcher::OneOrManyPatterns;
 
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("not a valid directory: {}", .0.display())]
-    InvalidDirPath(PathBuf),
-    #[error("cannot build matcher: {0}")]
-    CannotBuildMatcher(#[source] MatcherError),
-}
 
 enum FileOrDir {
     File,
@@ -89,17 +81,26 @@ impl Selection {
         Self { include_files, exclude_files, include_dirs, exclude_dirs, }
     }
 
-    pub fn from_patterns<S: AsRef<str>>(
-        include_file_patterns: &[S],
-        exclude_file_patterns: &[S],
-        include_dir_patterns: &[S],
-        exclude_dir_patterns: &[S],
-    ) -> Result<Self, Error>
+    pub fn from_patterns<IA, SA, IB, SB, IC, SC, ID, SD>(
+        include_file_patterns: IA,
+        exclude_file_patterns: IB,
+        include_dir_patterns: IC,
+        exclude_dir_patterns: ID,
+    ) -> Result<Self, MatcherError>
+    where
+        IA: IntoIterator<Item = SA>,
+        SA: AsRef<str>,
+        IB: IntoIterator<Item = SB>,
+        SB: AsRef<str>,
+        IC: IntoIterator<Item = SC>,
+        SC: AsRef<str>,
+        ID: IntoIterator<Item = SD>,
+        SD: AsRef<str>,
     {
-        let include_files = Matcher::build(include_file_patterns).map_err(Error::CannotBuildMatcher)?;
-        let exclude_files = Matcher::build(exclude_file_patterns).map_err(Error::CannotBuildMatcher)?;
-        let include_dirs = Matcher::build(include_dir_patterns).map_err(Error::CannotBuildMatcher)?;
-        let exclude_dirs = Matcher::build(exclude_dir_patterns).map_err(Error::CannotBuildMatcher)?;
+        let include_files = Matcher::build(include_file_patterns)?;
+        let exclude_files = Matcher::build(exclude_file_patterns)?;
+        let include_dirs = Matcher::build(include_dir_patterns)?;
+        let exclude_dirs = Matcher::build(exclude_dir_patterns)?;
 
         Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
     }
@@ -174,11 +175,24 @@ impl Selection {
 /// A type that represents included and excluded item files and directories.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct SelectionRepr {
-    include_files: OneOrManyPatterns,
-    exclude_files: OneOrManyPatterns,
-    include_dirs: OneOrManyPatterns,
-    exclude_dirs: OneOrManyPatterns,
+struct SelectionRepr {
+    pub(crate) include_files: OneOrManyPatterns,
+    pub(crate) exclude_files: OneOrManyPatterns,
+    pub(crate) include_dirs: OneOrManyPatterns,
+    pub(crate) exclude_dirs: OneOrManyPatterns,
+}
+
+impl TryFrom<SelectionRepr> for Selection {
+    type Error = MatcherError;
+
+    fn try_from(value: SelectionRepr) -> Result<Self, Self::Error> {
+        Ok(Self {
+            include_files: value.include_files.try_into()?,
+            exclude_files: value.exclude_files.try_into()?,
+            include_dirs: value.include_dirs.try_into()?,
+            exclude_dirs: value.exclude_dirs.try_into()?,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -283,13 +297,23 @@ mod tests {
 
     #[test]
     fn is_pattern_match() {
-        let selection = Selection::from_patterns(&["*.flac"], &["*.mp3"], &["*"], &[] as &[&str]).unwrap();
+        let selection = Selection::new(
+            Matcher::build(&["*.flac"]).unwrap(),
+            Matcher::build(&["*.mp3"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
 
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), false);
 
-        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["*.mp3", "*.ogg"], &["*"], &[] as &[&str]).unwrap();
+        let selection = Selection::new(
+            Matcher::build(&["*.flac", "*.wav"]).unwrap(),
+            Matcher::build(&["*.mp3", "*.ogg"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
 
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
@@ -297,7 +321,12 @@ mod tests {
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
 
-        let selection = Selection::from_patterns(&["*"], &["*.mp3", "*.ogg"], &["*"], &[] as &[&str]).unwrap();
+        let selection = Selection::new(
+            Matcher::any(),
+            Matcher::build(&["*.mp3", "*.ogg"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
 
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
@@ -306,7 +335,12 @@ mod tests {
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
 
-        let selection = Selection::from_patterns(&["*.flac", "*.wav"], &["item*", "self*"], &["*"], &[] as &[&str]).unwrap();
+        let selection = Selection::new(
+            Matcher::build(&["*.flac", "*.wav"]).unwrap(),
+            Matcher::build(&["item*", "self*"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
 
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
         assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
@@ -323,133 +357,151 @@ mod tests {
         let temp_dir = create_test_dir("select_in_dir");
         let path = temp_dir.path();
 
-        let inputs_and_expected = vec![
-            (
-                (&["music*"] as &[&str], &["*.mp3", "*.ogg", "*.aac"] as &[&str], &["*"] as &[&str], &[] as &[&str]),
-                hashset![
-                    path.join("music.flac"),
-                    path.join("music.wav"),
-                ],
-            ),
-            (
-                (&["*.flac"], &[], &["*"], &[]),
-                hashset![
-                    path.join("music.flac"),
-                    path.join("item.flac"),
-                    path.join("self.flac"),
-                ],
-            ),
-            (
-                (&["music*"], &[], &["*"], &[]),
-                hashset![
-                    path.join("music.flac"),
-                    path.join("music.wav"),
-                    path.join("music.aac"),
-                    path.join("music.mp3"),
-                    path.join("music.ogg"),
-                ],
-            ),
-            (
-                (&["item.*", "self.*"], &["*.flac"], &["*"], &[]),
-                hashset![
-                    path.join("item.yml"),
-                    path.join("self.yml"),
-                ],
-            ),
+        let selection = Selection::new(
+            Matcher::build(&["music*"]).unwrap(),
+            Matcher::build(&["*.mp3", "*.ogg", "*.aac"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = hashset![
+            path.join("music.flac"),
+            path.join("music.wav"),
         ];
-
-        for (input, expected) in inputs_and_expected {
-            let (
-                inc_file_pats,
-                exc_file_pats,
-                inc_dir_pats,
-                exc_dir_pats,
-            ) = input;
-
-            let selection = Selection::from_patterns(
-                &inc_file_pats,
-                &exc_file_pats,
-                &inc_dir_pats,
-                &exc_dir_pats,
-            ).unwrap();
-
-            let produced =
-                selection
+        let produced = selection
                 .select_in_dir(&path).unwrap()
-                .into_iter()
                 .map(Result::unwrap)
-                .collect()
-            ;
+                .collect();
+        assert_eq!(expected, produced);
 
-            assert_eq!(expected, produced);
-        }
+        let selection = Selection::new(
+            Matcher::build(&["*.flac"]).unwrap(),
+            Matcher::empty(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = hashset![
+            path.join("music.flac"),
+            path.join("item.flac"),
+            path.join("self.flac"),
+        ];
+        let produced = selection
+                .select_in_dir(&path).unwrap()
+                .map(Result::unwrap)
+                .collect();
+        assert_eq!(expected, produced);
+
+        let selection = Selection::new(
+            Matcher::build(&["music*"]).unwrap(),
+            Matcher::empty(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = hashset![
+            path.join("music.flac"),
+            path.join("music.wav"),
+            path.join("music.aac"),
+            path.join("music.mp3"),
+            path.join("music.ogg"),
+        ];
+        let produced = selection
+                .select_in_dir(&path).unwrap()
+                .map(Result::unwrap)
+                .collect();
+        assert_eq!(expected, produced);
+
+        let selection = Selection::new(
+            Matcher::build(&["item.*", "self.*"]).unwrap(),
+            Matcher::build(&["*.flac"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = hashset![
+            path.join("item.yml"),
+            path.join("self.yml"),
+        ];
+        let produced = selection
+                .select_in_dir(&path).unwrap()
+                .map(Result::unwrap)
+                .collect();
+        assert_eq!(expected, produced);
     }
 
     #[test]
     fn select_in_dir_sorted() {
         let temp_dir = create_test_dir("select_in_dir_sorted");
         let path = temp_dir.path();
+        let sorter = Sorter::default();
 
-        let inputs_and_expected = vec![
-            (
-                (&["music*"] as &[&str], &["*.mp3", "*.ogg", "*.aac"] as &[&str], &["*"] as &[&str], &[] as &[&str], Sorter::default()),
-                vec![
-                    path.join("music.flac"),
-                    path.join("music.wav"),
-                ],
-            ),
-            (
-                (&["*.flac"], &[], &["*"], &[], Sorter::default()),
-                vec![
-                    path.join("item.flac"),
-                    path.join("music.flac"),
-                    path.join("self.flac"),
-                ],
-            ),
-            (
-                (&["music*"], &[], &["*"], &[], Sorter::default()),
-                vec![
-                    path.join("music.aac"),
-                    path.join("music.flac"),
-                    path.join("music.mp3"),
-                    path.join("music.ogg"),
-                    path.join("music.wav"),
-                ],
-            ),
-            (
-                (&["item.*", "self.*"], &["*.flac"], &["*"], &[], Sorter::default()),
-                vec![
-                    path.join("item.yml"),
-                    path.join("self.yml"),
-                ],
-            ),
+        let selection = Selection::new(
+            Matcher::build(&["music*"]).unwrap(),
+            Matcher::build(&["*.mp3", "*.ogg", "*.aac"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = vec![
+            path.join("music.flac"),
+            path.join("music.wav"),
         ];
-
-        for (input, expected) in inputs_and_expected {
-            let (
-                inc_file_pats,
-                exc_file_pats,
-                inc_dir_pats,
-                exc_dir_pats,
-                sort_order,
-            ) = input;
-
-            let selection = Selection::from_patterns(
-                &inc_file_pats,
-                &exc_file_pats,
-                &inc_dir_pats,
-                &exc_dir_pats,
-            ).unwrap();
-
-            let produced =
-                selection
-                .select_in_dir_sorted(&path, &sort_order).unwrap()
+        let produced = selection
+                .select_in_dir_sorted(&path, &sorter).unwrap()
                 .into_iter()
                 .map(Result::unwrap)
-                .collect::<Vec<_>>()
-            ;
+                .collect::<Vec<_>>();
+        assert_eq!(expected, produced);
 
-            assert_eq!(expected, produced);
-        }
+        let selection = Selection::new(
+            Matcher::build(&["*.flac"]).unwrap(),
+            Matcher::empty(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = vec![
+            path.join("item.flac"),
+            path.join("music.flac"),
+            path.join("self.flac"),
+        ];
+        let produced = selection
+                .select_in_dir_sorted(&path, &sorter).unwrap()
+                .into_iter()
+                .map(Result::unwrap)
+                .collect::<Vec<_>>();
+        assert_eq!(expected, produced);
+
+        let selection = Selection::new(
+            Matcher::build(&["music*"]).unwrap(),
+            Matcher::empty(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = vec![
+            path.join("music.aac"),
+            path.join("music.flac"),
+            path.join("music.mp3"),
+            path.join("music.ogg"),
+            path.join("music.wav"),
+        ];
+        let produced = selection
+                .select_in_dir_sorted(&path, &sorter).unwrap()
+                .into_iter()
+                .map(Result::unwrap)
+                .collect::<Vec<_>>();
+        assert_eq!(expected, produced);
+
+        let selection = Selection::new(
+            Matcher::build(&["item.*", "self.*"]).unwrap(),
+            Matcher::build(&["*.flac"]).unwrap(),
+            Matcher::any(),
+            Matcher::empty(),
+        );
+        let expected = vec![
+            path.join("item.yml"),
+            path.join("self.yml"),
+        ];
+        let produced = selection
+                .select_in_dir_sorted(&path, &sorter).unwrap()
+                .into_iter()
+                .map(Result::unwrap)
+                .collect::<Vec<_>>();
+        assert_eq!(expected, produced);
     }
 }
