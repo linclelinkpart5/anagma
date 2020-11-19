@@ -1,5 +1,6 @@
 pub mod file_walker;
 pub mod number;
+pub(crate) mod ooms;
 
 // TODO: Just using these in preparation for refactoring, remove when these
 //       are moved to this module.
