@@ -1,77 +1,72 @@
 use std::path::Path;
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
 use globset::Error as GlobError;
 use serde::Deserialize;
-
 use thiserror::Error;
+
+use crate::util::ooms::Ooms;
+
+#[derive(Error, Debug)]
+#[error("invalid pattern: {0}")]
+pub struct PatternError(#[from] GlobError);
+
+#[derive(Error, Debug)]
+#[error("cannot build matcher: {0}")]
+pub struct BuildError(#[from] GlobError);
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("invalid pattern: {0}")]
-    InvalidPattern(#[source] GlobError),
-    #[error("cannot build matcher: {0}")]
-    BuildFailure(#[source] GlobError),
+    #[error("{0}")]
+    Pattern(#[from] PatternError),
+    #[error("{0}")]
+    Build(#[from] BuildError),
 }
 
-#[derive(Deserialize)]
-#[serde(untagged)]
-pub(super) enum OneOrManyPatterns {
-    One(String),
-    Many(Vec<String>),
-}
+#[derive(Debug)]
+pub(crate) struct MatcherBuilder(GlobSetBuilder);
 
-impl OneOrManyPatterns {
-    fn add(&mut self, pattern: String) {
-        match self {
-            Self::One(s) => {
-                // LEARN: This lets us "move" out a subfield of a type that is
-                //        behind a `&mut`.
-                let t = std::mem::replace(s, String::new());
-                *self = Self::Many(vec![t, pattern]);
-            },
-            Self::Many(ss) => { ss.push(pattern); },
-        }
+impl MatcherBuilder {
+    pub fn new() -> Self {
+        Self(GlobSetBuilder::new())
     }
-}
 
-impl TryFrom<OneOrManyPatterns> for Matcher {
-    type Error = Error;
+    pub fn add_pattern<S: AsRef<str>>(&mut self, pattern: &S) -> Result<(), PatternError> {
+        self.add_glob(Glob::new(pattern.as_ref())?);
+        Ok(())
+    }
 
-    fn try_from(oom: OneOrManyPatterns) -> Result<Self, Self::Error> {
-        match oom {
-            OneOrManyPatterns::One(p) => Self::build(&[p]),
-            OneOrManyPatterns::Many(ps) => Self::build(&ps),
-        }
+    pub fn add_glob(&mut self, glob: Glob) {
+        self.0.add(glob);
+    }
+
+    pub fn build(self) -> Result<Matcher, BuildError> {
+        Ok(Matcher(self.0.build()?))
     }
 }
 
 /// Filter for file paths that uses zero or more glob patterns to perform matching.
 #[derive(Debug, Deserialize)]
-#[serde(try_from = "OneOrManyPatterns")]
+#[serde(try_from = "MatcherRepr")]
 pub struct Matcher(GlobSet);
 
 impl Matcher {
     /// Attempts to build a matcher out of an iterable of string-likes.
-    pub fn build<I, S>(pattern_strs: I) -> Result<Self, Error>
+    pub fn build<'a, I, S: 'a>(pattern_strs: I) -> Result<Self, Error>
     where
-        I: IntoIterator<Item = S>,
+        I: IntoIterator<Item = &'a S>,
         S: AsRef<str>,
     {
-        let mut builder = GlobSetBuilder::new();
+        let mut builder = MatcherBuilder::new();
 
         for pattern_str in pattern_strs {
-            let pattern_str = pattern_str.as_ref();
-            let pattern = Glob::new(&pattern_str).map_err(Error::InvalidPattern)?;
-            builder.add(pattern);
+            builder.add_pattern(pattern_str)?;
         }
 
-        let matcher = builder.build().map_err(Error::BuildFailure)?;
-
-        Ok(Self(matcher))
+        Ok(builder.build()?)
     }
 
     /// Matches a path based on its file name. If the path does not have a file
@@ -90,6 +85,78 @@ impl Matcher {
     /// Returns a matcher that matches no paths.
     pub fn empty() -> Self {
         Self(GlobSet::empty())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(try_from = "Ooms")]
+pub(crate) enum MatcherRepr {
+    Any,
+    Empty,
+    Custom(MatcherBuilder),
+}
+
+impl MatcherRepr {
+    fn add_pattern<S: AsRef<str>>(&mut self, pattern: &S) -> Result<(), GlobError> {
+        // Always verify that the pattern is valid.
+        let glob = Glob::new(pattern.as_ref())?;
+        self.add_glob(glob);
+        Ok(())
+    }
+
+    fn add_glob(&mut self, glob: Glob) {
+        match self {
+            // No-op, all patterns are already included.
+            Self::Any => {},
+
+            // Redefine as a custom variant.
+            Self::Empty => {
+                let mut builder = MatcherBuilder::new();
+                builder.add_glob(glob);
+
+                *self = Self::Custom(builder);
+            },
+
+            // Add the pattern to the existing ones.
+            Self::Custom(ref mut builder) => {
+                builder.add_glob(glob);
+            },
+        };
+    }
+}
+
+impl TryFrom<Ooms> for MatcherRepr {
+    type Error = PatternError;
+
+    fn try_from(value: Ooms) -> Result<Self, Self::Error> {
+        let mut builder = MatcherBuilder::new();
+
+        for pattern in value.iter() {
+            builder.add_pattern(&pattern)?;
+        }
+
+        Ok(MatcherRepr::Custom(builder))
+    }
+}
+
+impl TryFrom<MatcherRepr> for Matcher {
+    type Error = BuildError;
+
+    fn try_from(value: MatcherRepr) -> Result<Self, Self::Error> {
+        match value {
+            MatcherRepr::Any => Ok(Matcher::any()),
+            MatcherRepr::Empty => Ok(Matcher::empty()),
+            MatcherRepr::Custom(builder) => builder.build(),
+        }
+    }
+}
+
+impl TryFrom<Ooms> for Matcher {
+    type Error = Error;
+
+    fn try_from(value: Ooms) -> Result<Self, Self::Error> {
+        let mr = TryInto::<MatcherRepr>::try_into(value)?;
+        Ok(mr.try_into()?)
     }
 }
 

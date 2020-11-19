@@ -9,7 +9,7 @@ use std::path::Path;
 use serde::Deserialize;
 use strum::IntoEnumIterator;
 
-use self::selection::{Matcher, Selection};
+use self::selection::{MatcherRepr, Selection, MatcherError};
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
@@ -19,13 +19,37 @@ const DEFAULT_INTERNAL_STUB: &str = "album";
 const DEFAULT_EXTERNAL_STUB: &str = "track";
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+struct FilteringRepr {
+    exclude_sources: bool,
+    include_files: MatcherRepr,
+    exclude_files: MatcherRepr,
+    include_dirs: MatcherRepr,
+    exclude_dirs: MatcherRepr,
+}
+
+impl Default for FilteringRepr {
+    fn default() -> Self {
+        Self {
+            exclude_sources: true,
+            include_files: MatcherRepr::Any,
+            exclude_files: MatcherRepr::Empty,
+            include_dirs: MatcherRepr::Any,
+            exclude_dirs: MatcherRepr::Empty,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(default)]
-pub struct Sources {
+pub struct SourcingRepr {
+    #[serde(rename = "track")]
     external: Vec<String>,
+    #[serde(rename = "album")]
     internal: Vec<String>,
 }
 
-impl Default for Sources {
+impl Default for SourcingRepr {
     fn default() -> Self {
         let default_fmt = SchemaFormat::Json;
         let default_ext = default_fmt.as_ref();
@@ -37,48 +61,20 @@ impl Default for Sources {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 #[serde(default)]
 pub struct ConfigRepr {
     pub filtering: Selection,
     pub ordering: Sorter,
-    pub sources: Sources,
+    pub sources: SourcingRepr,
 }
 
-impl Default for ConfigRepr {
-    fn default() -> Self {
-        let ordering = Default::default();
-
-        let default_fmt = SchemaFormat::Json;
-        let default_ext = default_fmt.as_ref();
-
-        let ex_name = format!("{}.{}", DEFAULT_EXTERNAL_STUB, default_ext);
-        let in_name = format!("{}.{}", DEFAULT_INTERNAL_STUB, default_ext);
-
-        let schema_exts = SchemaFormat::iter()
-            .map(|f| format!("*.{}", f.as_ref()))
-            .collect::<Vec<_>>();
-
-        let include_files = Matcher::any();
-        // NOTE: This is expected to never fail.
-        let exclude_files = Matcher::build(&schema_exts).unwrap();
-        let include_dirs = Matcher::any();
-        let exclude_dirs = Matcher::empty();
-
-        let filtering = Selection::new(
-            include_files,
-            exclude_files,
-            include_dirs,
-            exclude_dirs,
-        );
-
-        let external = vec![ex_name];
-        let internal = vec![in_name];
-
-        let sources = Sources { external, internal, };
-
-        Self { filtering, ordering, sources, }
-    }
+#[derive(Deserialize)]
+#[serde(try_from = "ConfigRepr")]
+pub struct Config {
+    pub selection: Selection,
+    pub sorter: Sorter,
+    pub sources: Vec<Source>,
 }
 
 impl TryFrom<ConfigRepr> for Config {
@@ -103,13 +99,6 @@ impl TryFrom<ConfigRepr> for Config {
             sources,
         })
     }
-}
-#[derive(Deserialize)]
-#[serde(try_from = "ConfigRepr")]
-pub struct Config {
-    pub selection: Selection,
-    pub sorter: Sorter,
-    pub sources: Vec<Source>,
 }
 
 impl Default for Config {
@@ -213,7 +202,7 @@ mod tests {
             [ordering]
             sort_by = "name"
             [sources]
-            external = ["item_meta.yml"]
+            track = ["item_meta.yml"]
         "#;
 
         let config: Config = toml::from_str(&text_config).unwrap();

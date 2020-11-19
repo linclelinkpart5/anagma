@@ -11,11 +11,11 @@ use std::fs::ReadDir;
 use serde::Deserialize;
 
 use crate::config::sorter::Sorter;
-
-use self::matcher::OneOrManyPatterns;
+use crate::util::ooms::Ooms;
 
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
+pub(crate) use self::matcher::MatcherRepr;
 
 enum FileOrDir {
     File,
@@ -81,21 +81,21 @@ impl Selection {
         Self { include_files, exclude_files, include_dirs, exclude_dirs, }
     }
 
-    pub fn from_patterns<IA, SA, IB, SB, IC, SC, ID, SD>(
+    pub fn from_patterns<'a, IA, SA, IB, SB, IC, SC, ID, SD>(
         include_file_patterns: IA,
         exclude_file_patterns: IB,
         include_dir_patterns: IC,
         exclude_dir_patterns: ID,
     ) -> Result<Self, MatcherError>
     where
-        IA: IntoIterator<Item = SA>,
-        SA: AsRef<str>,
-        IB: IntoIterator<Item = SB>,
-        SB: AsRef<str>,
-        IC: IntoIterator<Item = SC>,
-        SC: AsRef<str>,
-        ID: IntoIterator<Item = SD>,
-        SD: AsRef<str>,
+        IA: IntoIterator<Item = &'a SA>,
+        SA: AsRef<str> + 'a,
+        IB: IntoIterator<Item = &'a SB>,
+        SB: AsRef<str> + 'a,
+        IC: IntoIterator<Item = &'a SC>,
+        SC: AsRef<str> + 'a,
+        ID: IntoIterator<Item = &'a SD>,
+        SD: AsRef<str> + 'a,
     {
         let include_files = Matcher::build(include_file_patterns)?;
         let exclude_files = Matcher::build(exclude_file_patterns)?;
@@ -176,10 +176,10 @@ impl Selection {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SelectionRepr {
-    pub(crate) include_files: OneOrManyPatterns,
-    pub(crate) exclude_files: OneOrManyPatterns,
-    pub(crate) include_dirs: OneOrManyPatterns,
-    pub(crate) exclude_dirs: OneOrManyPatterns,
+    pub(crate) include_files: Ooms,
+    pub(crate) exclude_files: Ooms,
+    pub(crate) include_dirs: Ooms,
+    pub(crate) exclude_dirs: Ooms,
 }
 
 impl TryFrom<SelectionRepr> for Selection {
