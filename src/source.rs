@@ -3,7 +3,6 @@ use std::io::{Error as IoError, ErrorKind as IoErrorKind, Result as IoResult};
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use strum::EnumString;
 use thiserror::Error;
 
 use crate::config::selection::Selection;
@@ -68,11 +67,6 @@ pub enum Anchor {
     /// The meta file is located inside the item file path.
     /// Implies that the the item file path is a directory.
     Internal,
-}
-
-enum NS {
-    Name(String),
-    Stub(String, SchemaFormat),
 }
 
 /// Defines a meta file source, consisting of an anchor (the target directory

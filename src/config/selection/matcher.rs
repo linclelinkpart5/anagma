@@ -97,14 +97,14 @@ pub(crate) enum MatcherRepr {
 }
 
 impl MatcherRepr {
-    fn add_pattern<S: AsRef<str>>(&mut self, pattern: &S) -> Result<(), GlobError> {
+    pub fn add_pattern<S: AsRef<str>>(&mut self, pattern: &S) -> Result<(), PatternError> {
         // Always verify that the pattern is valid.
         let glob = Glob::new(pattern.as_ref())?;
         self.add_glob(glob);
         Ok(())
     }
 
-    fn add_glob(&mut self, glob: Glob) {
+    pub fn add_glob(&mut self, glob: Glob) {
         match self {
             // No-op, all patterns are already included.
             Self::Any => {},

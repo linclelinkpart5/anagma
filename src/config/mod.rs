@@ -7,9 +7,9 @@ use std::convert::{TryFrom, TryInto};
 use std::path::Path;
 
 use serde::Deserialize;
-use strum::IntoEnumIterator;
+use thiserror::Error;
 
-use self::selection::{MatcherRepr, Selection, MatcherError};
+use self::selection::{SelectionRepr, Selection, MatcherError};
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
@@ -18,38 +18,24 @@ use crate::source::{Anchor, Source, CreateError as SourceCreateError};
 const DEFAULT_INTERNAL_STUB: &str = "album";
 const DEFAULT_EXTERNAL_STUB: &str = "track";
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields, default)]
-struct FilteringRepr {
-    exclude_sources: bool,
-    include_files: MatcherRepr,
-    exclude_files: MatcherRepr,
-    include_dirs: MatcherRepr,
-    exclude_dirs: MatcherRepr,
-}
-
-impl Default for FilteringRepr {
-    fn default() -> Self {
-        Self {
-            exclude_sources: true,
-            include_files: MatcherRepr::Any,
-            exclude_files: MatcherRepr::Empty,
-            include_dirs: MatcherRepr::Any,
-            exclude_dirs: MatcherRepr::Empty,
-        }
-    }
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("error deserializing matcher: {0}")]
+    Matcher(#[from] MatcherError),
+    #[error("error deserializing source: {0}")]
+    Source(#[from] SourceCreateError),
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(default)]
-pub struct SourcingRepr {
+#[serde(default, deny_unknown_fields)]
+pub struct SourcesRepr {
     #[serde(rename = "track")]
     external: Vec<String>,
     #[serde(rename = "album")]
     internal: Vec<String>,
 }
 
-impl Default for SourcingRepr {
+impl Default for SourcesRepr {
     fn default() -> Self {
         let default_fmt = SchemaFormat::Json;
         let default_ext = default_fmt.as_ref();
@@ -62,11 +48,14 @@ impl Default for SourcingRepr {
 }
 
 #[derive(Deserialize, Default)]
-#[serde(default)]
-pub struct ConfigRepr {
-    pub filtering: Selection,
-    pub ordering: Sorter,
-    pub sources: SourcingRepr,
+#[serde(default, deny_unknown_fields)]
+pub(crate) struct ConfigRepr {
+    #[serde(rename = "filtering")]
+    pub selection_repr: SelectionRepr,
+    #[serde(rename = "ordering")]
+    pub sorter_repr: Sorter,
+    #[serde(rename = "sourcing")]
+    pub sources_repr: SourcesRepr,
 }
 
 #[derive(Deserialize)]
@@ -78,24 +67,37 @@ pub struct Config {
 }
 
 impl TryFrom<ConfigRepr> for Config {
-    type Error = SourceCreateError;
+    type Error = Error;
 
     fn try_from(value: ConfigRepr) -> Result<Self, Self::Error> {
         let mut sources = Vec::new();
 
-        for name in value.sources.external {
+        let mut selection_repr = value.selection_repr;
+
+        for name in value.sources_repr.external {
             let src = Source::from_name(name, Anchor::External)?;
             sources.push(src);
         }
 
-        for name in value.sources.internal {
+        for name in value.sources_repr.internal {
             let src = Source::from_name(name, Anchor::Internal)?;
             sources.push(src);
         }
 
+        if selection_repr.exclude_sources {
+            // Add sources to the list of excluded files.
+            for source in sources.iter() {
+                let pattern = &source.name;
+                selection_repr.exclude_files.add_pattern(pattern).map_err(Into::<MatcherError>::into)?;
+            }
+        }
+
+        // Manually convert `SelectionRepr` into `Selection`.
+        let selection = selection_repr.try_into()?;
+
         Ok(Self {
-            selection: value.filtering,
-            sorter: value.ordering,
+            selection,
+            sorter: value.sorter_repr,
             sources,
         })
     }
@@ -201,7 +203,7 @@ mod tests {
             exclude_files = "*.mp3"
             [ordering]
             sort_by = "name"
-            [sources]
+            [sourcing]
             track = ["item_meta.yml"]
         "#;
 

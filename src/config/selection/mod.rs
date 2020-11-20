@@ -11,7 +11,6 @@ use std::fs::ReadDir;
 use serde::Deserialize;
 
 use crate::config::sorter::Sorter;
-use crate::util::ooms::Ooms;
 
 pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
@@ -50,8 +49,7 @@ impl<'a> Iterator for SelectedSubPaths<'a> {
 }
 
 /// A type that represents included and excluded item files and directories.
-#[derive(Deserialize, Debug)]
-#[serde(default, deny_unknown_fields)]
+#[derive(Debug)]
 pub struct Selection {
     include_files: Matcher,
     exclude_files: Matcher,
@@ -172,14 +170,26 @@ impl Selection {
     }
 }
 
-/// A type that represents included and excluded item files and directories.
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SelectionRepr {
-    pub(crate) include_files: Ooms,
-    pub(crate) exclude_files: Ooms,
-    pub(crate) include_dirs: Ooms,
-    pub(crate) exclude_dirs: Ooms,
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub(crate) struct SelectionRepr {
+    pub exclude_sources: bool,
+    pub include_files: MatcherRepr,
+    pub exclude_files: MatcherRepr,
+    pub include_dirs: MatcherRepr,
+    pub exclude_dirs: MatcherRepr,
+}
+
+impl Default for SelectionRepr {
+    fn default() -> Self {
+        Self {
+            exclude_sources: true,
+            include_files: MatcherRepr::Any,
+            exclude_files: MatcherRepr::Empty,
+            include_dirs: MatcherRepr::Any,
+            exclude_dirs: MatcherRepr::Empty,
+        }
+    }
 }
 
 impl TryFrom<SelectionRepr> for Selection {
@@ -254,45 +264,7 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        // A single pattern for each of include and exclude.
-        let text = "{ include_files: '*.flac', exclude_files: '*.mp3' }";
-        let selection: Selection = serde_yaml::from_str(&text).unwrap();
-
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), false);
-
-        // Multiple patterns for each of include and exclude.
-        let text = "{ include_files: ['*.flac', '*.wav'], exclude_files: ['*.mp3', '*.ogg'] }";
-        let selection: Selection = serde_yaml::from_str(&text).unwrap();
-
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
-
-        // Using a default value for missing include patterns.
-        let text = "{ exclude_files: ['*.mp3', '*.ogg'] }";
-        let selection: Selection = serde_yaml::from_str(&text).unwrap();
-
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
-
-        // Using a default value for missing exclude patterns.
-        let text = "{ include_files: ['*.flac', '*.wav'] }";
-        let selection: Selection = serde_yaml::from_str(&text).unwrap();
-
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
-        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
+        // TODO: Test deserializing `SelectionRepr`.
     }
 
     #[test]
