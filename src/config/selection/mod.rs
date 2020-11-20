@@ -171,7 +171,7 @@ impl Selection {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields, default)]
+#[serde(default, deny_unknown_fields)]
 pub(crate) struct SelectionRepr {
     pub exclude_sources: bool,
     pub include_files: MatcherRepr,
@@ -264,7 +264,59 @@ mod tests {
 
     #[test]
     fn deserialization() {
-        // TODO: Test deserializing `SelectionRepr`.
+        // A single pattern for each of include and exclude.
+        let text = r#"
+            include_files = "*.flac"
+            exclude_files = "*.mp3"
+        "#;
+        let selection_repr: SelectionRepr = toml::from_str(&text).unwrap();
+        let selection: Selection = selection_repr.try_into().unwrap();
+
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), false);
+
+        // Multiple patterns for each of include and exclude.
+        let text = r#"
+            include_files = ["*.flac", "*.wav"]
+            exclude_files = ["*.mp3", "*.ogg"]
+        "#;
+        let selection_repr: SelectionRepr = toml::from_str(&text).unwrap();
+        let selection: Selection = selection_repr.try_into().unwrap();
+
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
+
+        // Using a default value for missing include patterns.
+        let text = r#"
+            exclude_files = ["*.mp3", "*.ogg"]
+        "#;
+        let selection_repr: SelectionRepr = toml::from_str(&text).unwrap();
+        let selection: Selection = selection_repr.try_into().unwrap();
+
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
+
+        // Using a default value for missing exclude patterns.
+        let text = r#"
+            include_files = ["*.flac", "*.wav"]
+        "#;
+        let selection_repr: SelectionRepr = toml::from_str(&text).unwrap();
+        let selection: Selection = selection_repr.try_into().unwrap();
+
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.flac"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.wav"), true);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.aac"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mpc"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.mp3"), false);
+        assert_eq!(selection.is_file_pattern_match(&"path/to/music.ogg"), false);
     }
 
     #[test]
