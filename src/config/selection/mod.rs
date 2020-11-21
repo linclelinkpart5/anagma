@@ -155,18 +155,11 @@ impl Selection {
 
     /// Selects paths inside a directory that match this `Selection`, and sorts them.
     pub fn select_in_dir_sorted(&self, dir_path: &Path, sorter: &Sorter) -> IoResult<Vec<IoResult<PathBuf>>> {
-        let mut sel_item_paths = self.select_in_dir(dir_path)?.collect::<Vec<_>>();
+        let mut sel_item_path_results = self.select_in_dir(dir_path)?.collect::<Vec<_>>();
 
-        sel_item_paths.sort_by(|x, y| {
-            match (x, y) {
-                (Ok(a), Ok(b)) => sorter.path_sort_cmp(&a, &b),
-                (Err(_), Ok(_)) => Ordering::Less,
-                (Ok(_), Err(_)) => Ordering::Greater,
-                (Err(_), Err(_)) => Ordering::Equal,
-            }
-        });
+        sorter.sort_path_results(&mut sel_item_path_results);
 
-        Ok(sel_item_paths)
+        Ok(sel_item_path_results)
     }
 }
 

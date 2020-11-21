@@ -33,13 +33,43 @@ pub struct Sorter {
 }
 
 impl Sorter {
-    /// Compares two absolute item file paths using this sorting criteria.
-    pub fn path_sort_cmp(&self, abs_path_a: &Path, abs_path_b: &Path) -> Ordering {
-        let ordering = self.sort_by.path_sort_cmp(abs_path_a, abs_path_b);
-
+    fn align(&self, asc_ord: Ordering) -> Ordering {
         match self.sort_order {
-            SortOrder::Ascending => ordering,
-            SortOrder::Descending => ordering.reverse(),
+            SortOrder::Ascending => asc_ord,
+            SortOrder::Descending => asc_ord.reverse(),
         }
+    }
+
+    /// Compares two absolute item paths using this sorting criteria.
+    pub fn cmp_paths<P>(&self, abs_path_a: &P, abs_path_b: &P) -> Ordering
+    where
+        P: AsRef<Path>,
+    {
+        self.align(self.sort_by.cmp_paths(abs_path_a, abs_path_b))
+    }
+
+    /// Compares two `Result`s containing absolute item paths using this
+    /// sorting criteria.
+    pub fn cmp_path_results<P, E>(&self, res_a: &Result<P, E>, res_b: &Result<P, E>) -> Ordering
+    where
+        P: AsRef<Path>,
+    {
+        // TODO: Might be better to always sort `Error`s to the front,
+        //       regardless of sort direction.
+        self.align(self.sort_by.cmp_path_results(res_a, res_b))
+    }
+
+    pub fn sort_paths<P>(&self, paths: &mut [P])
+    where
+        P: AsRef<Path>,
+    {
+        paths.sort_by(|a, b| self.cmp_paths(a, b));
+    }
+
+    pub fn sort_path_results<P, E>(&self, path_results: &mut [Result<P, E>])
+    where
+        P: AsRef<Path>,
+    {
+        path_results.sort_by(|a, b| self.cmp_path_results(a, b));
     }
 }

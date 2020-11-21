@@ -58,7 +58,7 @@ impl Processor {
 
         if schema.expects_sorted() {
             // Sort the input item paths.
-            sel_item_paths.sort_by(|a, b| sorter.path_sort_cmp(a, b));
+            sorter.sort_paths(&mut sel_item_paths);
         }
 
         let mut meta_plexed = HashMap::new();
