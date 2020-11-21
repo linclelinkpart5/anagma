@@ -39,12 +39,11 @@ impl Processor {
     pub fn process_meta_file<'a>(
         meta_path: &'a Path,
         source: &'a Source,
-        schema_format: &'a SchemaFormat,
         selection: &'a Selection,
         sorter: &'a Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error> {
         let arity = source.anchor.into();
-        let schema = Schema::from_file(schema_format, meta_path, &arity)
+        let schema = Schema::from_file(&source.format, meta_path, &arity)
             .map_err(Error::CannotReadMetadata)?;
 
         // LEARN: Since `meta_path` is already a ref, no need to add `&`!
@@ -83,7 +82,6 @@ impl Processor {
     pub fn process_item_file(
         item_path: &Path,
         sourcer: &Sourcer,
-        schema_format: &SchemaFormat,
         selection: &Selection,
         sorter: &Sorter,
     ) -> Result<Block, Error> {
@@ -95,7 +93,7 @@ impl Processor {
             let (meta_path, source) = mps_res.map_err(Error::CannotFindMetaPath)?;
 
             let mut processed_meta_file =
-                Self::process_meta_file(&meta_path, source, schema_format, selection, sorter)?;
+                Self::process_meta_file(&meta_path, source, selection, sorter)?;
 
             // The results of processing a meta file will often return extra
             // metadata for item files besides the targeted one. Extract the
@@ -197,7 +195,6 @@ mod tests {
             let produced = Processor::process_meta_file(
                 &meta_path,
                 &source,
-                &SchemaFormat::Json,
                 &selection,
                 &sorter,
             )
@@ -262,7 +259,6 @@ mod tests {
             let produced = Processor::process_item_file(
                 &item_path,
                 &sourcer,
-                &SchemaFormat::Json,
                 &selection,
                 &sorter,
             )

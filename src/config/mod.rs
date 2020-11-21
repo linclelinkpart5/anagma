@@ -13,7 +13,7 @@ use self::selection::{SelectionRepr, Selection, MatcherError};
 use self::sorter::Sorter;
 
 use crate::metadata::schema::SchemaFormat;
-use crate::source::{Anchor, Source, CreateError as SourceCreateError};
+use crate::source::{Anchor, Source, Sourcer, CreateError as SourceCreateError};
 
 const DEFAULT_INTERNAL_STUB: &str = "album";
 const DEFAULT_EXTERNAL_STUB: &str = "track";
@@ -63,7 +63,7 @@ pub(crate) struct ConfigRepr {
 pub struct Config {
     pub selection: Selection,
     pub sorter: Sorter,
-    pub sources: Vec<Source>,
+    pub sourcer: Sourcer,
 }
 
 impl TryFrom<ConfigRepr> for Config {
@@ -95,10 +95,12 @@ impl TryFrom<ConfigRepr> for Config {
         // Manually convert `SelectionRepr` into `Selection`.
         let selection = selection_repr.try_into()?;
 
+        let sourcer = sources.into();
+
         Ok(Self {
             selection,
             sorter: value.sorter_repr,
-            sources,
+            sourcer,
         })
     }
 }
@@ -148,7 +150,7 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"item.yml"), false);
         assert_eq!(config.sorter.sort_by, SortBy::Name);
         assert_eq!(
-            config.sources,
+            config.sourcer.as_sources(),
             vec![
                 Source::from_name(str!("track.json"), Anchor::External).unwrap(),
                 Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
@@ -169,7 +171,7 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), false);
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
         assert_eq!(
-            config.sources,
+            config.sourcer.as_sources(),
             vec![
                 Source::from_name(str!("track.json"), Anchor::External).unwrap(),
                 Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
@@ -190,7 +192,7 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), true);
         assert_eq!(config.sorter.sort_by, SortBy::ModTime);
         assert_eq!(
-            config.sources,
+            config.sourcer.as_sources(),
             vec![
                 Source::from_name(str!("track.json"), Anchor::External).unwrap(),
                 Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),
@@ -214,7 +216,7 @@ mod tests {
         assert_eq!(config.selection.is_file_pattern_match(&"photo.png"), true);
         assert_eq!(config.sorter.sort_by, SortBy::Name);
         assert_eq!(
-            config.sources,
+            config.sourcer.as_sources(),
             vec![
                 Source::from_name(str!("item_meta.yml"), Anchor::External).unwrap(),
                 Source::from_name(str!("album.json"), Anchor::Internal).unwrap(),

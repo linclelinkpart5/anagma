@@ -188,6 +188,7 @@ impl Source {
 
 // Represents an ordered collection of `Source`s, designed to find meta files
 // for a target item path.
+#[derive(Debug)]
 pub struct Sourcer(Vec<Source>);
 
 impl Sourcer {
@@ -205,6 +206,16 @@ impl Sourcer {
             iter: self.0.iter(),
             item_path,
         }
+    }
+
+    pub fn as_sources(&self) -> &[Source] {
+        self.0.as_slice()
+    }
+}
+
+impl From<Vec<Source>> for Sourcer {
+    fn from(value: Vec<Source>) -> Self {
+        Self(value)
     }
 }
 
