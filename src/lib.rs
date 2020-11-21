@@ -10,7 +10,6 @@ use std::path::Path;
 use crate::config::Config;
 use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
-use crate::source::{Source, Sourcer, Anchor};
 
 pub fn get<P: AsRef<Path>>(path: &P) -> Block {
     let config = Config::default();

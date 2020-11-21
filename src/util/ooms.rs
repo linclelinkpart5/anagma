@@ -8,18 +8,6 @@ pub(crate) enum Ooms {
 }
 
 impl Ooms {
-    pub(crate) fn add(&mut self, new: String) {
-        match self {
-            Self::One(s) => {
-                // LEARN: This lets us "move" out a subfield of a type that is
-                //        behind a `&mut`.
-                let t = std::mem::replace(s, String::new());
-                *self = Self::Many(vec![t, new]);
-            },
-            Self::Many(ss) => { ss.push(new); },
-        }
-    }
-
     pub(crate) fn iter(&self) -> OomsIter {
         match self {
             Self::One(s) => OomsIter::One(Some(s.as_str())),

@@ -13,7 +13,6 @@ use crate::metadata::plexer::Error as PlexerError;
 use crate::metadata::plexer::Plexer;
 use crate::metadata::schema::Error as SchemaError;
 use crate::metadata::schema::Schema;
-use crate::metadata::schema::SchemaFormat;
 use crate::source::{Error as SourceError, Source, Sourcer};
 
 #[derive(Debug, Error)]

@@ -9,7 +9,8 @@ pub use crate::config::selection::Matcher;
 pub use crate::config::sorter::Sorter;
 pub use crate::metadata::schema::SchemaFormat;
 
-pub use number::Number;
+pub use self::file_walker::FileWalker;
+pub use self::number::Number;
 
 use std::ffi::OsStr;
 use std::path::Path;
