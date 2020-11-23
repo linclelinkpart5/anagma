@@ -5,7 +5,6 @@ use std::convert::{TryFrom, TryInto};
 use std::path::Path;
 use std::path::PathBuf;
 use std::io::Result as IoResult;
-use std::cmp::Ordering;
 use std::fs::ReadDir;
 
 use serde::Deserialize;
