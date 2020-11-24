@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_yaml::Error as YamlError;
 use serde_json::Error as JsonError;
-use strum::{EnumString, EnumIter, AsRefStr};
+use strum::{EnumString, EnumIter, AsRefStr, EnumDiscriminants};
 use thiserror::Error;
 
 use crate::metadata::block::Block;
@@ -43,20 +43,14 @@ pub(crate) enum ManySchemaRepr {
 }
 
 /// An easy-to-deserialize flavor of a meta structure.
-#[derive(Debug, Clone, Deserialize)]
+/// The number of item files ("degree") a schema provides data for.
+/// In other words, whether a schema provides data for one or many items.
+#[derive(Debug, Clone, Deserialize, EnumDiscriminants)]
 #[serde(untagged)]
+#[strum_discriminants(name(Arity), vis(pub), derive(Hash))]
 pub(crate) enum SchemaRepr {
     Unit(UnitSchemaRepr),
     Many(ManySchemaRepr),
-}
-
-/// The "degree" of the number of item files a schema provides data for.
-/// In other words, whether a schema provides data for one or many items.
-// TODO: Replace with `EnumDiscriminants` once PR to `strum` is merged/released.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Arity {
-    Unit,
-    Many,
 }
 
 impl From<Anchor> for Arity {
