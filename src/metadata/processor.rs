@@ -50,20 +50,9 @@ impl Processor {
             .selected_item_paths(meta_path, selection)
             .map_err(Error::CannotFindItemPaths)?;
 
-        // TODO: Temporary compatibility measure until plexer can accept an
-        //       iterator.
-        let mut sel_item_paths = sel_item_paths
-            .collect::<Result<Vec<_>, _>>()
-            .expect("TEMPORARY");
-
-        if schema.expects_sorted() {
-            // Sort the input item paths.
-            sorter.sort_paths(&mut sel_item_paths);
-        }
-
         let mut meta_plexed = HashMap::new();
 
-        let meta_plexer = Plexer::new(schema, sel_item_paths.into_iter());
+        let meta_plexer = Plexer::new(schema, sel_item_paths, &sorter);
 
         for meta_plex_res in meta_plexer {
             let (item_path, meta_block) = meta_plex_res.map_err(Error::PlexerError)?;
