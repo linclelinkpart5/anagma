@@ -34,7 +34,6 @@ type PlexOutItem<'a> = Result<(Cow<'a, Path>, Block), Error>;
 fn pair_up<'a>(
     opt_block: Option<Block>,
     opt_path_item: Option<PlexInItem<'a>>,
-    opt_tag: Option<String>,
 ) -> Option<PlexOutItem<'a>> {
     match (opt_block, opt_path_item) {
         // If the path iterator produces an error, return it.
@@ -50,15 +49,7 @@ fn pair_up<'a>(
         (None, Some(Ok(path))) => Some(Err(Error::UnusedItemPath(path.into_owned()))),
 
         // Got a meta block with no file path, report an error.
-        (Some(block), None) => {
-            let err = if let Some(tag) = opt_tag {
-                Error::UnusedTaggedBlock(block, tag)
-            } else {
-                Error::UnusedBlock(block)
-            };
-
-            Some(Err(err))
-        },
+        (Some(block), None) => Some(Err(Error::UnusedBlock(block))),
     }
 }
 
@@ -73,7 +64,7 @@ where
     type Item = PlexOutItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        pair_up(self.0.take(), self.1.next(), None)
+        pair_up(self.0.take(), self.1.next())
     }
 }
 
@@ -83,7 +74,7 @@ impl<'a> Iterator for PlexSeq<'a> {
     type Item = PlexOutItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        pair_up(self.0.next(), self.1.next(), None)
+        pair_up(self.0.next(), self.1.next())
     }
 }
 
@@ -101,15 +92,16 @@ where
         match self.1.next() {
             Some(Err(err)) => Some(Err(Error::Io(err))),
             Some(Ok(path)) => {
-                // Try and obtain a file name from the path, and convert into a string for lookup.
-                // If this fails, return an error for this iteration and then skip the string.
+                // Try and obtain a file name from the path, and convert into a
+                // string for lookup. If this fails, return an error for this
+                // iteration and then skip the string.
                 // TODO: Validate file name.
                 match path.file_name().and_then(|os| os.to_str()) {
                     None => Some(Err(Error::NamelessItemPath(path.into()))),
-                    Some(file_name_str) => {
-                        // See if the file name string is in the meta block mapping.
-                        match self.0.swap_remove(file_name_str) {
-                            // No meta block in the mapping had a matching file name, report an error.
+                    Some(name_tag) => {
+                        // See if the tag is in the meta block mapping.
+                        match self.0.swap_remove(name_tag) {
+                            // No meta block in the mapping had a matching tag, report an error.
                             None => Some(Err(Error::UnusedItemPath(path.into()))),
 
                             // Found a matching meta block, emit a successful plex result.
@@ -122,9 +114,7 @@ where
                 // No more file paths, see if there are any more meta blocks.
                 match self.0.pop() {
                     // Found an orphaned meta block, report an error.
-                    Some((block_tag, block)) => {
-                        Some(Err(Error::UnusedTaggedBlock(block, block_tag)))
-                    }
+                    Some((name_tag, block)) => Some(Err(Error::UnusedTaggedBlock(block, name_tag))),
 
                     // No more meta blocks were found, this iterator is now exhausted.
                     None => None,
