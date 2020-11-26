@@ -151,9 +151,9 @@ where
 mod tests {
     use super::*;
 
-    use std::collections::HashSet;
+    // use std::collections::HashSet;
 
-    use indexmap::indexmap;
+    // use indexmap::indexmap;
     use maplit::{btreemap, hashset};
     use str_macro::str;
 
@@ -219,39 +219,54 @@ mod tests {
         };
     }
 
-    #[test]
-    fn plex_single() {
-        let block = btreemap![
-            str!("key") => TU::s("val"),
-        ];
-        let path = Cow::Borrowed(Path::new("item"));
-        let schema = Schema::One(block.clone());
-        let sorter = Sorter::default();
-
-        // Happy path.
-        let mut plexer = Plexer::new(schema.clone(), vec![Ok(path.clone())], &sorter);
-        assert_ok!(plexer, path, block);
-        assert_none!(plexer);
-
-        // Too many paths.
-        let extra_path = Cow::Borrowed(Path::new("extra"));
-        let mut plexer = Plexer::new(
-            schema.clone(),
-            vec![Ok(path.clone()), Ok(extra_path.clone())],
-            &sorter,
-        );
-        assert_ok!(plexer, path, block);
-        assert_extra_path!(plexer, extra_path);
-        assert_none!(plexer);
-
-        // Not enough paths.
-        let mut plexer = Plexer::new(schema.clone(), vec![], &sorter);
-        assert_extra_block!(plexer, block);
-        assert_none!(plexer);
+    // Helper method.
+    fn okc<'a>(path: &'a Path) -> IoResult<Cow<'a, Path>> {
+        Ok(Cow::Borrowed(path))
     }
 
     #[test]
     fn plex() {
+        let block_a = btreemap![str!("key_a") => TU::s("val_a")];
+        // let block_b = btreemap![str!("key_b") => TU::s("val_b")];
+        // let block_c = btreemap![str!("key_c") => TU::s("val_c")];
+
+        let path_a = Path::new("path_a");
+        let path_b = Path::new("path_b");
+        // let path_c = Path::new("path_c");
+
+        let sorter = Sorter::default();
+
+        let schema_one = Schema::One(block_a.clone());
+        // let schema_seq = Schema::Seq(vec![
+        //     block_a.clone(),
+        //     block_b.clone(),
+        //     block_c.clone(),
+        // ]);
+
+        // Testing `Schema::One`.
+        // Normal case.
+        let mut plexer = Plexer::new(schema_one.clone(), vec![okc(&path_a)], &sorter);
+        assert_ok!(plexer, path_a, block_a);
+        assert_none!(plexer);
+
+        // Too many paths.
+        let mut plexer = Plexer::new(
+            schema_one.clone(),
+            vec![okc(&path_a), okc(&path_b)],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_extra_path!(plexer, path_b);
+        assert_none!(plexer);
+
+        // Not enough paths.
+        let mut plexer = Plexer::new(schema_one.clone(), vec![], &sorter);
+        assert_extra_block!(plexer, block_a);
+        assert_none!(plexer);
+    }
+
+    #[test]
+    fn plex_old() {
         // let block_a = btreemap![
         //     str!("key_1a") => TU::s("val_1a"),
         //     str!("key_1b") => TU::s("val_1b"),
