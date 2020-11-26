@@ -5,6 +5,7 @@ use std::io::{Error as IoError, Result as IoResult};
 use std::iter::FusedIterator;
 use std::path::Path;
 use std::path::PathBuf;
+use std::vec::IntoIter as VecIntoIter;
 
 use thiserror::Error;
 
@@ -27,105 +28,141 @@ pub enum Error {
     NamelessItemPath(PathBuf),
 }
 
-pub enum Plexer<'a, I>
-where
-    I: Iterator<Item = IoResult<Cow<'a, Path>>>,
-{
-    One(Option<Block>, I),
-    Seq(
-        std::vec::IntoIter<Block>,
-        std::vec::IntoIter<IoResult<Cow<'a, Path>>>,
-    ),
-    Map(BlockMapping, I),
+type PlexInItem<'a> = IoResult<Cow<'a, Path>>;
+type PlexOutItem<'a> = Result<(Cow<'a, Path>, Block), Error>;
+
+fn pair_up<'a>(
+    opt_block: Option<Block>,
+    opt_path_item: Option<PlexInItem<'a>>,
+    opt_tag: Option<String>,
+) -> Option<PlexOutItem<'a>> {
+    match (opt_block, opt_path_item) {
+        // If the path iterator produces an error, return it.
+        (_, Some(Err(err))) => Some(Err(Error::Io(err))),
+
+        // Both iterators are exhausted, so this one is as well.
+        (None, None) => None,
+
+        // Both iterators produced a result, emit a successful plex result.
+        (Some(block), Some(Ok(path))) => Some(Ok((path, block))),
+
+        // Got a file path with no meta block, report an error.
+        (None, Some(Ok(path))) => Some(Err(Error::UnusedItemPath(path.into_owned()))),
+
+        // Got a meta block with no file path, report an error.
+        (Some(block), None) => {
+            let err = if let Some(tag) = opt_tag {
+                Error::UnusedTaggedBlock(block, tag)
+            } else {
+                Error::UnusedBlock(block)
+            };
+
+            Some(Err(err))
+        },
+    }
 }
 
-impl<'a, I> Iterator for Plexer<'a, I>
+pub struct PlexOne<'a, I>(Option<Block>, I)
 where
-    I: Iterator<Item = IoResult<Cow<'a, Path>>>,
+    I: Iterator<Item = PlexInItem<'a>>;
+
+impl<'a, I> Iterator for PlexOne<'a, I>
+where
+    I: Iterator<Item = PlexInItem<'a>>,
 {
-    type Item = Result<(Cow<'a, Path>, Block), Error>;
+    type Item = PlexOutItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            Self::One(ref mut opt_block, ref mut path_iter) => {
-                match (opt_block.take(), path_iter.next()) {
-                    // If the path iterator produces as error, return it.
-                    (_, Some(Err(err))) => Some(Err(Error::Io(err))),
+        pair_up(self.0.take(), self.1.next(), None)
+    }
+}
 
-                    // Both iterators are exhausted, so this one is as well.
-                    (None, None) => None,
+pub struct PlexSeq<'a>(VecIntoIter<Block>, VecIntoIter<PlexInItem<'a>>);
 
-                    // Both iterators produced a result, emit a successful plex result.
-                    (Some(block), Some(Ok(path))) => Some(Ok((path, block))),
+impl<'a> Iterator for PlexSeq<'a> {
+    type Item = PlexOutItem<'a>;
 
-                    // Got a file path with no meta block, report an error.
-                    (None, Some(Ok(path))) => Some(Err(Error::UnusedItemPath(path.into_owned()))),
+    fn next(&mut self) -> Option<Self::Item> {
+        pair_up(self.0.next(), self.1.next(), None)
+    }
+}
 
-                    // Got a meta block with no file path, report an error.
-                    (Some(block), None) => Some(Err(Error::UnusedBlock(block))),
-                }
-            }
-            Self::Seq(ref mut block_iter, ref mut sorted_path_iter) => {
-                match (block_iter.next(), sorted_path_iter.next()) {
-                    // If the path iterator produces as error, return it.
-                    (_, Some(Err(err))) => Some(Err(Error::Io(err))),
+pub struct PlexMap<'a, I>(BlockMapping, I)
+where
+    I: Iterator<Item = PlexInItem<'a>>;
 
-                    // Both iterators are exhausted, so this one is as well.
-                    (None, None) => None,
+impl<'a, I> Iterator for PlexMap<'a, I>
+where
+    I: Iterator<Item = PlexInItem<'a>>,
+{
+    type Item = PlexOutItem<'a>;
 
-                    // Both iterators produced a result, emit a successful plex result.
-                    (Some(block), Some(Ok(path))) => Some(Ok((path.into(), block))),
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.1.next() {
+            Some(Err(err)) => Some(Err(Error::Io(err))),
+            Some(Ok(path)) => {
+                // Try and obtain a file name from the path, and convert into a string for lookup.
+                // If this fails, return an error for this iteration and then skip the string.
+                // TODO: Validate file name.
+                match path.file_name().and_then(|os| os.to_str()) {
+                    None => Some(Err(Error::NamelessItemPath(path.into()))),
+                    Some(file_name_str) => {
+                        // See if the file name string is in the meta block mapping.
+                        match self.0.swap_remove(file_name_str) {
+                            // No meta block in the mapping had a matching file name, report an error.
+                            None => Some(Err(Error::UnusedItemPath(path.into()))),
 
-                    // Got a file path with no meta block, report an error.
-                    (None, Some(Ok(path))) => Some(Err(Error::UnusedItemPath(path.into_owned()))),
-
-                    // Got a meta block with no file path, report an error.
-                    (Some(block), None) => Some(Err(Error::UnusedBlock(block))),
-                }
-            }
-            Self::Map(ref mut block_mapping, ref mut path_iter) => {
-                match path_iter.next() {
-                    Some(Err(err)) => Some(Err(Error::Io(err))),
-                    Some(Ok(path)) => {
-                        // Try and obtain a file name from the path, and convert into a string for lookup.
-                        // If this fails, return an error for this iteration and then skip the string.
-                        match path.file_name().and_then(|os| os.to_str()) {
-                            None => Some(Err(Error::NamelessItemPath(path.into()))),
-                            Some(file_name_str) => {
-                                // See if the file name string is in the meta block mapping.
-                                match block_mapping.swap_remove(file_name_str) {
-                                    // No meta block in the mapping had a matching file name, report an error.
-                                    None => Some(Err(Error::UnusedItemPath(path.into()))),
-
-                                    // Found a matching meta block, emit a successful plex result.
-                                    Some(block) => Some(Ok((path, block))),
-                                }
-                            }
+                            // Found a matching meta block, emit a successful plex result.
+                            Some(block) => Some(Ok((path, block))),
                         }
                     }
-                    None => {
-                        // No more file paths, see if there are any more meta blocks.
-                        match block_mapping.pop() {
-                            // Found an orphaned meta block, report an error.
-                            Some((block_tag, block)) => {
-                                Some(Err(Error::UnusedTaggedBlock(block, block_tag)))
-                            }
-
-                            // No more meta blocks were found, this iterator is now exhausted.
-                            None => None,
-                        }
+                }
+            }
+            None => {
+                // No more file paths, see if there are any more meta blocks.
+                match self.0.pop() {
+                    // Found an orphaned meta block, report an error.
+                    Some((block_tag, block)) => {
+                        Some(Err(Error::UnusedTaggedBlock(block, block_tag)))
                     }
+
+                    // No more meta blocks were found, this iterator is now exhausted.
+                    None => None,
                 }
             }
         }
     }
 }
 
-impl<'a, I> FusedIterator for Plexer<'a, I> where I: Iterator<Item = IoResult<Cow<'a, Path>>> {}
+pub enum Plexer<'a, I>
+where
+    I: Iterator<Item = PlexInItem<'a>>,
+{
+    One(PlexOne<'a, I>),
+    Seq(PlexSeq<'a>),
+    Map(PlexMap<'a, I>),
+}
+
+impl<'a, I> Iterator for Plexer<'a, I>
+where
+    I: Iterator<Item = PlexInItem<'a>>,
+{
+    type Item = PlexOutItem<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::One(it) => it.next(),
+            Self::Seq(it) => it.next(),
+            Self::Map(it) => it.next(),
+        }
+    }
+}
+
+impl<'a, I> FusedIterator for Plexer<'a, I> where I: Iterator<Item = PlexInItem<'a>> {}
 
 impl<'a, I> Plexer<'a, I>
 where
-    I: Iterator<Item = IoResult<Cow<'a, Path>>>,
+    I: Iterator<Item = PlexInItem<'a>>,
 {
     /// Creates a new `Plexer`.
     pub fn new<II>(schema: Schema, file_path_iter: II, sorter: &Sorter) -> Self
@@ -135,14 +172,13 @@ where
         let file_path_iter = file_path_iter.into_iter();
 
         match schema {
-            Schema::One(mb) => Self::One(Some(mb), file_path_iter),
-            // TODO: Re-add sorting here!
+            Schema::One(mb) => Self::One(PlexOne(Some(mb), file_path_iter)),
             Schema::Seq(mb_seq) => {
                 let mut file_paths = file_path_iter.collect::<Vec<_>>();
                 sorter.sort_path_results(&mut file_paths);
-                Self::Seq(mb_seq.into_iter(), file_paths.into_iter())
+                Self::Seq(PlexSeq(mb_seq.into_iter(), file_paths.into_iter()))
             }
-            Schema::Map(mb_map) => Self::Map(mb_map, file_path_iter),
+            Schema::Map(mb_map) => Self::Map(PlexMap(mb_map, file_path_iter)),
         }
     }
 }
@@ -220,7 +256,7 @@ mod tests {
     }
 
     // Helper method.
-    fn okc<'a>(path: &'a Path) -> IoResult<Cow<'a, Path>> {
+    fn okc<'a>(path: &'a Path) -> PlexInItem<'a> {
         Ok(Cow::Borrowed(path))
     }
 
