@@ -244,6 +244,16 @@ mod tests {
             };
         };
     }
+    macro_rules! assert_io_error {
+        ( $plex:expr ) => {
+            match $plex.next() {
+                Some(Err(Error::Io(..))) => {},
+                Some(Err(e)) => panic!("unexpected error: {}", e),
+                Some(Ok((ref p, ref b))) => panic!("unexpected ok: ({}, {:?})", p.display(), b),
+                None => panic!("unexpected none"),
+            };
+        };
+    }
 
     // Helper method.
     fn okc<'a>(path: &'a Path) -> PlexInItem<'a> {
@@ -276,14 +286,16 @@ mod tests {
         ]);
 
         // Testing `Schema::One`.
+        let schema = schema_one;
+
         // Normal case.
-        let mut plexer = Plexer::new(schema_one.clone(), vec![okc(&path_a)], &sorter);
+        let mut plexer = Plexer::new(schema.clone(), vec![okc(&path_a)], &sorter);
         assert_ok!(plexer, path_a, block_a);
         assert_none!(plexer);
 
         // Too many paths.
         let mut plexer = Plexer::new(
-            schema_one.clone(),
+            schema.clone(),
             vec![okc(&path_a), okc(&path_x)],
             &sorter,
         );
@@ -292,14 +304,29 @@ mod tests {
         assert_none!(plexer);
 
         // Not enough paths.
-        let mut plexer = Plexer::new(schema_one.clone(), vec![], &sorter);
+        let mut plexer = Plexer::new(schema.clone(), vec![], &sorter);
         assert_extra_block!(plexer, block_a);
         assert_none!(plexer);
 
+        // IO error.
+        let mut plexer = Plexer::new(
+            schema.clone(),
+            vec![
+                Err(IoError::new(std::io::ErrorKind::Other, "sample")),
+                okc(&path_a),
+            ],
+            &sorter,
+        );
+        assert_io_error!(plexer);
+        assert_extra_path!(plexer, path_a);
+        assert_none!(plexer);
+
         // Testing `Schema::Seq`.
+        let schema = schema_seq;
+
         // Normal case.
         let mut plexer = Plexer::new(
-            schema_seq.clone(),
+            schema.clone(),
             vec![okc(&path_a), okc(&path_b), okc(&path_c)],
             &sorter,
         );
@@ -310,7 +337,7 @@ mod tests {
 
         // Too many paths.
         let mut plexer = Plexer::new(
-            schema_seq.clone(),
+            schema.clone(),
             vec![okc(&path_a), okc(&path_b), okc(&path_c), okc(&path_x)],
             &sorter,
         );
@@ -322,7 +349,7 @@ mod tests {
 
         // Not enough paths.
         let mut plexer = Plexer::new(
-            schema_seq.clone(),
+            schema.clone(),
             vec![okc(&path_a), okc(&path_b)],
             &sorter,
         );
@@ -331,10 +358,29 @@ mod tests {
         assert_extra_block!(plexer, block_c);
         assert_none!(plexer);
 
+        // IO error.
+        let mut plexer = Plexer::new(
+            schema.clone(),
+            vec![
+                okc(&path_a),
+                okc(&path_b),
+                okc(&path_c),
+                Err(IoError::new(std::io::ErrorKind::Other, "sample")),
+            ],
+            &sorter,
+        );
+        assert_io_error!(plexer);
+        assert_ok!(plexer, path_a, block_b);
+        assert_ok!(plexer, path_b, block_c);
+        assert_extra_path!(plexer, path_c);
+        assert_none!(plexer);
+
         // Testing `Schema::Map`.
+        let schema = schema_map;
+
         // Normal case.
         let mut plexer = Plexer::new(
-            schema_map.clone(),
+            schema.clone(),
             vec![okc(&path_a), okc(&path_b), okc(&path_c)],
             &sorter,
         );
@@ -345,7 +391,7 @@ mod tests {
 
         // Too many paths.
         let mut plexer = Plexer::new(
-            schema_map.clone(),
+            schema.clone(),
             vec![okc(&path_x), okc(&path_a), okc(&path_b), okc(&path_c)],
             &sorter,
         );
@@ -357,13 +403,30 @@ mod tests {
 
         // Not enough paths.
         let mut plexer = Plexer::new(
-            schema_map.clone(),
+            schema.clone(),
             vec![okc(&path_a), okc(&path_b)],
             &sorter,
         );
         assert_ok!(plexer, path_a, block_a);
         assert_ok!(plexer, path_b, block_b);
         assert_extra_tagged_block!(plexer, block_c, name_c);
+        assert_none!(plexer);
+
+        // IO error.
+        let mut plexer = Plexer::new(
+            schema.clone(),
+            vec![
+                okc(&path_a),
+                okc(&path_b),
+                Err(IoError::new(std::io::ErrorKind::Other, "sample")),
+                okc(&path_c),
+            ],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_io_error!(plexer);
+        assert_ok!(plexer, path_c, block_c);
         assert_none!(plexer);
     }
 
