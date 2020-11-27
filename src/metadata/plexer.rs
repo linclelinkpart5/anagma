@@ -179,8 +179,8 @@ mod tests {
 
     // use std::collections::HashSet;
 
-    // use indexmap::indexmap;
-    use maplit::{btreemap, hashset};
+    use indexmap::indexmap;
+    use maplit::btreemap;
     use str_macro::str;
 
     use crate::test_util::TestUtil as TU;
@@ -253,21 +253,27 @@ mod tests {
     #[test]
     fn plex() {
         let block_a = btreemap![str!("key_a") => TU::s("val_a")];
-        // let block_b = btreemap![str!("key_b") => TU::s("val_b")];
-        // let block_c = btreemap![str!("key_c") => TU::s("val_c")];
+        let block_b = btreemap![str!("key_b") => TU::s("val_b")];
+        let block_c = btreemap![str!("key_c") => TU::s("val_c")];
 
-        let path_a = Path::new("path_a");
-        let path_b = Path::new("path_b");
-        // let path_c = Path::new("path_c");
+        let name_a = "name_a";
+        let name_b = "name_b";
+        let name_c = "name_c";
+
+        let path_a = Path::new(name_a);
+        let path_b = Path::new(name_b);
+        let path_c = Path::new(name_c);
+        let path_x = Path::new("xx_missing_xx");
 
         let sorter = Sorter::default();
 
         let schema_one = Schema::One(block_a.clone());
-        // let schema_seq = Schema::Seq(vec![
-        //     block_a.clone(),
-        //     block_b.clone(),
-        //     block_c.clone(),
-        // ]);
+        let schema_seq = Schema::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
+        let schema_map = Schema::Map(indexmap![
+            str!(name_c) => block_c.clone(),
+            str!(name_a) => block_a.clone(),
+            str!(name_b) => block_b.clone(),
+        ]);
 
         // Testing `Schema::One`.
         // Normal case.
@@ -278,16 +284,86 @@ mod tests {
         // Too many paths.
         let mut plexer = Plexer::new(
             schema_one.clone(),
-            vec![okc(&path_a), okc(&path_b)],
+            vec![okc(&path_a), okc(&path_x)],
             &sorter,
         );
         assert_ok!(plexer, path_a, block_a);
-        assert_extra_path!(plexer, path_b);
+        assert_extra_path!(plexer, path_x);
         assert_none!(plexer);
 
         // Not enough paths.
         let mut plexer = Plexer::new(schema_one.clone(), vec![], &sorter);
         assert_extra_block!(plexer, block_a);
+        assert_none!(plexer);
+
+        // Testing `Schema::Seq`.
+        // Normal case.
+        let mut plexer = Plexer::new(
+            schema_seq.clone(),
+            vec![okc(&path_a), okc(&path_b), okc(&path_c)],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_ok!(plexer, path_c, block_c);
+        assert_none!(plexer);
+
+        // Too many paths.
+        let mut plexer = Plexer::new(
+            schema_seq.clone(),
+            vec![okc(&path_a), okc(&path_b), okc(&path_c), okc(&path_x)],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_ok!(plexer, path_c, block_c);
+        assert_extra_path!(plexer, path_x);
+        assert_none!(plexer);
+
+        // Not enough paths.
+        let mut plexer = Plexer::new(
+            schema_seq.clone(),
+            vec![okc(&path_a), okc(&path_b)],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_extra_block!(plexer, block_c);
+        assert_none!(plexer);
+
+        // Testing `Schema::Map`.
+        // Normal case.
+        let mut plexer = Plexer::new(
+            schema_map.clone(),
+            vec![okc(&path_a), okc(&path_b), okc(&path_c)],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_ok!(plexer, path_c, block_c);
+        assert_none!(plexer);
+
+        // Too many paths.
+        let mut plexer = Plexer::new(
+            schema_map.clone(),
+            vec![okc(&path_x), okc(&path_a), okc(&path_b), okc(&path_c)],
+            &sorter,
+        );
+        assert_extra_path!(plexer, path_x);
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_ok!(plexer, path_c, block_c);
+        assert_none!(plexer);
+
+        // Not enough paths.
+        let mut plexer = Plexer::new(
+            schema_map.clone(),
+            vec![okc(&path_a), okc(&path_b)],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_extra_tagged_block!(plexer, block_c, name_c);
         assert_none!(plexer);
     }
 
