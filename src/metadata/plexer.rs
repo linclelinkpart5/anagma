@@ -254,6 +254,18 @@ mod tests {
             };
         };
     }
+    macro_rules! assert_nameless_path {
+        ( $plex:expr, $path:expr ) => {
+            match $plex.next() {
+                Some(Err(Error::NamelessItemPath(ref p))) => {
+                    assert_eq!(p, &$path);
+                },
+                Some(Err(e)) => panic!("unexpected error: {}", e),
+                Some(Ok((ref p, ref b))) => panic!("unexpected ok: ({}, {:?})", p.display(), b),
+                None => panic!("unexpected none"),
+            };
+        };
+    }
 
     // Helper method.
     fn okc<'a>(path: &'a Path) -> PlexInItem<'a> {
@@ -428,149 +440,23 @@ mod tests {
         assert_io_error!(plexer);
         assert_ok!(plexer, path_c, block_c);
         assert_none!(plexer);
-    }
 
-    #[test]
-    fn plex_old() {
-        // let block_a = btreemap![
-        //     str!("key_1a") => TU::s("val_1a"),
-        //     str!("key_1b") => TU::s("val_1b"),
-        //     str!("key_1c") => TU::s("val_1c"),
-        // ];
-        // let block_b = btreemap![
-        //     str!("key_2a") => TU::s("val_2a"),
-        //     str!("key_2b") => TU::s("val_2b"),
-        //     str!("key_2c") => TU::s("val_2c"),
-        // ];
-        // let block_c = btreemap![
-        //     str!("key_3a") => TU::s("val_3a"),
-        //     str!("key_3b") => TU::s("val_3b"),
-        //     str!("key_3c") => TU::s("val_3c"),
-        // ];
-
-        // let block_seq = vec![block_a.clone(), block_b.clone(), block_c.clone()];
-
-        // let block_map = indexmap![
-        //     str!("item_c") => block_c.clone(),
-        //     str!("item_a") => block_a.clone(),
-        //     str!("item_b") => block_b.clone(),
-        // ];
-
-        // let schema_a = Schema::One(block_a.clone());
-        // let schema_b = Schema::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
-        // let schema_c = Schema::Map(indexmap![
-        //     str!("item_c") => block_c.clone(),
-        //     str!("item_a") => block_a.clone(),
-        //     str!("item_b") => block_b.clone(),
-        // ]);
-
-        // let path_a = Cow::Borrowed(Path::new("item_a"));
-        // let path_b = Cow::Borrowed(Path::new("item_b"));
-
-        // let sorter = Sorter::default();
-
-        // // Single schemas.
-        // let schema = Schema::One(block_a.clone());
-        // let res_paths = vec![Ok(path_a)];
-        // let mut plexer = Plexer::new(schema, res_paths, &sorter);
-        // assert!(matches!(plexer.next(), Some(Ok((path_a, _)))));
-
-        //     // Test single and sequence schemas.
-        //     let inputs_and_expected = vec![
-        //         (
-        //             (schema_a.clone(), vec![path_a]),
-        //             vec![
-        //                 Ok((path_a, block_a.clone())),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_a.clone(), vec![path_a, path_b]),
-        //             vec![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Err(Error::UnusedItemPath(path_b.clone().into_owned())),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_a.clone(), vec![]),
-        //             vec![
-        //                 Err(Error::UnusedBlock(block_a.clone())),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_b.clone(), vec![path_a, path_b, Cow::Owned(PathBuf::from("item_c"))]),
-        //             vec![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Ok((path_b, block_b.clone())),
-        //                 Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_b.clone(), vec![path_a, path_b, Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
-        //             vec![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Ok((path_b, block_b.clone())),
-        //                 Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
-        //                 Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_b.clone(), vec![path_a]),
-        //             vec![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Err(Error::UnusedBlock(block_b.clone())),
-        //                 Err(Error::UnusedBlock(block_c.clone())),
-        //             ],
-        //         ),
-        //     ];
-
-        //     for (input, expected) in inputs_and_expected {
-        //         let (meta_schema, item_paths) = input;
-        //         let produced = Plexer::new(meta_schema, item_paths.into_iter().map(Result::Ok)).collect::<Vec<_>>();
-        //         assert_eq!(expected, produced);
-        //     }
-
-        //     // Test mapping schemas.
-        //     let inputs_and_expected = vec![
-        //         (
-        //             (schema_c.clone(), vec![path_a, path_b, Cow::Owned(PathBuf::from("item_c"))]),
-        //             hashset![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Ok((path_b, block_b.clone())),
-        //                 Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_c.clone(), vec![path_a, path_b]),
-        //             hashset![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Ok((path_b, block_b.clone())),
-        //                 Err(Error::UnusedTaggedBlock(block_c.clone(), str!("item_c"))),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_c.clone(), vec![path_a, path_b, Cow::Owned(PathBuf::from("item_c")), Cow::Owned(PathBuf::from("item_d"))]),
-        //             hashset![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Ok((path_b, block_b.clone())),
-        //                 Ok((Cow::Owned(PathBuf::from("item_c")), block_c.clone())),
-        //                 Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
-        //             ],
-        //         ),
-        //         (
-        //             (schema_c.clone(), vec![path_a, path_b, Cow::Owned(PathBuf::from("item_d"))]),
-        //             hashset![
-        //                 Ok((path_a, block_a.clone())),
-        //                 Ok((path_b, block_b.clone())),
-        //                 Err(Error::UnusedTaggedBlock(block_c.clone(), str!("item_c"))),
-        //                 Err(Error::UnusedItemPath(PathBuf::from("item_d"))),
-        //             ],
-        //         ),
-        //     ];
-
-        //     for (input, expected) in inputs_and_expected {
-        //         let (meta_schema, item_paths) = input;
-        //         let produced = Plexer::new(meta_schema, item_paths.into_iter()).collect::<HashSet<_>>();
-        //         assert_eq!(expected, produced);
-        //     }
+        // Nameless path.
+        let nameless = Path::new("/");
+        let mut plexer = Plexer::new(
+            schema.clone(),
+            vec![
+                okc(&path_a),
+                okc(&path_b),
+                okc(&nameless),
+                okc(&path_c),
+            ],
+            &sorter,
+        );
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_nameless_path!(plexer, nameless);
+        assert_ok!(plexer, path_c, block_c);
+        assert_none!(plexer);
     }
 }
