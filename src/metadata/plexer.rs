@@ -33,20 +33,17 @@ type PlexOutItem<'a> = Result<(Cow<'a, Path>, Block), Error>;
 
 fn pair_up<'a>(
     opt_block: Option<Block>,
-    opt_path_item: Option<PlexInItem<'a>>,
+    opt_path: Option<Cow<'a, Path>>,
 ) -> Option<PlexOutItem<'a>> {
-    match (opt_block, opt_path_item) {
-        // If the path iterator produces an error, return it.
-        (_, Some(Err(err))) => Some(Err(Error::Io(err))),
-
+    match (opt_block, opt_path) {
         // Both iterators are exhausted, so this one is as well.
         (None, None) => None,
 
         // Both iterators produced a result, emit a successful plex result.
-        (Some(block), Some(Ok(path))) => Some(Ok((path, block))),
+        (Some(block), Some(path)) => Some(Ok((path, block))),
 
         // Got a file path with no meta block, report an error.
-        (None, Some(Ok(path))) => Some(Err(Error::UnusedItemPath(path.into_owned()))),
+        (None, Some(path)) => Some(Err(Error::UnusedItemPath(path.into_owned()))),
 
         // Got a meta block with no file path, report an error.
         (Some(block), None) => Some(Err(Error::UnusedBlock(block))),
@@ -64,17 +61,30 @@ where
     type Item = PlexOutItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        pair_up(self.0.take(), self.1.next())
+        let res = self.1.next().transpose();
+
+        match res {
+            Err(err) => Some(Err(Error::Io(err))),
+            Ok(opt_path) => pair_up(self.0.take(), opt_path)
+        }
     }
 }
 
-pub struct PlexSeq<'a>(VecIntoIter<Block>, VecIntoIter<PlexInItem<'a>>);
+pub struct PlexSeq<'a> {
+    block_iter: VecIntoIter<Block>,
+    err_iter: VecIntoIter<IoError>,
+    path_iter: VecIntoIter<Cow<'a, Path>>
+}
 
 impl<'a> Iterator for PlexSeq<'a> {
     type Item = PlexOutItem<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        pair_up(self.0.next(), self.1.next())
+        if let Some(err) = self.err_iter.next() {
+            Some(Err(Error::Io(err)))
+        } else {
+            pair_up(self.block_iter.next(), self.path_iter.next())
+        }
     }
 }
 
@@ -95,7 +105,6 @@ where
                 // Try and obtain a file name from the path, and convert into a
                 // string for lookup. If this fails, return an error for this
                 // iteration and then skip the string.
-                // TODO: Validate file name.
                 match path.file_name().and_then(|os| os.to_str()) {
                     None => Some(Err(Error::NamelessItemPath(path.into()))),
                     Some(name_tag) => {
@@ -164,9 +173,28 @@ where
         match schema {
             Schema::One(mb) => Self::One(PlexOne(Some(mb), file_path_iter)),
             Schema::Seq(mb_seq) => {
-                let mut file_paths = file_path_iter.collect::<Vec<_>>();
-                sorter.sort_path_results(&mut file_paths);
-                Self::Seq(PlexSeq(mb_seq.into_iter(), file_paths.into_iter()))
+                // Need to pre-collect, in order to sort.
+                // Since the entire path iterator needs to be read right now,
+                // just pre-partion the path results into `Ok`/`Err`s.
+                let mut errs = Vec::new();
+                let mut paths = Vec::new();
+
+                for res in file_path_iter {
+                    match res {
+                        Err(err) => { errs.push(err); },
+                        Ok(path) => { paths.push(path); }
+                    }
+                }
+
+                sorter.sort_paths(&mut paths);
+
+                let plex_seq = PlexSeq {
+                    block_iter: mb_seq.into_iter(),
+                    err_iter: errs.into_iter(),
+                    path_iter: paths.into_iter(),
+                };
+
+                Self::Seq(plex_seq)
             }
             Schema::Map(mb_map) => Self::Map(PlexMap(mb_map, file_path_iter)),
         }
@@ -330,7 +358,7 @@ mod tests {
             &sorter,
         );
         assert_io_error!(plexer);
-        assert_extra_path!(plexer, path_a);
+        assert_ok!(plexer, path_a, block_a);
         assert_none!(plexer);
 
         // Testing `Schema::Seq`.
@@ -382,9 +410,9 @@ mod tests {
             &sorter,
         );
         assert_io_error!(plexer);
-        assert_ok!(plexer, path_a, block_b);
-        assert_ok!(plexer, path_b, block_c);
-        assert_extra_path!(plexer, path_c);
+        assert_ok!(plexer, path_a, block_a);
+        assert_ok!(plexer, path_b, block_b);
+        assert_ok!(plexer, path_c, block_c);
         assert_none!(plexer);
 
         // Testing `Schema::Map`.
