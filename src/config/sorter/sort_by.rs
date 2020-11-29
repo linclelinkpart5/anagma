@@ -38,20 +38,6 @@ impl SortBy {
 
         cmp_func(abs_path_a, abs_path_b)
     }
-
-    /// Compares two `Result`s containing absolute item paths using this
-    /// sorting criteria.
-    pub fn cmp_path_results<P, E>(&self, res_a: &Result<P, E>, res_b: &Result<P, E>) -> Ordering
-    where
-        P: AsRef<Path>,
-    {
-        match (res_a, res_b) {
-            (Ok(a), Ok(b)) => self.cmp_paths(a, b),
-            (Err(_), Ok(_)) => Ordering::Less,
-            (Ok(_), Err(_)) => Ordering::Greater,
-            (Err(_), Err(_)) => Ordering::Equal,
-        }
-    }
 }
 
 impl Default for SortBy {

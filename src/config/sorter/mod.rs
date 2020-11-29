@@ -48,17 +48,6 @@ impl Sorter {
         self.align(self.sort_by.cmp_paths(abs_path_a, abs_path_b))
     }
 
-    /// Compares two `Result`s containing absolute item paths using this
-    /// sorting criteria.
-    pub fn cmp_path_results<P, E>(&self, res_a: &Result<P, E>, res_b: &Result<P, E>) -> Ordering
-    where
-        P: AsRef<Path>,
-    {
-        // TODO: Might be better to always sort `Error`s to the front,
-        //       regardless of sort direction.
-        self.align(self.sort_by.cmp_path_results(res_a, res_b))
-    }
-
     pub fn sort_paths<P>(&self, paths: &mut [P])
     where
         P: AsRef<Path>,
@@ -66,10 +55,23 @@ impl Sorter {
         paths.sort_by(|a, b| self.cmp_paths(a, b));
     }
 
-    pub fn sort_path_results<P, E>(&self, path_results: &mut [Result<P, E>])
+    pub fn partition_sort_results<I, P, E>(&self, res_path_iter: I) -> (Vec<E>, Vec<P>)
     where
+        I: IntoIterator<Item = Result<P, E>>,
         P: AsRef<Path>,
     {
-        path_results.sort_by(|a, b| self.cmp_path_results(a, b));
+        let mut errs = Vec::new();
+        let mut paths = Vec::new();
+
+        for res_path in res_path_iter {
+            match res_path {
+                Err(err) => { errs.push(err); },
+                Ok(path) => { paths.push(path); }
+            }
+        }
+
+        self.sort_paths(&mut paths);
+
+        (errs, paths)
     }
 }

@@ -154,11 +154,18 @@ impl Selection {
 
     /// Selects paths inside a directory that match this `Selection`, and sorts them.
     pub fn select_in_dir_sorted(&self, dir_path: &Path, sorter: &Sorter) -> IoResult<Vec<IoResult<PathBuf>>> {
-        let mut sel_item_path_results = self.select_in_dir(dir_path)?.collect::<Vec<_>>();
+        let sel_item_path_results = self.select_in_dir(dir_path)?;
 
-        sorter.sort_path_results(&mut sel_item_path_results);
+        let (errs, paths) = sorter.partition_sort_results(sel_item_path_results);
 
-        Ok(sel_item_path_results)
+        // TODO: Replace this with a new custom iterator based on a pair of
+        //       `Vec` iterators. For now, just transform and recombine.
+        let collected = errs.into_iter()
+            .map(Result::Err)
+            .chain(paths.into_iter().map(Result::Ok))
+            .collect::<Vec<_>>();
+
+        Ok(collected)
     }
 }
 
