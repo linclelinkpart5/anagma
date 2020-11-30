@@ -55,23 +55,19 @@ impl Sorter {
         paths.sort_by(|a, b| self.cmp_paths(a, b));
     }
 
-    pub fn partition_sort_results<I, P, E>(&self, res_path_iter: I) -> (Vec<E>, Vec<P>)
+    pub fn sort_path_results<P, E>(&self, res_paths: &mut [Result<P, E>])
     where
-        I: IntoIterator<Item = Result<P, E>>,
         P: AsRef<Path>,
     {
-        let mut errs = Vec::new();
-        let mut paths = Vec::new();
+        res_paths.sort_by(|res_a, res_b| {
+            match (res_a, res_b) {
+                (Ok(a), Ok(b)) => self.cmp_paths(a, b),
 
-        for res_path in res_path_iter {
-            match res_path {
-                Err(err) => { errs.push(err); },
-                Ok(path) => { paths.push(path); }
+                // These should ensure that errors always get sorted to the front.
+                (Err(_), Ok(_)) => Ordering::Less,
+                (Ok(_), Err(_)) => Ordering::Greater,
+                (Err(_), Err(_)) => Ordering::Equal,
             }
-        }
-
-        self.sort_paths(&mut paths);
-
-        (errs, paths)
+        })
     }
 }
