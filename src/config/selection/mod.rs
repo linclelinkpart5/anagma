@@ -201,43 +201,24 @@ impl TryFrom<SelectionRepr> for Selection {
 mod tests {
     use super::*;
 
-    use std::fs::File;
-
-    use tempfile::Builder;
-    use tempfile::TempDir;
-
     use maplit::hashset;
 
     use crate::config::sorter::Sorter;
+    use crate::test_util::TestUtil;
 
-    fn create_test_dir(name: &str) -> TempDir {
-        let temp = Builder::new().suffix(name).tempdir().unwrap();
-
-        {
-            let path = temp.path();
-
-            let file_names = vec![
-                "music.flac",
-                "music.wav",
-                "music.aac",
-                "music.mp3",
-                "music.ogg",
-                "item",
-                "self",
-                "item.yml",
-                "self.yml",
-                "item.flac",
-                "self.flac",
-            ];
-
-            for file_name in file_names {
-                File::create(path.join(file_name)).unwrap();
-                std::thread::sleep(std::time::Duration::from_millis(5));
-            }
-        }
-
-        temp
-    }
+    const SAMPLE_FILE_NAMES: &[&str] = &[
+        "music.flac",
+        "music.wav",
+        "music.aac",
+        "music.mp3",
+        "music.ogg",
+        "item",
+        "self",
+        "item.yml",
+        "self.yml",
+        "item.flac",
+        "self.flac",
+    ];
 
     #[test]
     fn default() {
@@ -370,7 +351,7 @@ mod tests {
 
     #[test]
     fn select_in_dir() {
-        let temp_dir = create_test_dir("select_in_dir");
+        let temp_dir = TestUtil::create_simple_dir("select_in_dir", SAMPLE_FILE_NAMES);
         let path = temp_dir.path();
 
         let selection = Selection::new(
@@ -444,7 +425,7 @@ mod tests {
 
     #[test]
     fn select_in_dir_sorted() {
-        let temp_dir = create_test_dir("select_in_dir_sorted");
+        let temp_dir = TestUtil::create_simple_dir("select_in_dir_sorted", SAMPLE_FILE_NAMES);
         let path = temp_dir.path();
         let sorter = Sorter::default();
 

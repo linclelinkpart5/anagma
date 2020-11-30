@@ -37,6 +37,23 @@ impl TestUtil {
     pub const SEQUENCE_KEY: &'static str = "sequence_key";
     pub const MAPPING_KEY: &'static str = "mapping_key";
 
+    pub fn create_simple_dir<I, S>(name: &str, files: I) -> TempDir
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let temp_dir = Builder::new().suffix(name).tempdir().unwrap();
+
+        let path = temp_dir.path();
+
+        for file_name in files {
+            File::create(path.join(file_name.as_ref())).unwrap();
+            std::thread::sleep(Duration::from_millis(5));
+        }
+
+        temp_dir
+    }
+
     pub fn create_temp_media_test_dir(name: &str) -> TempDir {
         let temp_dir = Builder::new().suffix(name).tempdir().unwrap();
 
