@@ -1,10 +1,10 @@
-use std::path::Path;
 use std::convert::{TryFrom, TryInto};
+use std::path::Path;
 
+use globset::Error as GlobError;
 use globset::Glob;
 use globset::GlobSet;
 use globset::GlobSetBuilder;
-use globset::Error as GlobError;
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -73,7 +73,10 @@ impl Matcher {
     /// name (e.g. '/' on Unix systems), returns `false`.
     pub fn is_match<P: AsRef<Path>>(&self, path: &P) -> bool {
         // Matching on only file name is needed for patterns such as "self*".
-        path.as_ref().file_name().map(|f| self.0.is_match(f)).unwrap_or(false)
+        path.as_ref()
+            .file_name()
+            .map(|f| self.0.is_match(f))
+            .unwrap_or(false)
     }
 
     /// Returns a matcher that matches any path that has a file name.
@@ -107,7 +110,7 @@ impl MatcherRepr {
     pub fn add_glob(&mut self, glob: Glob) {
         match self {
             // No-op, all patterns are already included.
-            Self::Any => {},
+            Self::Any => {}
 
             // Redefine as a custom variant.
             Self::Empty => {
@@ -115,12 +118,12 @@ impl MatcherRepr {
                 builder.add_glob(glob);
 
                 *self = Self::Custom(builder);
-            },
+            }
 
             // Add the pattern to the existing ones.
             Self::Custom(ref mut builder) => {
                 builder.add_glob(glob);
-            },
+            }
         };
     }
 }

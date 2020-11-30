@@ -1,18 +1,17 @@
-
 mod matcher;
 
 use std::convert::{TryFrom, TryInto};
+use std::fs::ReadDir;
+use std::io::Result as IoResult;
 use std::path::Path;
 use std::path::PathBuf;
-use std::io::Result as IoResult;
-use std::fs::ReadDir;
 
 use serde::Deserialize;
 
 use crate::config::sorter::Sorter;
 
-pub use self::matcher::Matcher;
 pub use self::matcher::Error as MatcherError;
+pub use self::matcher::Matcher;
 pub(crate) use self::matcher::MatcherRepr;
 
 enum FileOrDir {
@@ -31,18 +30,16 @@ impl<'a> Iterator for SelectedSubPaths<'a> {
         let selection = &self.1;
 
         // Get next entry from the directory reader.
-        read_dir.find_map(|res| {
-            match res {
-                Ok(dir_entry) => {
-                    let sub_path = dir_entry.path();
-                    match selection.is_selected(&sub_path) {
-                        Ok(true) => Some(Ok(sub_path)),
-                        Ok(false) => None,
-                        Err(err) => Some(Err(err)),
-                    }
-                },
-                Err(err) => Some(Err(err)),
+        read_dir.find_map(|res| match res {
+            Ok(dir_entry) => {
+                let sub_path = dir_entry.path();
+                match selection.is_selected(&sub_path) {
+                    Ok(true) => Some(Ok(sub_path)),
+                    Ok(false) => None,
+                    Err(err) => Some(Err(err)),
+                }
             }
+            Err(err) => Some(Err(err)),
         })
     }
 }
@@ -73,9 +70,13 @@ impl Selection {
         exclude_files: Matcher,
         include_dirs: Matcher,
         exclude_dirs: Matcher,
-    ) -> Self
-    {
-        Self { include_files, exclude_files, include_dirs, exclude_dirs, }
+    ) -> Self {
+        Self {
+            include_files,
+            exclude_files,
+            include_dirs,
+            exclude_dirs,
+        }
     }
 
     pub fn from_patterns<'a, IA, SA, IB, SB, IC, SC, ID, SD>(
@@ -99,7 +100,12 @@ impl Selection {
         let include_dirs = Matcher::build(include_dir_patterns)?;
         let exclude_dirs = Matcher::build(exclude_dir_patterns)?;
 
-        Ok(Self::new(include_files, exclude_files, include_dirs, exclude_dirs))
+        Ok(Self::new(
+            include_files,
+            exclude_files,
+            include_dirs,
+            exclude_dirs,
+        ))
     }
 
     fn is_pattern_match<P: AsRef<Path>>(&self, path: &P, fod: FileOrDir) -> bool {
@@ -134,11 +140,13 @@ impl Selection {
     pub fn is_selected<P: AsRef<Path>>(&self, path: &P) -> IoResult<bool> {
         let file_info = std::fs::metadata(&path)?;
 
-        Ok(
-            if file_info.is_file() { self.is_file_pattern_match(path) }
-            else if file_info.is_dir() { self.is_dir_pattern_match(path) }
-            else { false }
-        )
+        Ok(if file_info.is_file() {
+            self.is_file_pattern_match(path)
+        } else if file_info.is_dir() {
+            self.is_dir_pattern_match(path)
+        } else {
+            false
+        })
     }
 
     /// Selects paths inside a directory that match this `Selection`.
@@ -153,7 +161,11 @@ impl Selection {
     }
 
     /// Selects paths inside a directory that match this `Selection`, and sorts them.
-    pub fn select_in_dir_sorted(&self, dir_path: &Path, sorter: &Sorter) -> IoResult<Vec<IoResult<PathBuf>>> {
+    pub fn select_in_dir_sorted(
+        &self,
+        dir_path: &Path,
+        sorter: &Sorter,
+    ) -> IoResult<Vec<IoResult<PathBuf>>> {
         let mut res_paths = self.select_in_dir(dir_path)?.collect::<Vec<_>>();
 
         sorter.sort_path_results(&mut res_paths);
@@ -360,14 +372,12 @@ mod tests {
             Matcher::any(),
             Matcher::empty(),
         );
-        let expected = hashset![
-            path.join("music.flac"),
-            path.join("music.wav"),
-        ];
+        let expected = hashset![path.join("music.flac"), path.join("music.wav"),];
         let produced = selection
-                .select_in_dir(&path).unwrap()
-                .map(Result::unwrap)
-                .collect();
+            .select_in_dir(&path)
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
         assert_eq!(expected, produced);
 
         let selection = Selection::new(
@@ -382,9 +392,10 @@ mod tests {
             path.join("self.flac"),
         ];
         let produced = selection
-                .select_in_dir(&path).unwrap()
-                .map(Result::unwrap)
-                .collect();
+            .select_in_dir(&path)
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
         assert_eq!(expected, produced);
 
         let selection = Selection::new(
@@ -401,9 +412,10 @@ mod tests {
             path.join("music.ogg"),
         ];
         let produced = selection
-                .select_in_dir(&path).unwrap()
-                .map(Result::unwrap)
-                .collect();
+            .select_in_dir(&path)
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
         assert_eq!(expected, produced);
 
         let selection = Selection::new(
@@ -412,14 +424,12 @@ mod tests {
             Matcher::any(),
             Matcher::empty(),
         );
-        let expected = hashset![
-            path.join("item.yml"),
-            path.join("self.yml"),
-        ];
+        let expected = hashset![path.join("item.yml"), path.join("self.yml"),];
         let produced = selection
-                .select_in_dir(&path).unwrap()
-                .map(Result::unwrap)
-                .collect();
+            .select_in_dir(&path)
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
         assert_eq!(expected, produced);
     }
 
@@ -435,15 +445,13 @@ mod tests {
             Matcher::any(),
             Matcher::empty(),
         );
-        let expected = vec![
-            path.join("music.flac"),
-            path.join("music.wav"),
-        ];
+        let expected = vec![path.join("music.flac"), path.join("music.wav")];
         let produced = selection
-                .select_in_dir_sorted(&path, &sorter).unwrap()
-                .into_iter()
-                .map(Result::unwrap)
-                .collect::<Vec<_>>();
+            .select_in_dir_sorted(&path, &sorter)
+            .unwrap()
+            .into_iter()
+            .map(Result::unwrap)
+            .collect::<Vec<_>>();
         assert_eq!(expected, produced);
 
         let selection = Selection::new(
@@ -458,10 +466,11 @@ mod tests {
             path.join("self.flac"),
         ];
         let produced = selection
-                .select_in_dir_sorted(&path, &sorter).unwrap()
-                .into_iter()
-                .map(Result::unwrap)
-                .collect::<Vec<_>>();
+            .select_in_dir_sorted(&path, &sorter)
+            .unwrap()
+            .into_iter()
+            .map(Result::unwrap)
+            .collect::<Vec<_>>();
         assert_eq!(expected, produced);
 
         let selection = Selection::new(
@@ -478,10 +487,11 @@ mod tests {
             path.join("music.wav"),
         ];
         let produced = selection
-                .select_in_dir_sorted(&path, &sorter).unwrap()
-                .into_iter()
-                .map(Result::unwrap)
-                .collect::<Vec<_>>();
+            .select_in_dir_sorted(&path, &sorter)
+            .unwrap()
+            .into_iter()
+            .map(Result::unwrap)
+            .collect::<Vec<_>>();
         assert_eq!(expected, produced);
 
         let selection = Selection::new(
@@ -490,15 +500,13 @@ mod tests {
             Matcher::any(),
             Matcher::empty(),
         );
-        let expected = vec![
-            path.join("item.yml"),
-            path.join("self.yml"),
-        ];
+        let expected = vec![path.join("item.yml"), path.join("self.yml")];
         let produced = selection
-                .select_in_dir_sorted(&path, &sorter).unwrap()
-                .into_iter()
-                .map(Result::unwrap)
-                .collect::<Vec<_>>();
+            .select_in_dir_sorted(&path, &sorter)
+            .unwrap()
+            .into_iter()
+            .map(Result::unwrap)
+            .collect::<Vec<_>>();
         assert_eq!(expected, produced);
     }
 }
