@@ -71,3 +71,74 @@ impl Sorter {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use rand::seq::SliceRandom;
+
+    use crate::test_util::TestUtil;
+
+    #[test]
+    fn sort_paths() {
+        let file_names = &["file_b", "file_e", "file_a", "file_c", "file_d"];
+        let temp_dir = TestUtil::create_simple_dir("sort_paths", file_names);
+        let temp_dir_path = temp_dir.path();
+
+        let mut input = file_names.iter().map(|n| temp_dir_path.join(n)).collect::<Vec<_>>();
+        input.shuffle(&mut rand::thread_rng());
+
+        // Sort by name, ascending.
+        let expected = vec![
+            temp_dir_path.join("file_a"),
+            temp_dir_path.join("file_b"),
+            temp_dir_path.join("file_c"),
+            temp_dir_path.join("file_d"),
+            temp_dir_path.join("file_e"),
+        ];
+        let sorter = Sorter { sort_by: SortBy::Name, sort_order: SortOrder::Ascending };
+        let mut produced = input.clone();
+        sorter.sort_paths(&mut produced);
+        assert_eq!(produced, expected);
+
+        // Sort by name, descending.
+        let expected = vec![
+            temp_dir_path.join("file_e"),
+            temp_dir_path.join("file_d"),
+            temp_dir_path.join("file_c"),
+            temp_dir_path.join("file_b"),
+            temp_dir_path.join("file_a"),
+        ];
+        let sorter = Sorter { sort_by: SortBy::Name, sort_order: SortOrder::Descending };
+        let mut produced = input.clone();
+        sorter.sort_paths(&mut produced);
+        assert_eq!(produced, expected);
+
+        // Sort by mod time, ascending.
+        let expected = vec![
+            temp_dir_path.join("file_b"),
+            temp_dir_path.join("file_e"),
+            temp_dir_path.join("file_a"),
+            temp_dir_path.join("file_c"),
+            temp_dir_path.join("file_d"),
+        ];
+        let sorter = Sorter { sort_by: SortBy::ModTime, sort_order: SortOrder::Ascending };
+        let mut produced = input.clone();
+        sorter.sort_paths(&mut produced);
+        assert_eq!(produced, expected);
+
+        // Sort by mod time, descending.
+        let expected = vec![
+            temp_dir_path.join("file_d"),
+            temp_dir_path.join("file_c"),
+            temp_dir_path.join("file_a"),
+            temp_dir_path.join("file_e"),
+            temp_dir_path.join("file_b"),
+        ];
+        let sorter = Sorter { sort_by: SortBy::ModTime, sort_order: SortOrder::Descending };
+        let mut produced = input.clone();
+        sorter.sort_paths(&mut produced);
+        assert_eq!(produced, expected);
+    }
+}
