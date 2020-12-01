@@ -2,8 +2,8 @@
 
 pub mod sort_by;
 
-use std::path::Path;
 use std::cmp::Ordering;
+use std::path::Path;
 
 use serde::Deserialize;
 
@@ -86,7 +86,10 @@ mod tests {
         let temp_dir = TestUtil::create_simple_dir("sort_paths", file_names);
         let temp_dir_path = temp_dir.path();
 
-        let mut input = file_names.iter().map(|n| temp_dir_path.join(n)).collect::<Vec<_>>();
+        let mut input = file_names
+            .iter()
+            .map(|n| temp_dir_path.join(n))
+            .collect::<Vec<_>>();
         input.shuffle(&mut rand::thread_rng());
 
         // Sort by name, ascending.
@@ -97,7 +100,10 @@ mod tests {
             temp_dir_path.join("file_d"),
             temp_dir_path.join("file_e"),
         ];
-        let sorter = Sorter { sort_by: SortBy::Name, sort_order: SortOrder::Ascending };
+        let sorter = Sorter {
+            sort_by: SortBy::Name,
+            sort_order: SortOrder::Ascending,
+        };
         let mut produced = input.clone();
         sorter.sort_paths(&mut produced);
         assert_eq!(produced, expected);
@@ -110,7 +116,10 @@ mod tests {
             temp_dir_path.join("file_b"),
             temp_dir_path.join("file_a"),
         ];
-        let sorter = Sorter { sort_by: SortBy::Name, sort_order: SortOrder::Descending };
+        let sorter = Sorter {
+            sort_by: SortBy::Name,
+            sort_order: SortOrder::Descending,
+        };
         let mut produced = input.clone();
         sorter.sort_paths(&mut produced);
         assert_eq!(produced, expected);
@@ -123,7 +132,10 @@ mod tests {
             temp_dir_path.join("file_c"),
             temp_dir_path.join("file_d"),
         ];
-        let sorter = Sorter { sort_by: SortBy::ModTime, sort_order: SortOrder::Ascending };
+        let sorter = Sorter {
+            sort_by: SortBy::ModTime,
+            sort_order: SortOrder::Ascending,
+        };
         let mut produced = input.clone();
         sorter.sort_paths(&mut produced);
         assert_eq!(produced, expected);
@@ -136,7 +148,10 @@ mod tests {
             temp_dir_path.join("file_e"),
             temp_dir_path.join("file_b"),
         ];
-        let sorter = Sorter { sort_by: SortBy::ModTime, sort_order: SortOrder::Descending };
+        let sorter = Sorter {
+            sort_by: SortBy::ModTime,
+            sort_order: SortOrder::Descending,
+        };
         let mut produced = input.clone();
         sorter.sort_paths(&mut produced);
         assert_eq!(produced, expected);
@@ -151,7 +166,11 @@ mod tests {
         let temp_dir = TestUtil::create_simple_dir("sort_path_results", file_names);
         let temp_dir_path = temp_dir.path();
 
-        let mut input = file_names.iter().map(|n| temp_dir_path.join(n)).map(Result::Ok).collect::<Vec<_>>();
+        let mut input = file_names
+            .iter()
+            .map(|n| temp_dir_path.join(n))
+            .map(Result::Ok)
+            .collect::<Vec<_>>();
         input.push(Err(Error(0)));
         input.push(Err(Error(0)));
         input.push(Err(Error(0)));
@@ -161,8 +180,10 @@ mod tests {
         let mut cycle = (1u32..=3).into_iter().cycle();
         for i in input.iter_mut() {
             match i {
-                Ok(..) => {},
-                Err(err) => { err.0 = cycle.next().unwrap(); },
+                Ok(..) => {}
+                Err(err) => {
+                    err.0 = cycle.next().unwrap();
+                }
             }
         }
 
@@ -177,7 +198,10 @@ mod tests {
             Ok(temp_dir_path.join("file_d")),
             Ok(temp_dir_path.join("file_e")),
         ];
-        let sorter = Sorter { sort_by: SortBy::Name, sort_order: SortOrder::Ascending };
+        let sorter = Sorter {
+            sort_by: SortBy::Name,
+            sort_order: SortOrder::Ascending,
+        };
         let mut produced = input.clone();
         sorter.sort_path_results(&mut produced);
         assert_eq!(produced, expected);
@@ -193,7 +217,10 @@ mod tests {
             Ok(temp_dir_path.join("file_b")),
             Ok(temp_dir_path.join("file_a")),
         ];
-        let sorter = Sorter { sort_by: SortBy::Name, sort_order: SortOrder::Descending };
+        let sorter = Sorter {
+            sort_by: SortBy::Name,
+            sort_order: SortOrder::Descending,
+        };
         let mut produced = input.clone();
         sorter.sort_path_results(&mut produced);
         assert_eq!(produced, expected);
@@ -209,7 +236,10 @@ mod tests {
             Ok(temp_dir_path.join("file_c")),
             Ok(temp_dir_path.join("file_d")),
         ];
-        let sorter = Sorter { sort_by: SortBy::ModTime, sort_order: SortOrder::Ascending };
+        let sorter = Sorter {
+            sort_by: SortBy::ModTime,
+            sort_order: SortOrder::Ascending,
+        };
         let mut produced = input.clone();
         sorter.sort_path_results(&mut produced);
         assert_eq!(produced, expected);
@@ -225,7 +255,10 @@ mod tests {
             Ok(temp_dir_path.join("file_e")),
             Ok(temp_dir_path.join("file_b")),
         ];
-        let sorter = Sorter { sort_by: SortBy::ModTime, sort_order: SortOrder::Descending };
+        let sorter = Sorter {
+            sort_by: SortBy::ModTime,
+            sort_order: SortOrder::Descending,
+        };
         let mut produced = input.clone();
         sorter.sort_path_results(&mut produced);
         assert_eq!(produced, expected);

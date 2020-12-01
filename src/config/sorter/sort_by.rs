@@ -1,5 +1,5 @@
-use std::path::Path;
 use std::cmp::Ordering;
+use std::path::Path;
 
 use serde::Deserialize;
 
