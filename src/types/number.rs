@@ -1,10 +1,5 @@
-use std::ops::Add;
-use std::ops::Sub;
-use std::ops::Mul;
-use std::ops::Div;
-use std::ops::Rem;
-use std::ops::Neg;
 use std::cmp::Ordering;
+use std::ops::{Add, Sub, Mul, Div, Rem, Neg};
 
 use rust_decimal::Decimal;
 

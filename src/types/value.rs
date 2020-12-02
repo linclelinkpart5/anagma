@@ -3,13 +3,14 @@
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
-use rust_decimal::Decimal;
+pub use rust_decimal::Decimal;
+
 use serde::Deserialize;
 use serde::Serialize;
 use strum::{EnumDiscriminants, AsRefStr};
 use thiserror::Error;
 
-use crate::util::Number;
+use crate::types::Number;
 
 #[derive(Debug, Error, Copy, Clone, PartialEq, Hash)]
 pub enum Error {
@@ -30,11 +31,11 @@ pub type Mapping = BTreeMap<String, Value>;
 pub enum Value {
     Null,
     String(String),
+    Integer(i64),
+    Boolean(bool),
+    Decimal(Decimal),
     Sequence(Sequence),
     Mapping(Mapping),
-    Integer(Integer),
-    Boolean(Boolean),
-    Decimal(Decimal),
 }
 
 impl Value {

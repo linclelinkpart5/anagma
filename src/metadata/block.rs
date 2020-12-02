@@ -2,7 +2,7 @@
 
 use indexmap::IndexMap;
 
-use crate::metadata::value::Mapping;
+use crate::types::Mapping;
 
 /// Represents a chunk of metadata for one item.
 // NOTE: This alias is intentional, this is taken advantage of later downstream.

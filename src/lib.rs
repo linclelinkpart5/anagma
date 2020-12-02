@@ -1,6 +1,7 @@
 pub mod config;
 pub mod metadata;
 pub mod source;
+pub mod types;
 mod util;
 
 #[cfg(test)] mod test_util;
