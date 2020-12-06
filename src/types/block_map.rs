@@ -10,11 +10,13 @@ use indexmap::map::{
     Values as InnerValues,
     ValuesMut as InnerValuesMut,
 };
+use serde::Deserialize;
 
 use crate::types::Block;
 
 /// Represents multiple chunks of metadata for a mapping of items keyed by name.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(transparent)]
 pub struct BlockMap(InnerMap<String, Block>);
 
 impl BlockMap {
