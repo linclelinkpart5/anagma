@@ -3,14 +3,15 @@ use std::vec::IntoIter as InnerIntoIter;
 use std::slice::{Iter as InnerIter, IterMut as InnerIterMut};
 use std::iter::{Extend, FromIterator};
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 use crate::types::Block;
 
 /// Represents multiple chunks of metadata for an ordered collection of items.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(transparent)]
-pub struct BlockSeq(Vec<Block>);
+pub struct BlockSeq(pub(crate) Vec<Block>);
 
 impl BlockSeq {
     pub fn new() -> Self {

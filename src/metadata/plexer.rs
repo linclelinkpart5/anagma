@@ -10,8 +10,8 @@ use std::vec::IntoIter as VecIntoIter;
 use thiserror::Error;
 
 use crate::config::sorter::Sorter;
-use crate::metadata::block::Block;
-use crate::metadata::block::BlockMapping;
+use crate::types::{Block, BlockMap};
+use crate::types::block_seq::IntoIter as BlockSeqIntoIter;
 use crate::metadata::schema::Schema;
 
 #[derive(Debug, Error)]
@@ -71,7 +71,7 @@ where
 }
 
 pub struct PlexSeq<'a> {
-    block_iter: VecIntoIter<Block>,
+    block_iter: BlockSeqIntoIter,
     err_iter: VecIntoIter<IoError>,
     path_iter: VecIntoIter<Cow<'a, Path>>
 }
@@ -88,7 +88,7 @@ impl<'a> Iterator for PlexSeq<'a> {
     }
 }
 
-pub struct PlexMap<'a, I>(BlockMapping, I)
+pub struct PlexMap<'a, I>(BlockMap, I)
 where
     I: Iterator<Item = PlexInItem<'a>>;
 
@@ -109,7 +109,7 @@ where
                     None => Some(Err(Error::NamelessItemPath(path.into()))),
                     Some(name_tag) => {
                         // See if the tag is in the meta block mapping.
-                        match self.0.swap_remove(name_tag) {
+                        match self.0.remove(name_tag) {
                             // No meta block in the mapping had a matching tag, report an error.
                             None => Some(Err(Error::UnusedItemPath(path.into()))),
 
@@ -211,6 +211,8 @@ mod tests {
     use maplit::btreemap;
     use str_macro::str;
 
+    use crate::types::{Block, BlockSeq, BlockMap};
+
     use crate::test_util::TestUtil as TU;
 
     // Helper macros.
@@ -302,9 +304,9 @@ mod tests {
 
     #[test]
     fn plex() {
-        let block_a = btreemap![str!("key_a") => TU::s("val_a")];
-        let block_b = btreemap![str!("key_b") => TU::s("val_b")];
-        let block_c = btreemap![str!("key_c") => TU::s("val_c")];
+        let block_a = Block(btreemap![str!("key_a") => TU::s("val_a")]);
+        let block_b = Block(btreemap![str!("key_b") => TU::s("val_b")]);
+        let block_c = Block(btreemap![str!("key_c") => TU::s("val_c")]);
 
         let name_a = "name_a";
         let name_b = "name_b";
@@ -318,12 +320,12 @@ mod tests {
         let sorter = Sorter::default();
 
         let schema_one = Schema::One(block_a.clone());
-        let schema_seq = Schema::Seq(vec![block_a.clone(), block_b.clone(), block_c.clone()]);
-        let schema_map = Schema::Map(indexmap![
+        let schema_seq = Schema::Seq(BlockSeq(vec![block_a.clone(), block_b.clone(), block_c.clone()]));
+        let schema_map = Schema::Map(BlockMap(indexmap![
             str!(name_c) => block_c.clone(),
             str!(name_a) => block_a.clone(),
             str!(name_b) => block_b.clone(),
-        ]);
+        ]));
 
         // Testing `Schema::One`.
         let schema = schema_one;

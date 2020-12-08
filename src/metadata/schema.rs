@@ -12,9 +12,7 @@ use serde_json::Error as JsonError;
 use strum::{EnumString, EnumIter, AsRefStr, EnumDiscriminants};
 use thiserror::Error;
 
-use crate::metadata::block::Block;
-use crate::metadata::block::BlockSequence;
-use crate::metadata::block::BlockMapping;
+use crate::types::{Block, BlockSeq, BlockMap};
 use crate::source::Anchor;
 
 #[derive(Debug, Error)]
@@ -38,8 +36,8 @@ pub(crate) enum UnitSchemaRepr {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub(crate) enum ManySchemaRepr {
-    Seq(BlockSequence),
-    Map(BlockMapping),
+    Seq(BlockSeq),
+    Map(BlockMap),
 }
 
 /// An easy-to-deserialize flavor of a meta structure.
@@ -77,8 +75,8 @@ impl<'a> From<&'a Anchor> for &'a Arity {
 #[serde(untagged)]
 pub enum Schema {
     One(Block),
-    Seq(BlockSequence),
-    Map(BlockMapping),
+    Seq(BlockSeq),
+    Map(BlockMap),
 }
 
 impl From<SchemaRepr> for Schema {

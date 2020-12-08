@@ -10,14 +10,15 @@ use std::collections::btree_map::{
 };
 use std::iter::{Extend, FromIterator};
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 use crate::types::Value;
 
 /// Represents a chunk of metadata for one item.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(transparent)]
-pub struct Block(InnerMap<String, Value>);
+pub struct Block(pub(crate) InnerMap<String, Value>);
 
 impl Block {
     pub fn new() -> Self {

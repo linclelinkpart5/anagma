@@ -9,8 +9,8 @@ mod util;
 use std::path::Path;
 
 use crate::config::Config;
-use crate::metadata::block::Block;
 use crate::metadata::processor::Processor;
+use crate::types::Block;
 
 pub use crate::util::FileWalker;
 

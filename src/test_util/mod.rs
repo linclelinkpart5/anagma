@@ -16,9 +16,8 @@ use maplit::btreemap;
 use rust_decimal_macros::dec;
 use str_macro::str;
 
-use crate::metadata::block::Block;
 use crate::metadata::schema::Schema;
-use crate::types::{Mapping, Sequence, Value};
+use crate::types::{Block, BlockSeq, Mapping, Sequence, Value};
 use crate::source::Anchor;
 
 use self::entry::DEFAULT_FLAGGER;
@@ -189,7 +188,7 @@ impl TestUtil {
             map.insert(str!("flag_key"), Value::String(str!(target_name)));
         }
 
-        map
+        Block(map)
     }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {
@@ -276,7 +275,7 @@ impl TestUtil {
             ));
             serde_json::to_writer_pretty(self_meta_file, &self_meta_struct).unwrap();
 
-            let mut item_meta_blocks = Vec::new();
+            let mut item_meta_blocks = BlockSeq::new();
 
             for i in 0..fanout {
                 let mut new_breadcrumbs = breadcrumbs.clone();

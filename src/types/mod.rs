@@ -1,6 +1,6 @@
-mod block;
-mod block_seq;
-mod block_map;
+pub mod block;
+pub mod block_seq;
+pub mod block_map;
 mod number;
 mod value;
 

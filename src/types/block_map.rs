@@ -10,14 +10,15 @@ use indexmap::map::{
     Values as InnerValues,
     ValuesMut as InnerValuesMut,
 };
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 use crate::types::Block;
 
 /// Represents multiple chunks of metadata for a mapping of items keyed by name.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(transparent)]
-pub struct BlockMap(InnerMap<String, Block>);
+pub struct BlockMap(pub(crate) InnerMap<String, Block>);
 
 impl BlockMap {
     pub fn new() -> Self {
@@ -82,6 +83,13 @@ impl BlockMap {
 
     pub fn values_mut(&mut self) -> ValuesMut<'_> {
         ValuesMut(self.0.values_mut())
+    }
+
+    // NOTE: Private method to help support in-crate usage.
+    //       Kept private because efficient popping is not guranteed on all map
+    //       types, and it would be better to hide that API.
+    pub(crate) fn pop(&mut self) -> Option<(String, Block)> {
+        self.0.pop()
     }
 }
 

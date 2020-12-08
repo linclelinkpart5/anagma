@@ -8,12 +8,12 @@ use thiserror::Error;
 
 use crate::config::selection::Selection;
 use crate::config::sorter::Sorter;
-use crate::metadata::block::Block;
 use crate::metadata::plexer::Error as PlexerError;
 use crate::metadata::plexer::Plexer;
 use crate::metadata::schema::Error as SchemaError;
 use crate::metadata::schema::Schema;
 use crate::source::{Error as SourceError, Source, Sourcer};
+use crate::types::Block;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -106,6 +106,7 @@ mod tests {
 
     use crate::config::selection::Matcher;
     use crate::source::Anchor;
+
     use crate::test_util::TestUtil as TU;
 
     #[test]
@@ -129,12 +130,12 @@ mod tests {
                     Source::from_name(str!("self.json"), Anchor::Internal).unwrap(),
                 ),
                 hashmap![
-                    Cow::Owned(path.to_owned()) => btreemap![
+                    Cow::Owned(path.to_owned()) => Block(btreemap![
                         str!("ROOT_self_key") => TU::s("ROOT_self_val"),
                         str!("const_key") => TU::s("const_val"),
                         str!("self_key") => TU::s("self_val"),
                         str!("overridden") => TU::s("ROOT_self"),
-                    ],
+                    ]),
                 ],
             ),
             (
@@ -143,36 +144,36 @@ mod tests {
                     Source::from_name(str!("item.json"), Anchor::External).unwrap(),
                 ),
                 hashmap![
-                    Cow::Owned(path.join("ALBUM_01")) => btreemap![
+                    Cow::Owned(path.join("ALBUM_01")) => Block(btreemap![
                         str!("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
                         str!("const_key") => TU::s("const_val"),
                         str!("item_key") => TU::s("item_val"),
                         str!("overridden") => TU::s("ALBUM_01_item"),
-                    ],
-                    Cow::Owned(path.join("ALBUM_02")) => btreemap![
+                    ]),
+                    Cow::Owned(path.join("ALBUM_02")) => Block(btreemap![
                         str!("ALBUM_02_item_key") => TU::s("ALBUM_02_item_val"),
                         str!("const_key") => TU::s("const_val"),
                         str!("item_key") => TU::s("item_val"),
                         str!("overridden") => TU::s("ALBUM_02_item"),
-                    ],
-                    Cow::Owned(path.join("ALBUM_03")) => btreemap![
+                    ]),
+                    Cow::Owned(path.join("ALBUM_03")) => Block(btreemap![
                         str!("ALBUM_03_item_key") => TU::s("ALBUM_03_item_val"),
                         str!("const_key") => TU::s("const_val"),
                         str!("item_key") => TU::s("item_val"),
                         str!("overridden") => TU::s("ALBUM_03_item"),
-                    ],
-                    Cow::Owned(path.join("ALBUM_04.flac")) => btreemap![
+                    ]),
+                    Cow::Owned(path.join("ALBUM_04.flac")) => Block(btreemap![
                         str!("ALBUM_04_item_key") => TU::s("ALBUM_04_item_val"),
                         str!("const_key") => TU::s("const_val"),
                         str!("item_key") => TU::s("item_val"),
                         str!("overridden") => TU::s("ALBUM_04_item"),
-                    ],
-                    Cow::Owned(path.join("ALBUM_05")) => btreemap![
+                    ]),
+                    Cow::Owned(path.join("ALBUM_05")) => Block(btreemap![
                         str!("ALBUM_05_item_key") => TU::s("ALBUM_05_item_val"),
                         str!("const_key") => TU::s("const_val"),
                         str!("item_key") => TU::s("item_val"),
                         str!("overridden") => TU::s("ALBUM_05_item"),
-                    ],
+                    ]),
                 ],
             ),
         ];
@@ -212,32 +213,32 @@ mod tests {
         let inputs_and_expected = vec![
             (
                 Cow::Borrowed(path),
-                btreemap![
+                Block(btreemap![
                     str!("ROOT_self_key") => TU::s("ROOT_self_val"),
                     str!("const_key") => TU::s("const_val"),
                     str!("self_key") => TU::s("self_val"),
                     str!("overridden") => TU::s("ROOT_self"),
-                ],
+                ]),
             ),
             (
                 Cow::Owned(path.join("ALBUM_01")),
-                btreemap![
+                Block(btreemap![
                     str!("ALBUM_01_item_key") => TU::s("ALBUM_01_item_val"),
                     str!("ALBUM_01_self_key") => TU::s("ALBUM_01_self_val"),
                     str!("const_key") => TU::s("const_val"),
                     str!("item_key") => TU::s("item_val"),
                     str!("self_key") => TU::s("self_val"),
                     str!("overridden") => TU::s("ALBUM_01_self"),
-                ],
+                ]),
             ),
             (
                 Cow::Owned(path.join("ALBUM_01").join("DISC_01").join("TRACK_01.flac")),
-                btreemap![
+                Block(btreemap![
                     str!("TRACK_01_item_key") => TU::s("TRACK_01_item_val"),
                     str!("const_key") => TU::s("const_val"),
                     str!("item_key") => TU::s("item_val"),
                     str!("overridden") => TU::s("TRACK_01_item"),
-                ],
+                ]),
             ),
         ];
 
