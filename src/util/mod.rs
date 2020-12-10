@@ -1,13 +1,6 @@
 pub mod file_walker;
 pub(crate) mod ooms;
 
-// TODO: Just using these in preparation for refactoring, remove when these
-//       are moved to this module.
-pub use crate::config::selection::Selection;
-pub use crate::config::selection::Matcher;
-pub use crate::config::sorter::Sorter;
-pub use crate::metadata::schema::SchemaFormat;
-
 pub use self::file_walker::FileWalker;
 
 use std::ffi::OsStr;

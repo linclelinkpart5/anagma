@@ -4,8 +4,7 @@ use std::collections::VecDeque;
 use std::path::Ancestors;
 use std::io::Error as IoError;
 
-use crate::config::selection::Selection;
-use crate::config::sorter::Sorter;
+use crate::config::{Selection, Sorter};
 
 /// Generic file walker that supports visiting either parent or child files of
 /// an origin path.
@@ -131,11 +130,7 @@ impl<'p> Iterator for ChildFileWalker<'p> {
 
 #[cfg(test)]
 mod tests {
-    use super::ParentFileWalker;
-    use super::ChildFileWalker;
-
-    use crate::config::selection::Selection;
-    use crate::config::sorter::Sorter;
+    use super::*;
 
     use crate::test_util::TestUtil;
 

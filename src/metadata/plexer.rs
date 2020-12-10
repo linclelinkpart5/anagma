@@ -9,7 +9,7 @@ use std::vec::IntoIter as VecIntoIter;
 
 use thiserror::Error;
 
-use crate::config::sorter::Sorter;
+use crate::config::Sorter;
 use crate::types::{Block, BlockMap};
 use crate::types::block_seq::IntoIter as BlockSeqIntoIter;
 use crate::metadata::schema::Schema;

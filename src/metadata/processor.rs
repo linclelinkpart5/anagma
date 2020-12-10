@@ -6,12 +6,9 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use crate::config::selection::Selection;
-use crate::config::sorter::Sorter;
-use crate::metadata::plexer::Error as PlexerError;
-use crate::metadata::plexer::Plexer;
-use crate::metadata::schema::Error as SchemaError;
-use crate::metadata::schema::Schema;
+use crate::config::{Selection, Sorter};
+use crate::metadata::plexer::{Error as PlexerError, Plexer};
+use crate::metadata::schema::{Error as SchemaError, Schema};
 use crate::source::{Error as SourceError, Source, Sourcer};
 use crate::types::Block;
 

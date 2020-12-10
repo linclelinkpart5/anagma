@@ -5,10 +5,8 @@ use std::str::FromStr;
 
 use thiserror::Error;
 
-use crate::config::selection::Selection;
-use crate::metadata::schema::SchemaFormat;
-use crate::util::NameError;
-use crate::util::Util;
+use crate::config::{Format, Selection};
+use crate::util::{NameError, Util};
 
 #[derive(Debug, Error)]
 pub enum CreateError {
@@ -76,7 +74,7 @@ pub enum Anchor {
 pub struct Source {
     pub(crate) name: String,
     pub(crate) anchor: Anchor,
-    pub(crate) format: SchemaFormat,
+    pub(crate) format: Format,
 }
 
 impl Source {
@@ -88,7 +86,7 @@ impl Source {
             None => { return Err(CreateError::MissingExt(name)); },
         };
 
-        let format = match SchemaFormat::from_str(ext) {
+        let format = match Format::from_str(ext) {
             Ok(fmt) => fmt,
             Err(_) => { return Err(CreateError::UnknownExt(name)); },
         };

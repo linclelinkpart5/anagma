@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
-use crate::config::sorter::Sorter;
+use crate::config::Sorter;
 
 pub use self::matcher::Error as MatcherError;
 pub use self::matcher::Matcher;
@@ -215,7 +215,7 @@ mod tests {
 
     use maplit::hashset;
 
-    use crate::config::sorter::Sorter;
+    use crate::config::Sorter;
     use crate::test_util::TestUtil;
 
     const SAMPLE_FILE_NAMES: &[&str] = &[

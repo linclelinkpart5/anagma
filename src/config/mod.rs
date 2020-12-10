@@ -1,7 +1,12 @@
 //! Provides configuration options for a library, both programmatically and via config files.
 
+pub mod format;
 pub mod selection;
 pub mod sorter;
+
+pub use self::format::Format;
+pub use self::selection::Selection;
+pub use self::sorter::Sorter;
 
 use std::convert::{TryFrom, TryInto};
 use std::path::Path;
@@ -9,10 +14,8 @@ use std::path::Path;
 use serde::Deserialize;
 use thiserror::Error;
 
-use self::selection::{SelectionRepr, Selection, MatcherError};
-use self::sorter::Sorter;
+use self::selection::{SelectionRepr, MatcherError};
 
-use crate::metadata::schema::SchemaFormat;
 use crate::source::{Anchor, Source, Sourcer, CreateError as SourceCreateError};
 
 const DEFAULT_INTERNAL_STUB: &str = "album";
@@ -37,7 +40,7 @@ pub struct SourcesRepr {
 
 impl Default for SourcesRepr {
     fn default() -> Self {
-        let default_fmt = SchemaFormat::Json;
+        let default_fmt = Format::Json;
         let default_ext = default_fmt.as_ref();
 
         let external = vec![format!("{}.{}", DEFAULT_EXTERNAL_STUB, default_ext)];

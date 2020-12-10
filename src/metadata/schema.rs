@@ -9,11 +9,12 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_yaml::Error as YamlError;
 use serde_json::Error as JsonError;
-use strum::{EnumString, EnumIter, AsRefStr, EnumDiscriminants};
+use strum::EnumDiscriminants;
 use thiserror::Error;
 
-use crate::types::{Block, BlockSeq, BlockMap};
+use crate::config::Format;
 use crate::source::Anchor;
+use crate::types::{Block, BlockSeq, BlockMap};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -112,14 +113,14 @@ impl Schema {
         }.map(Into::into)
     }
 
-    pub fn from_str(format: &SchemaFormat, s: &str, arity: &Arity) -> Result<Schema, Error> {
+    pub fn from_str(format: &Format, s: &str, arity: &Arity) -> Result<Schema, Error> {
         match format {
-            SchemaFormat::Yaml => Self::from_yaml_str(s, arity).map_err(Error::YamlDeserialize),
-            SchemaFormat::Json => Self::from_json_str(s, arity).map_err(Error::JsonDeserialize),
+            Format::Yaml => Self::from_yaml_str(s, arity).map_err(Error::YamlDeserialize),
+            Format::Json => Self::from_json_str(s, arity).map_err(Error::JsonDeserialize),
         }
     }
 
-    pub fn from_file(format: &SchemaFormat, path: &Path, arity: &Arity) -> Result<Schema, Error> {
+    pub fn from_file(format: &Format, path: &Path, arity: &Arity) -> Result<Schema, Error> {
         let mut f = File::open(path).map_err(Error::CannotOpenFile)?;
 
         let mut buffer = String::new();
@@ -127,16 +128,6 @@ impl Schema {
 
         Self::from_str(format, &buffer, arity)
     }
-}
-
-/// Represents all the different metadata formats that are supported.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize, EnumString, EnumIter, AsRefStr)]
-#[strum(serialize_all = "snake_case")]
-pub enum SchemaFormat {
-    #[strum(serialize = "JSON", serialize = "json")]
-    Json,
-    #[strum(serialize = "YML", serialize = "yml")]
-    Yaml,
 }
 
 #[cfg(test)]
