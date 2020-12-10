@@ -6,16 +6,15 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use crate::config::{Selection, Sorter};
+use crate::config::{Selection, Sorter, FormatError};
 use crate::metadata::plexer::{Error as PlexerError, Plexer};
-use crate::metadata::schema::{Error as SchemaError, Schema};
 use crate::source::{Error as SourceError, Source, Sourcer};
 use crate::types::Block;
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("cannot read metadata file: {0}")]
-    CannotReadMetadata(#[source] SchemaError),
+    CannotReadMetadata(#[source] FormatError),
     #[error("cannot find item file paths: {0}")]
     CannotFindItemPaths(#[source] SourceError),
     #[error("cannot find meta file path: {0}")]
@@ -39,7 +38,7 @@ impl Processor {
         sorter: &'a Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error> {
         let arity = source.anchor.into();
-        let schema = Schema::from_file(&source.format, meta_path, &arity)
+        let schema = source.format.read_schema_path(meta_path, &arity)
             .map_err(Error::CannotReadMetadata)?;
 
         // LEARN: Since `meta_path` is already a ref, no need to add `&`!

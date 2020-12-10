@@ -10,38 +10,12 @@ use serde::Deserialize;
 
 use crate::config::Sorter;
 
-pub use self::matcher::Error as MatcherError;
-pub use self::matcher::Matcher;
+pub use self::matcher::{Error as MatcherError, Matcher};
 pub(crate) use self::matcher::MatcherRepr;
 
 enum FileOrDir {
     File,
     Dir,
-}
-
-pub struct SelectedSubPaths<'a>(ReadDir, &'a Selection);
-
-impl<'a> Iterator for SelectedSubPaths<'a> {
-    type Item = IoResult<PathBuf>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        // LEARN: Unable to inline these, had to use `let`, why is that?
-        let read_dir = &mut self.0;
-        let selection = &self.1;
-
-        // Get next entry from the directory reader.
-        read_dir.find_map(|res| match res {
-            Ok(dir_entry) => {
-                let sub_path = dir_entry.path();
-                match selection.is_selected(&sub_path) {
-                    Ok(true) => Some(Ok(sub_path)),
-                    Ok(false) => None,
-                    Err(err) => Some(Err(err)),
-                }
-            }
-            Err(err) => Some(Err(err)),
-        })
-    }
 }
 
 /// A type that represents included and excluded item files and directories.
@@ -205,6 +179,31 @@ impl TryFrom<SelectionRepr> for Selection {
             exclude_files: value.exclude_files.try_into()?,
             include_dirs: value.include_dirs.try_into()?,
             exclude_dirs: value.exclude_dirs.try_into()?,
+        })
+    }
+}
+
+pub struct SelectedSubPaths<'a>(ReadDir, &'a Selection);
+
+impl<'a> Iterator for SelectedSubPaths<'a> {
+    type Item = IoResult<PathBuf>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // LEARN: Unable to inline these, had to use `let`, why is that?
+        let read_dir = &mut self.0;
+        let selection = &self.1;
+
+        // Get next entry from the directory reader.
+        read_dir.find_map(|res| match res {
+            Ok(dir_entry) => {
+                let sub_path = dir_entry.path();
+                match selection.is_selected(&sub_path) {
+                    Ok(true) => Some(Ok(sub_path)),
+                    Ok(false) => None,
+                    Err(err) => Some(Err(err)),
+                }
+            }
+            Err(err) => Some(Err(err)),
         })
     }
 }

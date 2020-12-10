@@ -4,7 +4,7 @@ pub mod format;
 pub mod selection;
 pub mod sorter;
 
-pub use self::format::Format;
+pub use self::format::{Format, Error as FormatError};
 pub use self::selection::Selection;
 pub use self::sorter::Sorter;
 
