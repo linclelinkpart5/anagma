@@ -17,7 +17,7 @@ use rust_decimal_macros::dec;
 use str_macro::str;
 
 use crate::metadata::schema::Schema;
-use crate::types::{Block, BlockSeq, Mapping, Sequence, Value};
+use crate::types::{Block, BlockSeq, Sequence, Value};
 use crate::source::Anchor;
 
 use self::entry::DEFAULT_FLAGGER;

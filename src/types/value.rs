@@ -1,6 +1,5 @@
 //! Primitive metadata value types.
 
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 
 pub use rust_decimal::Decimal;
@@ -22,7 +21,6 @@ pub enum Error {
 pub type Integer = i64;
 pub type Boolean = bool;
 pub type Sequence = Vec<Value>;
-pub type Mapping = BTreeMap<String, Value>;
 
 /// Represents the types of data that can be used as metadata values.
 #[derive(Debug, Clone, Deserialize, Serialize, EnumDiscriminants)]

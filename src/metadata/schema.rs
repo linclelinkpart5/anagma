@@ -131,7 +131,6 @@ impl Schema {
 
 /// Represents all the different metadata formats that are supported.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Deserialize, EnumString, EnumIter, AsRefStr)]
-#[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
 pub enum SchemaFormat {
     #[strum(serialize = "JSON", serialize = "json")]
