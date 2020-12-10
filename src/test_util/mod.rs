@@ -90,23 +90,23 @@ impl TestUtil {
         ]
     }
 
-    pub fn core_flat_mapping() -> Mapping {
-        btreemap![
+    pub fn core_flat_mapping() -> Block {
+        Block(btreemap![
             str!(Self::STRING_KEY) => Self::sample_string(),
             str!(Self::INTEGER_KEY) => Self::sample_integer(),
             str!(Self::DECIMAL_KEY) => Self::sample_decimal(),
             str!(Self::BOOLEAN_KEY) => Self::sample_boolean(),
             str!(Self::NULL_KEY) => Self::sample_null(),
-        ]
+        ])
     }
 
-    pub fn core_nested_mapping() -> Mapping {
-        let mut map = Self::core_flat_mapping();
+    pub fn core_nested_mapping() -> Block {
+        let mut block = Self::core_flat_mapping();
 
-        map.insert(str!(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
-        map.insert(str!(Self::MAPPING_KEY), Self::sample_flat_mapping());
+        block.insert(str!(Self::SEQUENCE_KEY), Self::sample_flat_sequence());
+        block.insert(str!(Self::MAPPING_KEY), Self::sample_flat_mapping());
 
-        map
+        block
     }
 
     pub fn sample_flat_sequence() -> Value {
@@ -168,27 +168,27 @@ impl TestUtil {
     }
 
     pub fn sample_meta_block(anchor: &Anchor, target_name: &str, include_flag_key: bool) -> Block {
-        let mut map = Self::core_nested_mapping();
+        let mut block = Self::core_nested_mapping();
 
         let anchor_str = match anchor {
             Anchor::Internal => "self",
             Anchor::External => "item",
         };
 
-        map.insert(
+        block.insert(
             str!(format!("{}_key", anchor_str)),
             Value::String(format!("{}_val", anchor_str)),
         );
 
-        map.insert(str!("anchor"), Value::String(str!(anchor_str)));
+        block.insert(str!("anchor"), Value::String(str!(anchor_str)));
 
-        map.insert(str!("target_file_name"), Value::String(str!(target_name)));
+        block.insert(str!("target_file_name"), Value::String(str!(target_name)));
 
         if include_flag_key {
-            map.insert(str!("flag_key"), Value::String(str!(target_name)));
+            block.insert(str!("flag_key"), Value::String(str!(target_name)));
         }
 
-        Block(map)
+        block
     }
 
     pub fn create_plain_fanout_test_dir(name: &str, fanout: usize, max_depth: usize) -> TempDir {

@@ -10,7 +10,7 @@ use serde::Serialize;
 use strum::{EnumDiscriminants, AsRefStr};
 use thiserror::Error;
 
-use crate::types::Number;
+use crate::types::{Block, Number};
 
 #[derive(Debug, Error, Copy, Clone, PartialEq, Hash)]
 pub enum Error {
@@ -25,7 +25,8 @@ pub type Sequence = Vec<Value>;
 pub type Mapping = BTreeMap<String, Value>;
 
 /// Represents the types of data that can be used as metadata values.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash, Deserialize, Serialize, EnumDiscriminants)]
+#[derive(Debug, Clone, Deserialize, Serialize, EnumDiscriminants)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 #[serde(untagged)]
 #[strum_discriminants(name(ValueKind), derive(Hash, AsRefStr))]
 pub enum Value {
@@ -35,7 +36,7 @@ pub enum Value {
     Boolean(bool),
     Decimal(Decimal),
     Sequence(Sequence),
-    Mapping(Mapping),
+    Mapping(Block),
 }
 
 impl Value {
@@ -65,14 +66,14 @@ impl Value {
 
 #[cfg(test)]
 impl From<&str> for Value {
-    fn from(s: &str) -> Self {
-        Self::String(s.to_string())
+    fn from(value: &str) -> Self {
+        Self::String(value.to_string())
     }
 }
 
 impl From<String> for Value {
-    fn from(s: String) -> Self {
-        Self::String(s)
+    fn from(value: String) -> Self {
+        Self::String(value)
     }
 }
 
@@ -99,14 +100,14 @@ impl<'k> TryFrom<&'k Value> for &'k str {
 }
 
 impl From<Integer> for Value {
-    fn from(i: Integer) -> Self {
-        Self::Integer(i)
+    fn from(value: Integer) -> Self {
+        Self::Integer(value)
     }
 }
 
 impl From<&Integer> for Value {
-    fn from(i: &Integer) -> Self {
-        Self::from(*i)
+    fn from(value: &Integer) -> Self {
+        Self::from(*value)
     }
 }
 
@@ -133,14 +134,14 @@ impl<'k> TryFrom<&'k Value> for Integer {
 }
 
 impl From<Boolean> for Value {
-    fn from(b: Boolean) -> Self {
-        Self::Boolean(b)
+    fn from(value: Boolean) -> Self {
+        Self::Boolean(value)
     }
 }
 
 impl From<&Boolean> for Value {
-    fn from(b: &Boolean) -> Self {
-        Self::from(*b)
+    fn from(value: &Boolean) -> Self {
+        Self::from(*value)
     }
 }
 
@@ -167,14 +168,14 @@ impl<'k> TryFrom<&'k Value> for Boolean {
 }
 
 impl From<Decimal> for Value {
-    fn from(d: Decimal) -> Self {
-        Self::Decimal(d)
+    fn from(value: Decimal) -> Self {
+        Self::Decimal(value)
     }
 }
 
 impl From<&Decimal> for Value {
-    fn from(d: &Decimal) -> Self {
-        Self::from(*d)
+    fn from(value: &Decimal) -> Self {
+        Self::from(*value)
     }
 }
 
@@ -201,8 +202,8 @@ impl<'k> TryFrom<&'k Value> for Decimal {
 }
 
 impl From<Sequence> for Value {
-    fn from(s: Sequence) -> Self {
-        Self::Sequence(s)
+    fn from(value: Sequence) -> Self {
+        Self::Sequence(value)
     }
 }
 
@@ -217,13 +218,13 @@ impl TryFrom<Value> for Sequence {
     }
 }
 
-impl From<Mapping> for Value {
-    fn from(m: Mapping) -> Self {
-        Self::Mapping(m)
+impl From<Block> for Value {
+    fn from(value: Block) -> Self {
+        Self::Mapping(value)
     }
 }
 
-impl TryFrom<Value> for Mapping {
+impl TryFrom<Value> for Block {
     type Error = Error;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
@@ -235,8 +236,8 @@ impl TryFrom<Value> for Mapping {
 }
 
 impl From<Number> for Value {
-    fn from(nl: Number) -> Value {
-        match nl {
+    fn from(value: Number) -> Value {
+        match value {
             Number::Integer(i) => Self::from(i),
             Number::Decimal(d) => Self::from(d),
         }
@@ -244,8 +245,8 @@ impl From<Number> for Value {
 }
 
 impl From<&Number> for Value {
-    fn from(nl: &Number) -> Value {
-        Self::from(*nl)
+    fn from(value: &Number) -> Value {
+        Self::from(*value)
     }
 }
 
@@ -303,11 +304,11 @@ mod tests {
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
-                Value::Mapping(btreemap![
+                Value::Mapping(Block(btreemap![
                     str!("key_a") => Value::String(str!("string")),
                     str!("key_b") => Value::Integer(-27),
                     str!("key_c") => Value::Boolean(false),
-                ]),
+                ])),
             ),
         ];
 
@@ -347,19 +348,19 @@ mod tests {
             ),
             (
                 r#"{"key_a": "string", "key_b": -27, "key_c": false}"#,
-                Value::Mapping(btreemap![
+                Value::Mapping(Block(btreemap![
                     str!("key_a") => Value::String(str!("string")),
                     str!("key_b") => Value::Integer(-27),
                     str!("key_c") => Value::Boolean(false),
-                ]),
+                ])),
             ),
             (
                 "key_a: string\nkey_b: -27\nkey_c: false",
-                Value::Mapping(btreemap![
+                Value::Mapping(Block(btreemap![
                     str!("key_a") => Value::String(str!("string")),
                     str!("key_b") => Value::Integer(-27),
                     str!("key_c") => Value::Boolean(false),
-                ]),
+                ])),
             ),
         ];
 
@@ -389,26 +390,26 @@ mod tests {
         let val_seq_c = Value::from(vec![
             val_str_c.clone(), val_str_c.clone(), val_str_c.clone(),
         ]);
-        let val_map_a = Value::from(btreemap![
+        let val_map_a = Value::from(Block(btreemap![
             str!(key_str_a) => val_str_a.clone(),
             str!(key_str_b) => val_str_b.clone(),
             str!(key_str_c) => val_str_c.clone(),
-        ]);
-        let val_map_b = Value::from(btreemap![
+        ]));
+        let val_map_b = Value::from(Block(btreemap![
             str!(key_str_a) => val_seq_a.clone(),
             str!(key_str_b) => val_seq_b.clone(),
             str!(key_str_c) => val_seq_c.clone(),
-        ]);
-        let val_map_c = Value::from(btreemap![
+        ]));
+        let val_map_c = Value::from(Block(btreemap![
             str!(key_str_a) => val_nil.clone(),
             str!(key_str_b) => val_nil.clone(),
             str!(key_str_c) => val_nil.clone(),
-        ]);
-        let val_map_d = Value::from(btreemap![
+        ]));
+        let val_map_d = Value::from(Block(btreemap![
             str!(key_str_a) => val_map_a.clone(),
             str!(key_str_b) => val_map_b.clone(),
             str!(key_str_c) => val_map_c.clone(),
-        ]);
+        ]));
 
         let inputs_and_expected = vec![
 
