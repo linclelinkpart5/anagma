@@ -5,7 +5,8 @@ use std::str::FromStr;
 
 use thiserror::Error;
 
-use crate::config::{Format, Selection};
+use crate::config::{Format, FormatError, Selection};
+use crate::metadata::Schema;
 use crate::util::{NameError, Util};
 
 #[derive(Debug, Error)]
@@ -181,6 +182,10 @@ impl Source {
         selection: &'a Selection,
     ) -> Result<SelectedItemPaths<'a>, Error> {
         Ok(SelectedItemPaths(self.item_paths(meta_path)?, selection))
+    }
+
+    pub fn read_schema(&self, meta_path: &Path) -> Result<Schema, FormatError> {
+        self.format.read_schema_path(meta_path, &self.anchor.into())
     }
 }
 

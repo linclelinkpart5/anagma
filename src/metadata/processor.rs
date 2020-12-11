@@ -37,9 +37,7 @@ impl Processor {
         selection: &'a Selection,
         sorter: &'a Sorter,
     ) -> Result<HashMap<Cow<'a, Path>, Block>, Error> {
-        let arity = source.anchor.into();
-        let schema = source.format.read_schema_path(meta_path, &arity)
-            .map_err(Error::CannotReadMetadata)?;
+        let schema = source.read_schema(meta_path).map_err(Error::CannotReadMetadata)?;
 
         // LEARN: Since `meta_path` is already a ref, no need to add `&`!
         let sel_item_paths = source
