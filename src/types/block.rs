@@ -1,4 +1,3 @@
-use std::iter::FusedIterator;
 use std::collections::BTreeMap as InnerMap;
 use std::collections::btree_map::{
     IntoIter as InnerIntoIter,
@@ -8,7 +7,7 @@ use std::collections::btree_map::{
     Values as InnerValues,
     ValuesMut as InnerValuesMut,
 };
-use std::iter::{Extend, FromIterator};
+use std::iter::{Extend, FromIterator, FusedIterator};
 
 use serde::{Serialize, Deserialize};
 
