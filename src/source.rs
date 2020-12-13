@@ -7,12 +7,12 @@ use thiserror::Error;
 
 use crate::config::{Format, FormatError, Selection};
 use crate::metadata::Schema;
-use crate::util::{NameError, Util};
+use crate::util::{InvalidNameKind, Util};
 
 #[derive(Debug, Error)]
 pub enum CreateError {
-    #[error("invalid source name: {0}")]
-    InvalidName(NameError),
+    #[error("invalid source name: {0}: {1}")]
+    InvalidName(InvalidNameKind, String),
     #[error("missing extension: {0}")]
     MissingExt(String),
     #[error("unknown extension: {0}")]
@@ -80,8 +80,12 @@ pub struct Source {
 
 impl Source {
     pub fn from_name(name: String, anchor: Anchor) -> Result<Self, CreateError> {
-        let name = Util::validate_item_name(name).map_err(CreateError::InvalidName)?;
+        match Util::validate_item_name(&name) {
+            Ok(()) => {},
+            Err(kind) => return Err(CreateError::InvalidName(kind, name)),
+        };
 
+        // TODO: Make this work with multi-part exts (e.g. ".tar.gz").
         let ext = match name.rsplit('.').next() {
             Some(e) => e,
             None => { return Err(CreateError::MissingExt(name)); },
@@ -105,10 +109,15 @@ impl Source {
         let item_fs_stat = std::fs::metadata(&item_path)
             .map_err(|io| Error::ItemAccess(item_path.into(), io))?;
 
+        // Create the path of the directory that should contain the meta file.
         let meta_path_parent_dir = match self.anchor {
+            // The meta parent dir is the same as the item's parent dir.
             Anchor::External => item_path
                 .parent()
                 .ok_or_else(|| Error::NoItemParentDir(item_path.into()))?,
+
+            // The meta parent dir is the item path itself, as long as it is
+            // actually a dir.
             Anchor::Internal => {
                 if !item_fs_stat.is_dir() {
                     return Err(Error::NotADir(item_path.into()));
@@ -130,7 +139,7 @@ impl Source {
 
         // Ensure that the meta path is indeed a file.
         if !meta_fs_stat.is_file() {
-            // Found a directory with the meta file name, this would be an unusual error case.
+            // Found a directory with the meta file name.
             Err(Error::NotAFile(meta_path))
         } else {
             Ok(meta_path)

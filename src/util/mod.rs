@@ -3,23 +3,22 @@ pub(crate) mod ooms;
 
 pub use self::file_walker::FileWalker;
 
-use std::ffi::OsStr;
 use std::path::Path;
 use std::path::Component;
 use std::time::SystemTime;
 
 use thiserror::Error;
 
-#[derive(Debug, Clone, Error)]
-pub enum NameError {
+#[derive(Debug, Clone, Copy, Error, PartialEq, Eq, Hash)]
+pub enum InvalidNameKind {
     #[error("name does not have any path components")]
-    NoComponents,
-    #[error("name has more than one path component: {0}")]
-    ManyComponents(String),
-    #[error("name contains a non-normal path component: {0}")]
-    NonNormalComponent(String),
-    #[error("name does not match normalized version of itself: {0}")]
-    NotRoundTrip(String),
+    EmptyName,
+    #[error("name has more than one path component")]
+    TooManyParts,
+    #[error("name contains a non-normal path component")]
+    NonNormalPart,
+    #[error("name does not match normalized version of itself")]
+    NotRoundTrip,
 }
 
 /// Helpful utilities, meant to use used internally in the crate.
@@ -33,19 +32,19 @@ impl Util {
     }
 
     /// Tests a string to see if it would be a valid item file name.
-    pub fn validate_item_name(name: String) -> Result<String, NameError> {
+    pub fn validate_item_name(name: &str) -> Result<(), InvalidNameKind> {
         // Re-create this name as a file path, and iterate over its components.
-        let name_path = Path::new(&name);
+        let name_path = Path::new(name);
         let mut components = name_path.components();
 
         match (components.next(), components.next()) {
-            (None, _) => { Err(NameError::NoComponents) },
-            (Some(_), Some(_)) => { Err(NameError::ManyComponents(name)) },
+            (None, _) => { Err(InvalidNameKind::EmptyName) },
+            (Some(_), Some(_)) => { Err(InvalidNameKind::TooManyParts) },
             (Some(Component::Normal(c)), None) => {
-                if c != OsStr::new(&name) { Err(NameError::NotRoundTrip(name)) }
-                else { Ok(name) }
+                if c != name { Err(InvalidNameKind::NotRoundTrip) }
+                else { Ok(()) }
             },
-            (Some(_), None) => { Err(NameError::NonNormalComponent(name)) },
+            (Some(_), None) => { Err(InvalidNameKind::NonNormalPart) },
         }
     }
 }
@@ -58,8 +57,6 @@ mod tests {
     use std::time::SystemTime;
 
     use tempfile::Builder;
-
-    use str_macro::str;
 
     #[test]
     // NOTE: Using `SystemTime` is not guaranteed to be monotonic, so this test might be fragile.
@@ -91,86 +88,100 @@ mod tests {
 
     #[test]
     fn validate_item_name() {
-        assert_eq!(Util::validate_item_name(str!("name")).unwrap(), str!("name"));
-        assert_eq!(Util::validate_item_name(str!(".name")).unwrap(), str!(".name"));
-        assert_eq!(Util::validate_item_name(str!("name.")).unwrap(), str!("name."));
-        assert_eq!(Util::validate_item_name(str!("name.ext")).unwrap(), str!("name.ext"));
+        // Happy path.
+        assert_eq!(
+            Util::validate_item_name("name"),
+            Ok(()),
+        );
+        assert_eq!(
+            Util::validate_item_name(".name"),
+            Ok(()),
+        );
+        assert_eq!(
+            Util::validate_item_name("name."),
+            Ok(()),
+        );
+        assert_eq!(
+            Util::validate_item_name("name.ext"),
+            Ok(()),
+        );
 
-        assert!(matches!(
-            Util::validate_item_name(str!(".")),
-            Err(NameError::NonNormalComponent(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("..")),
-            Err(NameError::NonNormalComponent(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("/")),
-            Err(NameError::NonNormalComponent(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("/.")),
-            Err(NameError::NonNormalComponent(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("/..")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("./")),
-            Err(NameError::NonNormalComponent(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("../")),
-            Err(NameError::NonNormalComponent(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("/name")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("name/")),
-            Err(NameError::NotRoundTrip(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("./name")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("name/.")),
-            Err(NameError::NotRoundTrip(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("../name")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("name/..")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("/name.ext")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("name.ext/")),
-            Err(NameError::NotRoundTrip(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("./name.ext")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("name.ext/.")),
-            Err(NameError::NotRoundTrip(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("../name.ext")),
-            Err(NameError::ManyComponents(..))
-        ));
-        assert!(matches!(
-            Util::validate_item_name(str!("name.ext/..")),
-            Err(NameError::ManyComponents(..))
-        ));
+        // Unhappy path.
+        assert_eq!(
+            Util::validate_item_name("."),
+            Err(InvalidNameKind::NonNormalPart),
+        );
+        assert_eq!(
+            Util::validate_item_name(".."),
+            Err(InvalidNameKind::NonNormalPart),
+        );
+        assert_eq!(
+            Util::validate_item_name("/"),
+            Err(InvalidNameKind::NonNormalPart),
+        );
+        assert_eq!(
+            Util::validate_item_name("/."),
+            Err(InvalidNameKind::NonNormalPart),
+        );
+        assert_eq!(
+            Util::validate_item_name("/.."),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("./"),
+            Err(InvalidNameKind::NonNormalPart),
+        );
+        assert_eq!(
+            Util::validate_item_name("../"),
+            Err(InvalidNameKind::NonNormalPart),
+        );
+        assert_eq!(
+            Util::validate_item_name("/name"),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("name/"),
+            Err(InvalidNameKind::NotRoundTrip),
+        );
+        assert_eq!(
+            Util::validate_item_name("./name"),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("name/."),
+            Err(InvalidNameKind::NotRoundTrip),
+        );
+        assert_eq!(
+            Util::validate_item_name("../name"),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("name/.."),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("/name.ext"),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("name.ext/"),
+            Err(InvalidNameKind::NotRoundTrip),
+        );
+        assert_eq!(
+            Util::validate_item_name("./name.ext"),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("name.ext/."),
+            Err(InvalidNameKind::NotRoundTrip),
+        );
+        assert_eq!(
+            Util::validate_item_name("../name.ext"),
+            Err(InvalidNameKind::TooManyParts),
+        );
+        assert_eq!(
+            Util::validate_item_name("name.ext/.."),
+            Err(InvalidNameKind::TooManyParts),
+        );
     }
 }
