@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::config::{Selection, Sorter, FormatError};
 use crate::metadata::plexer::{Error as PlexerError, Plexer};
-use crate::source::{Error as SourceError, Source, Sourcer};
+use crate::sources::{Error as SourceError, Source, Sourcer};
 use crate::types::Block;
 
 #[derive(Debug, Error)]
@@ -99,7 +99,7 @@ mod tests {
     use str_macro::str;
 
     use crate::config::selection::Matcher;
-    use crate::source::Anchor;
+    use crate::sources::Anchor;
 
     use crate::test_util::TestUtil as TU;
 

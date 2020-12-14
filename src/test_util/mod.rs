@@ -18,7 +18,7 @@ use str_macro::str;
 
 use crate::metadata::schema::Schema;
 use crate::types::{Block, BlockSeq, Sequence, Value};
-use crate::source::Anchor;
+use crate::sources::Anchor;
 
 use self::entry::DEFAULT_FLAGGER;
 use self::entry::DEFAULT_LIBRARY;

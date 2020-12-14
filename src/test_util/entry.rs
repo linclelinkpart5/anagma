@@ -7,7 +7,7 @@ use std::path::Path;
 use serde_json::Map as JsonMap;
 use serde_json::Value as Json;
 
-use crate::source::Anchor;
+use crate::sources::Anchor;
 
 pub(crate) const MEDIA_FILE_EXT: &str = "flac";
 

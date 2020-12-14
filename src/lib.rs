@@ -1,6 +1,6 @@
 pub mod config;
 pub mod metadata;
-pub mod source;
+pub mod sources;
 pub mod types;
 mod util;
 

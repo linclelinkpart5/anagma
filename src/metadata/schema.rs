@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use strum::EnumDiscriminants;
 
-use crate::source::Anchor;
+use crate::sources::Anchor;
 use crate::types::{Block, BlockSeq, BlockMap};
 
 #[derive(Debug, Clone, Deserialize)]

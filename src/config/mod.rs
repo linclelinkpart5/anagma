@@ -16,7 +16,7 @@ use thiserror::Error;
 
 use self::selection::{SelectionRepr, MatcherError};
 
-use crate::source::{Anchor, Source, Sourcer, CreateError as SourceCreateError};
+use crate::sources::{Anchor, Source, Sourcer, CreateError as SourceCreateError};
 
 const DEFAULT_INTERNAL_STUB: &str = "album";
 const DEFAULT_EXTERNAL_STUB: &str = "track";
