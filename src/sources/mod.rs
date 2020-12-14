@@ -26,7 +26,7 @@ pub enum CreateError {
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum SourceError {
     #[error("not a directory: {}", .0.display())]
     NotADir(PathBuf),
     #[error("not a file: {}", .0.display())]
@@ -48,7 +48,7 @@ pub enum Error {
     // IterDirEntry(#[source] IoError),
 }
 
-impl Error {
+impl SourceError {
     pub(crate) fn is_fatal(&self) -> bool {
         match self {
             Self::MetaAccess(_, io_error) => match io_error.kind() {
@@ -107,26 +107,26 @@ impl Source {
 
     /// Given a concrete item file path, returns the meta file path that would
     /// provide metadata for that item path, according to the source rules.
-    pub fn meta_path(&self, item_path: &Path) -> Result<PathBuf, Error> {
+    pub fn meta_path(&self, item_path: &Path) -> Result<PathBuf, SourceError> {
         // Get filesystem stat for item path.
         // This step is always done, even if the file/directory status does not
         // need to be checked, as it provides useful error information about
         // permissions and non-existence.
         let item_fs_stat = std::fs::metadata(&item_path)
-            .map_err(|io| Error::ItemAccess(item_path.into(), io))?;
+            .map_err(|io| SourceError::ItemAccess(item_path.into(), io))?;
 
         // Create the path of the directory that should contain the meta file.
         let meta_path_parent_dir = match self.anchor {
             // The meta parent dir is the same as the item's parent dir.
             Anchor::External => item_path
                 .parent()
-                .ok_or_else(|| Error::NoItemParentDir(item_path.into()))?,
+                .ok_or_else(|| SourceError::NoItemParentDir(item_path.into()))?,
 
             // The meta parent dir is the item path itself, as long as it is
             // actually a dir.
             Anchor::Internal => {
                 if !item_fs_stat.is_dir() {
-                    return Err(Error::NotADir(item_path.into()));
+                    return Err(SourceError::NotADir(item_path.into()));
                 }
 
                 item_path
@@ -140,13 +140,13 @@ impl Source {
         // NOTE: Using `match` in order to avoid a clone in the error case.
         let meta_fs_stat = match std::fs::metadata(&meta_path) {
             Ok(o) => o,
-            Err(io_err) => return Err(Error::MetaAccess(meta_path, io_err)),
+            Err(io_err) => return Err(SourceError::MetaAccess(meta_path, io_err)),
         };
 
         // Ensure that the meta path is indeed a file.
         if !meta_fs_stat.is_file() {
             // Found a directory with the meta file name.
-            Err(Error::NotAFile(meta_path))
+            Err(SourceError::NotAFile(meta_path))
         } else {
             Ok(meta_path)
         }
@@ -156,12 +156,12 @@ impl Source {
     /// could/should provide metadata for. Note that this does NOT parse meta
     /// files, it only uses file system locations and presence. In addition, no
     /// filtering or sorting of the returned item paths is performed.
-    pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<ItemPaths<'a>, Error> {
+    pub fn item_paths<'a>(&self, meta_path: &'a Path) -> Result<ItemPaths<'a>, SourceError> {
         let meta_fs_stat = std::fs::metadata(&meta_path)
-            .map_err(|io| Error::MetaAccess(meta_path.into(), io))?;
+            .map_err(|io| SourceError::MetaAccess(meta_path.into(), io))?;
 
         if !meta_fs_stat.is_file() {
-            return Err(Error::NotAFile(meta_path.into()));
+            return Err(SourceError::NotAFile(meta_path.into()));
         }
 
         // Get the parent directory of the meta file.
@@ -170,7 +170,7 @@ impl Source {
                 Anchor::External => {
                     // Return all children of the parent directory of this meta file.
                     let read_dir =
-                        std::fs::read_dir(&meta_parent_dir_path).map_err(Error::IterDir)?;
+                        std::fs::read_dir(&meta_parent_dir_path).map_err(SourceError::IterDir)?;
 
                     ItemPathsInner::ReadDir(read_dir)
                 }
@@ -185,7 +185,7 @@ impl Source {
             // This should never happen, since at this point we have a real meta
             // file and thus, a real parent directory for that file, but making
             // an error for it anyways.
-            Err(Error::NoMetaParentDir(meta_path.into()))
+            Err(SourceError::NoMetaParentDir(meta_path.into()))
         }
     }
 
@@ -195,7 +195,7 @@ impl Source {
         &self,
         meta_path: &'a Path,
         selection: &'a Selection,
-    ) -> Result<SelectedItemPaths<'a>, Error> {
+    ) -> Result<SelectedItemPaths<'a>, SourceError> {
         Ok(SelectedItemPaths(self.item_paths(meta_path)?, selection))
     }
 
@@ -298,7 +298,7 @@ pub struct MetaPaths<'a> {
 }
 
 impl<'a> Iterator for MetaPaths<'a> {
-    type Item = Result<(PathBuf, &'a Source), Error>;
+    type Item = Result<(PathBuf, &'a Source), SourceError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(source) = self.iter.next() {

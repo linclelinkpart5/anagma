@@ -8,7 +8,7 @@ use thiserror::Error;
 
 use crate::config::{Selection, Sorter, FormatError};
 use crate::metadata::plexer::{Error as PlexerError, Plexer};
-use crate::sources::{Error as SourceError, Source, Sourcer};
+use crate::sources::{SourceError, Source, Sourcer};
 use crate::types::Block;
 
 #[derive(Debug, Error)]
