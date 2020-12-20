@@ -1,3 +1,7 @@
+pub mod item_paths;
+
+pub use self::item_paths::*;
+
 use std::path::{Path, PathBuf};
 
 use crate::sources::{Source, SourceError};
