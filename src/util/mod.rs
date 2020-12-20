@@ -3,8 +3,9 @@ pub(crate) mod ooms;
 
 pub use self::file_walker::FileWalker;
 
-use std::path::Path;
-use std::path::Component;
+use std::fs::Metadata;
+use std::io::Result as IoResult;
+use std::path::{Path, Component};
 use std::time::SystemTime;
 
 use thiserror::Error;
@@ -25,6 +26,22 @@ pub enum InvalidNameKind {
 pub(crate) struct Util;
 
 impl Util {
+    pub fn stat(path: &Path) -> IoResult<Metadata> {
+        std::fs::metadata(path)
+    }
+
+    pub fn exists(path: &Path) -> IoResult<()> {
+        Self::stat(path).map(|_| ())
+    }
+
+    pub fn is_file(path: &Path) -> IoResult<bool> {
+        Self::stat(path).map(|m| m.is_file())
+    }
+
+    pub fn is_dir(path: &Path) -> IoResult<bool> {
+        Self::stat(path).map(|m| m.is_dir())
+    }
+
     /// Convenience method that gets the mod time of a path.
     /// Errors are coerced to `None`.
     pub fn mtime(abs_path: &Path) -> Option<SystemTime> {
