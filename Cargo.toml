@@ -1,3 +1,5 @@
+cargo-features = ["edition2021"]
+
 [package]
 authors = ["Mark LeMoine <linclelinkpart5@gmail.com>"]
 description = "A new standard for storing hierarchical metadata for data/media files in external configuration files."
