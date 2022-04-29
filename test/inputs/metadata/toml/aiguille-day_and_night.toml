@@ -1,0 +1,22 @@
+[album]
+artist = 'Aiguille'
+date = 2020-07-27
+label = 'Chillhop Music'
+title = 'Day and Night'
+vendor = 'Bandcamp'
+
+[[tracks]]
+title = 'Daylight'
+
+[[tracks]]
+title = 'Daydream'
+
+[[tracks]]
+title = 'Day and Night'
+
+[[tracks]]
+title = 'Nightfall'
+
+[[tracks]]
+artist = ['Aiguille', 'Evil Needle']
+title = 'Nightglow'

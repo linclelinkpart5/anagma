@@ -1,0 +1,45 @@
+[album]
+artist = 'sP Polanco'
+date = 2019-01-23
+title = 'Bchta Rising'
+vendor = 'TIDAL'
+
+[[tracks]]
+feat = ['Mickey Then', 'Joell']
+title = 'Preguntando'
+
+[[tracks]]
+feat = 'Chantel'
+title = 'Congelado'
+
+[[tracks]]
+feat = 'Pinto Picasso'
+title = 'Man Overboard'
+
+[[tracks]]
+feat = 'Bachata Heightz'
+title = 'Te Miento'
+
+[[tracks]]
+feat = 'Karlos Rosé'
+title = 'Entre Los Dos'
+
+[[tracks]]
+feat = 'Alejandra Feliz'
+title = 'Animales'
+
+[[tracks]]
+feat = 'Kewin Cosmos'
+title = 'Amame Matame'
+
+[[tracks]]
+feat = 'Daniel Santacruz'
+title = 'Baile Asesino'
+
+[[tracks]]
+feat = 'Liza + Willie'
+title = 'Catalogo de Amor'
+
+[[tracks]]
+feat = 'Ralphy Dreamz'
+title = 'Energía'
