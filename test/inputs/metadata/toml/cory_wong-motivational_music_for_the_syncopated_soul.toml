@@ -1,0 +1,49 @@
+[album]
+artist = 'Cory Wong'
+date = '2019-08-02'
+title = 'Motivational Music for the Syncopated Soul'
+vendor = 'Bandcamp'
+
+[[tracks]]
+feat = 'Caleb Hawley'
+title = 'Limited World'
+
+[[tracks]]
+title = 'St. Paul'
+
+[[tracks]]
+title = 'Lunchtime'
+
+[[tracks]]
+feat = 'Tom Misch'
+title = 'Cosmic Sans'
+
+[[tracks]]
+feat = 'Jon Batiste'
+title = 'Home'
+
+[[tracks]]
+title = '''Today I'm Gonna Get Myself A Real Job'''
+
+[[tracks]]
+feat = 'Emily C. Browning'
+title = 'Starting Line'
+
+[[tracks]]
+title = 'Companion Pass'
+
+[[tracks]]
+title = 'Frogville'
+
+[[tracks]]
+feat = 'Charlie Hunter'
+title = 'Gumshü'
+
+[[tracks]]
+feat = 'Jon Batiste'
+subtitle = 'Alternate Take'
+title = 'Home'
+
+[[tracks]]
+subtitle = 'Party Take'
+title = 'St. Paul'

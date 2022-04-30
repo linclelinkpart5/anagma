@@ -1,0 +1,21 @@
+[album]
+artist = 'Pinto Picasso'
+date = '2020-06-25'
+title = 'Bleü'
+vendor = 'Qobuz'
+
+[[tracks]]
+title = 'Como Va a Ser'
+
+[[tracks]]
+title = 'Paris'
+
+[[tracks]]
+title = 'Know You No More'
+
+[[tracks]]
+title = 'Lucky'
+
+[[tracks]]
+feat = 'Vikina'
+title = 'Señal'

@@ -8,16 +8,17 @@ version = "0.2.0"
 
 [dependencies]
 globset = "0.4"
-indexmap = {version = "1", features = ["serde-1"]}
-rust_decimal = {version = "1", features = ["serde-float"]}
-serde = {version = "1.0", features = ["derive"]}
+indexmap = { version = "1", features = ["serde-1"] }
+rust_decimal = { version = "1", features = ["serde-float"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.8"
-strum = {version = "0.20", features = ["derive"]}
+strum = { version = "0.20", features = ["derive"] }
 thiserror = "1"
 toml = "0.5"
 
 [dev-dependencies]
+glob = "*"
 indoc = "1"
 maplit = "1"
 rand = "0.7"

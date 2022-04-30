@@ -60,5 +60,22 @@ mod tests {
         let metadata: Metadata = toml::from_str(&text).unwrap();
 
         println!("{:?}", metadata);
+
+        for entry in glob::glob("test/inputs/metadata/toml/*.toml").unwrap() {
+            let path = entry.unwrap();
+
+            let text = std::fs::read_to_string(&path).unwrap();
+
+            println!("Parsing TOML file: {}", path.display());
+            println!("------------- TEXT -------------");
+            println!("{}", text);
+            println!("--------------------------------");
+
+            let metadata: Metadata = toml::from_str(&text).unwrap();
+
+            println!("----------- METADATA -----------");
+            println!("{:#?}", metadata);
+            println!("--------------------------------");
+        }
     }
 }

@@ -1,0 +1,58 @@
+[album]
+artist = 'fanso'
+date = '2018-10-29'
+label = 'Guayaba Records'
+title = 'Música para Lagartos'
+vendor = 'Bandcamp'
+
+[[tracks]]
+isrc = 'ESA011891747'
+title = 'Fue un Veranito de Ensueño'
+
+[[tracks]]
+isrc = 'ESA011891748'
+title = 'Lucky Luke'
+
+[[tracks]]
+isrc = 'ESA011891749'
+title = 'Bahía'
+
+[[tracks]]
+isrc = 'ESA011891750'
+title = 'Fuimos al Cementerio a Invocar a los Lagartos'
+
+[[tracks]]
+isrc = 'ESA011891751'
+title = 'Scooby Doo'
+
+[[tracks]]
+isrc = 'ESA011891752'
+title = 'Pijama'
+
+[[tracks]]
+isrc = 'ESA011891753'
+title = 'En el Bosque No Se Dejaron Ver'
+
+[[tracks]]
+isrc = 'ESA011891754'
+title = 'Pársel'
+
+[[tracks]]
+isrc = 'ESA011891755'
+title = 'Stacy Malibu'
+
+[[tracks]]
+isrc = 'ESA011891756'
+title = 'Llamamos a los Lagartos a Ver Si Tal'
+
+[[tracks]]
+isrc = 'ESA011891757'
+title = 'Ciego'
+
+[[tracks]]
+isrc = 'ESA011891758'
+title = 'Bien Guay'
+
+[[tracks]]
+isrc = 'ESA011891759'
+title = 'Los Reptiles Tenían Mucha Marcha Pero Algo Aguantamos'
